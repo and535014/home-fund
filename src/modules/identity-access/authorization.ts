@@ -1,5 +1,5 @@
 export type MemberRole = "admin" | "finance_manager" | "general_member";
-export type MemberCapability = "manage_categories";
+export type MemberCapability = "manage_categories" | "manage_recurring";
 
 export type AuthenticatedMember = {
   id: string;
@@ -12,6 +12,7 @@ export type AuthorizationCommand =
   | { type: "browse_household_records" }
   | { type: "manage_members" }
   | { type: "manage_categories" }
+  | { type: "manage_recurring" }
   | { type: "create_income_record"; targetMemberId: string }
   | { type: "create_expense_record"; targetMemberId: string }
   | { type: "edit_ledger_record"; recordOwnerId: string }
@@ -26,6 +27,7 @@ export type AuthorizationResult =
         | "google_account_not_linked"
         | "admin_required"
         | "category_manager_required"
+        | "recurring_manager_required"
         | "finance_manager_required"
         | "cannot_create_record_for_other_member"
         | "cannot_edit_other_member_record"
@@ -55,6 +57,12 @@ export function authorize(
     return hasRole(member, "admin") || hasCapability(member, "manage_categories")
       ? { allowed: true }
       : { allowed: false, reason: "category_manager_required" };
+  }
+
+  if (command.type === "manage_recurring") {
+    return hasRole(member, "admin") || hasCapability(member, "manage_recurring")
+      ? { allowed: true }
+      : { allowed: false, reason: "recurring_manager_required" };
   }
 
   if (
