@@ -8,25 +8,49 @@ import {
   Tags,
   Users,
 } from "lucide-react";
+import {
+  buildHomeAccessView,
+  type HomeBlockedView,
+  type HomeDashboardView,
+} from "./home-access";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-import { buildAccessHints } from "@/modules/identity-access/access-hints";
-import type { AuthenticatedMember } from "@/modules/identity-access/authorization";
-import { buildMonthlyReport } from "@/modules/reporting/monthly-report";
+import type { HouseholdMemberAccount } from "@/modules/identity-access/member-management";
 import type { RecurringOccurrence } from "@/modules/recurring-schedule/recurring-rules";
-import { buildMonthlyReimbursementTable } from "@/modules/reimbursement/reimbursement-table";
 
-const currentMember: AuthenticatedMember = {
-  id: "member-fin",
-  googleAccountLinked: true,
-  roles: ["finance_manager"],
-  capabilities: ["manage_categories"],
+const mockGoogleIdentity = {
+  subject: "google-lin",
+  email: "lin@example.com",
 };
 
-const members = [
-  { id: "member-mei", displayName: "Mei" },
-  { id: "member-kai", displayName: "Kai" },
-  { id: "member-fin", displayName: "Lin" },
+const members: HouseholdMemberAccount[] = [
+  {
+    id: "member-mei",
+    displayName: "Mei",
+    googleAccountEmail: "mei@example.com",
+    googleSubject: "google-mei",
+    roles: ["general_member"],
+    capabilities: [],
+    status: "active",
+  },
+  {
+    id: "member-kai",
+    displayName: "Kai",
+    googleAccountEmail: "kai@example.com",
+    googleSubject: "google-kai",
+    roles: ["general_member"],
+    capabilities: [],
+    status: "active",
+  },
+  {
+    id: "member-fin",
+    displayName: "Lin",
+    googleAccountEmail: "lin@example.com",
+    googleSubject: "google-lin",
+    roles: ["finance_manager"],
+    capabilities: ["manage_categories"],
+    status: "active",
+  },
 ];
 
 const categories: Category[] = [
@@ -100,22 +124,24 @@ const pendingOccurrences: RecurringOccurrence[] = [
   },
 ];
 
-const accessHints = buildAccessHints(currentMember);
-const reimbursementTable = buildMonthlyReimbursementTable({
-  month: "2026-06",
-  members,
-  records,
-});
-const report = buildMonthlyReport({
+const homeView = buildHomeAccessView({
+  googleIdentity: mockGoogleIdentity,
+  householdMembers: members,
   month: "2026-06",
   records,
   categories,
   pendingOccurrences,
-  reimbursementTable,
 });
 const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
 
 export default function HomePage() {
+  if (homeView.kind !== "dashboard") {
+    return <AccessBlockedScreen view={homeView} />;
+  }
+
+  const { accessHints, profile, reimbursementTable, report } = homeView;
+  const visibleNavigationItems = getVisibleNavigationItems(accessHints);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 pb-28 md:grid-cols-[15rem_1fr] md:pb-0">
@@ -127,6 +153,7 @@ export default function HomePage() {
             <div>
               <p className="text-label text-muted-foreground">家庭共用金</p>
               <h1 className="text-subheading text-foreground">月報工作台</h1>
+              <p className="mt-1 text-caption text-muted-foreground">{profile.displayName}</p>
             </div>
           </div>
           <nav aria-label="主要功能" className="mt-8 grid gap-1">
@@ -370,6 +397,30 @@ export default function HomePage() {
   );
 }
 
+function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-8 text-foreground">
+      <section
+        aria-labelledby="access-state-title"
+        className="w-full max-w-sm rounded-card border border-border bg-card p-5"
+      >
+        <p className="text-label text-muted-foreground">家庭共用金管理</p>
+        <h1 id="access-state-title" className="mt-2 text-heading text-foreground">
+          {view.title}
+        </h1>
+        <p className="mt-3 text-body text-muted-foreground">{view.description}</p>
+        <button
+          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-button bg-primary px-4 text-label text-primary-foreground"
+          type="button"
+        >
+          <Users aria-hidden="true" size={18} />
+          <span>{view.primaryActionLabel}</span>
+        </button>
+      </section>
+    </main>
+  );
+}
+
 function SummaryMetric({
   label,
   value,
@@ -427,56 +478,56 @@ function formatAmount(amountCents: number): string {
   }).format(amountCents / 100);
 }
 
-const navigationItems = [
-  {
-    label: "月報",
-    href: "#",
-    icon: CircleDollarSign,
-    active: true,
-    visible: accessHints.navigation.canOpenReports,
-  },
-  {
-    label: "紀錄",
-    href: "#",
-    icon: ReceiptText,
-    active: false,
-    visible: accessHints.navigation.canOpenRecords,
-  },
-  {
-    label: "新增",
-    href: "#",
-    icon: Plus,
-    active: false,
-    visible: accessHints.navigation.canOpenCreateRecord,
-  },
-  {
-    label: "退款",
-    href: "#",
-    icon: HandCoins,
-    active: false,
-    visible: accessHints.navigation.canOpenReimbursements,
-  },
-  {
-    label: "週期",
-    href: "#",
-    icon: CalendarClock,
-    active: false,
-    visible: accessHints.navigation.canOpenRecurring,
-  },
-  {
-    label: "分類",
-    href: "#",
-    icon: Tags,
-    active: false,
-    visible: accessHints.navigation.canOpenCategories,
-  },
-  {
-    label: "成員",
-    href: "#",
-    icon: Users,
-    active: false,
-    visible: accessHints.navigation.canOpenMembers,
-  },
-];
-
-const visibleNavigationItems = navigationItems.filter((item) => item.visible);
+function getVisibleNavigationItems(accessHints: HomeDashboardView["accessHints"]) {
+  return [
+    {
+      label: "月報",
+      href: "#",
+      icon: CircleDollarSign,
+      active: true,
+      visible: accessHints.navigation.canOpenReports,
+    },
+    {
+      label: "紀錄",
+      href: "#",
+      icon: ReceiptText,
+      active: false,
+      visible: accessHints.navigation.canOpenRecords,
+    },
+    {
+      label: "新增",
+      href: "#",
+      icon: Plus,
+      active: false,
+      visible: accessHints.navigation.canOpenCreateRecord,
+    },
+    {
+      label: "退款",
+      href: "#",
+      icon: HandCoins,
+      active: false,
+      visible: accessHints.navigation.canOpenReimbursements,
+    },
+    {
+      label: "週期",
+      href: "#",
+      icon: CalendarClock,
+      active: false,
+      visible: accessHints.navigation.canOpenRecurring,
+    },
+    {
+      label: "分類",
+      href: "#",
+      icon: Tags,
+      active: false,
+      visible: accessHints.navigation.canOpenCategories,
+    },
+    {
+      label: "成員",
+      href: "#",
+      icon: Users,
+      active: false,
+      visible: accessHints.navigation.canOpenMembers,
+    },
+  ].filter((item) => item.visible);
+}
