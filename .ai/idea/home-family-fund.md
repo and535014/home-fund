@@ -45,6 +45,7 @@ The first useful version should include:
 
 - Authentication gate: all functional pages require login.
 - Permission-controlled functionality: roles determine who can create records for others, edit or delete records, manage members, and perform reimbursements.
+- Flexible finance permissions: MVP defaults finance managers to creating and editing others' records without deleting them, while admins can adjust finance-manager permissions later as the product evolves.
 - Member management: admins can invite new members, manage member permissions, and update account information such as display names.
 - Income recording: create income entries with amount, date/month, payer/source member, category, and notes.
 - Expense recording: create expense entries with amount, date/month, category, notes, and payer member when a family member paid upfront.
@@ -81,6 +82,7 @@ Functional constraints:
 - General members can add income and expenses only for themselves and can edit or delete only records they created.
 - Admins can create, edit, and delete records for any member.
 - Finance managers can create and edit records for other members when needed for financial operations.
+- Finance managers cannot delete other members' records in the current MVP permission set.
 - Only finance managers can perform reimbursement actions.
 - Only admins can invite members, manage member permissions, and update member account information such as display names.
 - Income and expenses must both support categories.
@@ -113,7 +115,6 @@ The idea worked if:
 - What currency and locale should be assumed for amounts and monthly reports?
 - Are admin and finance manager separate assignable roles, or can one member hold both roles at the same time?
 - Who is allowed to manage categories and recurring rules: admin only, finance manager, or both?
-- Can a finance manager delete other members' records, or only edit/correct them?
 - Should member invitations be email-based, link-based, or manually created accounts for MVP?
 - Should recurring reminders generate in-app reminders only, or are email/push/LINE notifications required later?
 - Can an expense be split across categories or members, or is one category and one upfront payer enough for MVP?
@@ -130,7 +131,7 @@ The idea worked if:
   - Confirm which workflows must be fully optimized on mobile in the MVP.
 - must_check:
   - Actors are clear enough for Event Storming.
-  - Business outcomes include monthly ledger accuracy, pending recurring items, and reimbursable expense settlement.
+  - Business outcomes include monthly ledger accuracy, pending recurring items, and member-paid expense reimbursement settlement.
   - Policy constraints for immediate posting, reminder confirmation, and one-time reimbursement are explicit.
   - Permission constraints for browsing, record ownership, elevated editing, reimbursement, and member management are explicit.
   - Non-goals keep payment execution and bank integrations out of scope.

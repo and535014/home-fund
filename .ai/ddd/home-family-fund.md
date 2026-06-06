@@ -27,20 +27,23 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Household fund | The shared family money pool being tracked. | Fund ledger |
 | Member | A logged-in household participant who can browse all records. | Identity and access |
 | Admin | Member who can invite members, manage account information and permissions, and edit or delete any record. | Identity and access |
-| Finance manager | Member who can create or edit records for others and perform reimbursements. | Financial operations |
+| Finance manager | Member who can create or edit records for others and perform reimbursements; MVP does not grant delete permission for other members' records. | Financial operations |
 | General member | Member who can create records for themselves and edit or delete only records they created. | Identity and access |
 | Record owner | The member who created a ledger record and controls ordinary edit/delete rights. | Authorization |
 | Payer member | The member who paid an expense upfront or provided income. | Ledger |
 | Income record | Confirmed money received into the household fund, categorized by source/member. | Ledger |
-| Expense record | Confirmed money spent from the household fund or paid upfront by a member. | Ledger |
+| Expense record | Confirmed household spending paid either directly from the fund or upfront by a member. | Ledger |
 | Category | User-managed classification for income or expenses. | Categorization |
 | Recurring rule | A monthly income or expense definition that can create or remind about expected ledger activity. | Recurring schedule |
 | Immediate posting | Recurring rule mode that books an item into the ledger automatically for the target month. | Recurring schedule |
 | Reminder-based posting | Recurring rule mode that creates a pending item until a member confirms that money was actually received or paid. | Recurring schedule |
 | Pending recurring item | Expected income or expense not yet counted in ledger totals. | Recurring schedule |
 | Monthly report | Month-organized read model of income, expenses, categories, pending items, and reimbursement status. | Reporting |
-| Reimbursable expense | Expense paid upfront by a member and eligible to be paid back. | Reimbursement |
-| Reimbursement | One-time settlement action marking selected reimbursable expenses as paid back. | Reimbursement |
+| Fund-paid expense | Expense paid directly from the household fund; it is not refundable to a member. | Ledger |
+| Member-paid expense | Expense paid upfront by a member; it starts as refundable/unreimbursed and appears in the reimbursement table until settled. | Reimbursement |
+| Refundable expense | Member-paid expense that has not yet been reimbursed. | Reimbursement |
+| Reimbursed expense | Member-paid expense that a finance manager has marked as reimbursed. | Reimbursement |
+| Reimbursement | One-time settlement action marking selected member-paid expenses as reimbursed. | Reimbursement |
 
 ## Event Timeline
 | Order | Domain Event | Triggering Command | Actor | Business Outcome |
@@ -51,8 +54,8 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | 4 | Category created | Create category | Admin or authorized manager | Income and expenses can be classified by household language. |
 | 5 | Category updated | Update category | Admin or authorized manager | Category names and status remain useful for reporting. |
 | 6 | Income recorded | Record income | Member, Admin, or Finance manager | Received household money is included in monthly ledger totals. |
-| 7 | Expense recorded | Record expense | Member, Admin, or Finance manager | Household spending or member-paid upfront cost is captured. |
-| 8 | Member-paid expense marked reimbursable | Mark expense reimbursable | Member, Admin, or Finance manager | The reimbursement table can include expenses paid upfront by members. |
+| 7 | Expense recorded | Record expense | Member, Admin, or Finance manager | Household spending is captured with a payment source of fund-paid or member-paid. |
+| 8 | Member-paid expense became refundable | Record member-paid expense | Member, Admin, or Finance manager | A member-paid expense appears in the reimbursement table as refundable/unreimbursed. |
 | 9 | Ledger record corrected | Correct ledger record | Record owner, Admin, or Finance manager | Mistakes can be fixed under permission rules. |
 | 10 | Ledger record deleted | Delete ledger record | Record owner or Admin | Invalid records can be removed under ownership and admin rules. |
 | 11 | Recurring rule created | Create recurring rule | Admin or authorized manager | Expected monthly income or expense can be tracked consistently. |
@@ -74,33 +77,34 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | General member records income or expense | The payer/source member must be themselves. | Record income or Record expense | Admin and finance manager can record on behalf of another member. |
 | General member attempts correction or deletion | The member must be the record owner. | Correct ledger record or Delete ledger record | Other members' records are read-only to general members. |
 | Admin attempts record management | Admin can create, edit, or delete any member's record. | Record, Correct, or Delete ledger record | Admin delete rights are explicit. |
-| Finance manager attempts record management | Finance manager can create or edit records for others. | Record or Correct ledger record | Whether finance managers can delete others' records remains open. |
-| Expense recorded with upfront payer | If the payer member should be paid back, the expense becomes reimbursable. | Mark expense reimbursable | Needs clear data distinction between household-funded and member-paid expenses. |
+| Finance manager attempts record management | Finance manager can create or edit records for others, but cannot delete other members' records in the MVP permission set. | Record or Correct ledger record | Admins can later adjust finance-manager permissions as the product evolves. |
+| Expense recorded with fund payment source | Fund-paid expenses do not enter the reimbursement table. | Record expense | Payment source distinguishes fund-paid from member-paid expenses. |
+| Expense recorded with member payment source | Member-paid expenses become refundable/unreimbursed and appear in the reimbursement table until reimbursed. | Record member-paid expense | This is the "可退款" state before settlement. |
 | Recurring rule reaches monthly schedule | Posting mode decides whether it affects totals immediately. | Post immediate recurring item or Create recurring reminder | Immediate posting counts in ledger; reminder does not. |
 | Pending recurring item is confirmed | Confirmed reminder creates actual income or expense record. | Record income or Record expense | Confirmation should preserve trace to the recurring rule. |
 | Monthly report requested | Include confirmed ledger records, categories, pending recurring items, and reimbursement status. | Generate monthly report | Reporting is a read model, not a separate source of truth. |
-| Reimbursement table requested | Group unpaid reimbursable expenses by month and payer member. | Generate reimbursement table | Must trace totals to individual expenses. |
-| Finance manager marks reimbursement | Each selected expense may be reimbursed only once. | Mark selected expenses reimbursed | Prevents double-counting settled expenses. |
+| Reimbursement table requested | Group refundable member-paid expenses by month and payer member. | Generate reimbursement table | Must trace totals to individual expenses. |
+| Finance manager marks reimbursement | Each selected refundable expense may be marked reimbursed only once. | Mark selected expenses reimbursed | Changes status from refundable/unreimbursed to reimbursed and prevents double-counting. |
 
 ## Aggregate Candidates
 | Aggregate | Events Owned | Invariants | Open Questions |
 |---|---|---|---|
 | Household | Member invited, Member account updated, Member permissions changed | Only admins manage members and permissions; every functional user belongs to the household. | Is MVP strictly one household, or should the model allow future household IDs now? |
-| MemberAccount | Member account updated, Member permissions changed | Display name identifies the member in records; permissions must map to known MVP roles. | Can a member hold admin and finance manager roles at the same time? |
-| LedgerRecord | Income recorded, Expense recorded, Member-paid expense marked reimbursable, Ledger record corrected, Ledger record deleted | Records have amount, month/date, category, creator, and payer/source member; general members can modify only owned records; deleted records must not appear in totals. | Should deletion be hard delete or archived/voided state for auditability? |
+| MemberAccount | Member account updated, Member permissions changed | Display name identifies the member in records; permissions must map to known MVP roles; admins can adjust finance-manager permissions over time. | Can a member hold admin and finance manager roles at the same time? |
+| LedgerRecord | Income recorded, Expense recorded, Member-paid expense became refundable, Ledger record corrected, Ledger record deleted | Records have amount, month/date, category, creator, payment source, payer/source member, and reimbursement status when member-paid; general members can modify only owned records; deleted records must not appear in totals. | Should deletion be hard delete or archived/voided state for auditability? |
 | CategoryCatalog | Category created, Category updated | Income and expense records reference valid categories; categories are user-managed. | Which roles can manage categories? |
 | RecurringRule | Recurring rule created, Recurring rule updated, Immediate recurring item posted, Recurring reminder created, Recurring reminder confirmed | Posting mode is either immediate or reminder-based; reminder-based items do not affect totals until confirmed. | How are missed or duplicate monthly occurrences prevented? |
-| ReimbursementBatch | Reimbursement expenses selected, Expenses reimbursed | Only finance managers perform reimbursement; selected expenses can be reimbursed once; reimbursement totals trace to expense IDs. | Does reimbursement reduce fund balance or only mark settlement state? |
+| ReimbursementBatch | Reimbursement expenses selected, Expenses reimbursed | Only finance managers perform reimbursement; selected refundable expenses can be marked reimbursed once; reimbursement totals trace to expense IDs. | Does reimbursement reduce fund balance or only mark settlement state? |
 | MonthlyReport | Monthly records viewed, Monthly report generated, Monthly reimbursement table generated | Reports derive from ledger, recurring, category, and reimbursement data by month. | Which mobile report summaries are required for MVP? |
 
 ## Bounded Context Candidates
 | Context | Language | Responsibilities | Upstream / Downstream |
 |---|---|---|---|
 | Identity and Access | member, admin, finance manager, general member, permission, account information | Login gate, member invitation, account profile, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members. |
-| Fund Ledger | income record, expense record, payer member, record owner, reimbursable expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
+| Fund Ledger | income record, expense record, payment source, payer member, record owner, fund-paid expense, member-paid expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
 | Categorization | category, income category, expense category | Manage category options and classify ledger records. | Feeds Fund Ledger and Reporting. |
 | Recurring Schedule | recurring rule, immediate posting, reminder-based posting, pending recurring item | Manage monthly expected items, auto-post immediate items, and confirm reminder items. | Creates ledger records in Fund Ledger; feeds Reporting with pending items. |
-| Reimbursement | reimbursement table, selected expense, reimbursed expense, payer member | Calculate unpaid member-paid expenses by month and mark selected expenses reimbursed once. | Uses Fund Ledger expenses and Identity and Access finance-manager permissions; feeds Reporting. |
+| Reimbursement | reimbursement table, refundable expense, selected expense, reimbursed expense, payer member | Calculate refundable member-paid expenses by month and mark selected expenses reimbursed once. | Uses Fund Ledger expenses and Identity and Access finance-manager permissions; feeds Reporting. |
 | Reporting | monthly records, monthly report, category summary, reimbursement status | Month-based views for records, category totals, pending recurring items, and reimbursement status. | Downstream read model from Ledger, Categorization, Recurring Schedule, and Reimbursement. |
 | Responsive Web Experience | desktop layout, mobile layout, browse flow, create flow, report flow, reimbursement flow | Ensure core workflows are usable on desktop and mobile. | Presentation concern downstream from all domain contexts; not source of financial truth. |
 
@@ -244,11 +248,11 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 - Currency and locale are unresolved; Taiwan locale and TWD may be likely but should be confirmed before implementation.
 - Role composition is unresolved: admin and finance manager may need to be independent roles that one member can both hold.
 - Category and recurring-rule management permissions are unresolved; current artifact marks them as admin or authorized manager.
-- Finance manager delete permission is unresolved; current domain assumes finance managers can create/edit for others and only admins can delete any member's record.
+- Finance manager delete permission is decided for MVP: finance managers cannot delete other members' records. Admin-managed permission expansion may allow this later if explicitly enabled.
 - Member invitation mechanism is unresolved: email invitation, invite link, or manually created accounts.
 - Reminder delivery is unresolved; MVP can use in-app pending reminders unless external notification is selected later.
 - Expense split rules are unresolved; MVP assumes one category and one upfront payer unless changed.
-- Reimbursement accounting effect is unresolved; current model marks settlement state and leaves whether fund balance changes as an open policy decision.
+- Reimbursement accounting effect is unresolved; current model changes member-paid expenses from refundable/unreimbursed to reimbursed and leaves whether fund balance changes as an open policy decision.
 - Deletion semantics are unresolved; hard delete is simpler, but void/archive may better protect financial history.
 - RWD acceptance needs concrete workflow priority: browse, create, monthly report, reimbursement, and member management may need different mobile density.
 
