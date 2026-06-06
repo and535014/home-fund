@@ -93,11 +93,13 @@ Functional constraints:
 - Reimbursement must support per-expense selection and one-time reimbursement marking.
 - Monthly reporting and reimbursement views must be organized by month.
 - The web interface must support responsive layouts for both desktop and mobile use.
+- The primary product language is Traditional Chinese (`zh-TW`).
+- The interface uses a dark-first semantic design token system; `--income` is the income primary color and `--expense` is the expense primary color.
 
 Operational assumptions:
 
 - MVP is for a single household or family fund, unless later changed.
-- Currency, timezone, and date handling should be consistent for household monthly settlement; exact currency is unresolved.
+- Locale, timezone, and date handling should default to Traditional Chinese for Taiwan (`zh-TW`); exact currency is unresolved.
 - The initial app can run locally and does not yet require production hosting, backups, or external notification delivery.
 - The development workflow should include basic linting before changes are considered ready.
 
@@ -114,7 +116,7 @@ The idea worked if:
 - Users can manage categories and use them consistently in monthly reports.
 
 ## Open Questions
-- What currency and locale should be assumed for amounts and monthly reports?
+- Should the currency be fixed to TWD for MVP, or configurable later?
 - Are admin and finance manager separate assignable roles, or can one member hold both roles at the same time?
 - Who is allowed to manage categories and recurring rules: admin only, finance manager, or both?
 - Should member invitations be email-based, link-based, or manually created accounts for MVP?

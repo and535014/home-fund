@@ -99,6 +99,7 @@ reviewed_at:
 - error_announcements: Mobile validation announced and visible near fields.
 - focus_management: Route changes and modals set focus correctly.
 - contrast_or_motion_notes: No color-only status; reduced motion respected.
+- theme_notes: Core workflows must remain legible and non-overlapping in both light and dark themes.
 - keyboard_requirements: All workflows usable by keyboard at desktop viewport; mobile semantics support assistive tech.
 
 ## UI Copy Constraints
@@ -106,7 +107,7 @@ reviewed_at:
 - domain_terms: Same as foundation.
 - required_messages: Short labels for mobile rows: Paid by, Source, Status, Category, Month.
 - prohibited_or_sensitive_language: Do not hide financial meaning behind icons only.
-- localization_notes: Chinese labels may be longer; layouts must allow wrapping.
+- localization_notes: Traditional Chinese labels may be longer; layouts must allow wrapping.
 
 ## Frontend / Backend Expectations
 
@@ -178,7 +179,7 @@ reviewed_at:
 - product: Minimum supported mobile width.
 - UX: Which workflows need mobile optimization first under time pressure?
 - accessibility: Financial lists must retain table meaning.
-- content: Chinese text length affects controls.
+- content: Traditional Chinese text length affects controls.
 - tracking: Provider unknown.
 - technical_contract: Payload shape for summary-first mobile rendering.
 

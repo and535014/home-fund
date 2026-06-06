@@ -106,7 +106,7 @@ reviewed_at:
 - domain_terms: income, expense, fund-paid, member-paid, refundable, reimbursed.
 - required_messages: "Member-paid expenses will appear in the reimbursement table until marked reimbursed."
 - prohibited_or_sensitive_language: Avoid "claim" or "invoice" unless product adopts accounting terms.
-- localization_notes: Currency and date formatting need locale decision.
+- localization_notes: Use Traditional Chinese (`zh-TW`) labels and Taiwan-style date/month formatting; currency remains a product decision.
 
 ## Frontend / Backend Expectations
 
@@ -175,7 +175,7 @@ reviewed_at:
 - product: Can member-paid expenses ever be excluded from reimbursement?
 - UX: Payment source wording must be unambiguous.
 - accessibility: Select/radio groups need proper labels.
-- content: Currency/locale unknown.
+- content: Primary language is Traditional Chinese; currency remains unresolved.
 - tracking: Provider unknown.
 - technical_contract: Record creation contract and status derivation.
 

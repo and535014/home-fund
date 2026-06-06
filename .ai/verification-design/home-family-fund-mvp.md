@@ -83,6 +83,8 @@ This verification design targets `local_dev` for an `mvp` release. The plan requ
 - AC18: Desktop and mobile layouts support login, browse records, create records, monthly report review, reimbursement selection/settlement, and key permission-denied states without horizontal overflow.
 - AC19: Form validation, permission errors, loading, empty, error, and success states are visible and accessible through keyboard and screen-reader semantics where applicable.
 - AC20: The implementation provides baseline `lint`, `type-check`, unit/integration test, and E2E test commands before a story is considered ready.
+- AC21: User-facing UI copy uses Traditional Chinese (`zh-TW`) as the primary language.
+- AC22: User-facing screens use the shared dark-first semantic design tokens, with income represented by `--income`, expenses represented by `--expense`, and sufficient contrast for financial status colors.
 
 ## BDD Scenarios
 ```gherkin
@@ -218,6 +220,8 @@ Feature: Responsive and accessible core workflows
 | Monthly reports are derived and traceable | ADR-3, ADR-7 | Unit, integration, contract, E2E |
 | Responsive workflows avoid horizontal overflow | Web foundation, RWD story | E2E viewport checks, manual visual review |
 | Baseline lint/type-check required | ADR-11 | Quality gate command execution |
+| Traditional Chinese is primary UI language | Idea brief, web foundation | UI copy review, E2E/manual visual checks |
+| Dark-first semantic theme is supported | Idea brief, web foundation | UI token review, E2E/manual contrast checks |
 
 ## Visual Model
 
@@ -306,6 +310,8 @@ Feature: Responsive and accessible core workflows
 
 ## Implementation Preconditions
 - Accepted stack is Next.js App Router, TypeScript, Vercel, Neon Postgres, Prisma, Google OAuth, Tailwind CSS, shadcn/ui, Vitest, and Playwright.
+- Primary UI language is Traditional Chinese (`zh-TW`); currency remains unresolved.
+- Dark-first semantic tokens are required; income uses `--income`, expense uses `--expense`, and an explicit light theme switcher can be designed later.
 - Project scaffolding must define baseline commands for lint, type-check, tests, and E2E before feature implementation is considered complete.
 - Google OAuth local development approach must be decided or mocked for tests.
 - Member-to-Google-account linking flow must be selected before implementing authentication.

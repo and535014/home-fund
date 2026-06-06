@@ -104,7 +104,7 @@ reviewed_at:
 - domain_terms: member, Google account, admin, finance manager, general member, permission.
 - required_messages: "You do not have permission to perform this action." Use localized copy later.
 - prohibited_or_sensitive_language: Do not expose internal policy IDs.
-- localization_notes: Chinese UI likely; final language decision pending.
+- localization_notes: Primary UI language is Traditional Chinese (`zh-TW`).
 
 ## Frontend / Backend Expectations
 
@@ -167,7 +167,7 @@ reviewed_at:
 - product: Can one member hold admin and finance manager roles?
 - UX: Should unavailable actions be hidden, disabled, or shown with explanation?
 - accessibility: Permission denied route needs focus handling.
-- content: Final UI language unknown.
+- content: Traditional Chinese UI copy must remain concise enough for mobile controls.
 - tracking: Analytics provider unknown.
 - technical_contract: Google OAuth/session integration and member-linking contract undecided.
 

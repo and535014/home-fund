@@ -82,6 +82,8 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 - Reminder-based recurring items must not affect ledger totals until confirmed.
 - Reports and reimbursement tables are read models derived from ledger, category, recurring, reimbursement, and member data.
 - Desktop and mobile routes share behavior but use different presentation density.
+- Primary UI language is Traditional Chinese (`zh-TW`), so layout, copy, validation, and accessibility checks must account for Traditional Chinese labels and Taiwan-style dates.
+- The UI uses a dark-first semantic design token system from `globals.css`; income uses `--income`, and expenses use `--expense`.
 - Deployment target is Vercel; database target is Neon Postgres; Prisma is accepted as the primary data access and migration tool for MVP and early production.
 - Complex monthly report or reimbursement aggregation may use raw SQL or database views when Prisma query shape becomes inefficient or unclear.
 - The repo is currently artifact-only; no existing code, design system, persistence, auth, routing, lint, or test architecture constrains the plan.
@@ -342,7 +344,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
     label: no actual payment execution
 
 ## Open Risks
-- Currency and locale remain unresolved. Architecture should leave currency formatting/configuration explicit rather than burying it in UI constants.
+- Primary UI locale is decided as Traditional Chinese (`zh-TW`). Currency remains unresolved, so currency formatting/configuration should stay explicit rather than buried in UI constants.
 - Role composition remains unresolved. The capability model should support a member holding multiple roles/capabilities unless product later forbids it.
 - Category and recurring-rule manager roles remain unresolved. Authorization should support configuring this without rewriting feature code.
 - Reimbursement accounting effect remains unresolved. MVP marks status only; fund-balance transaction behavior may require a later ADR.
@@ -355,6 +357,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 - Recurring occurrence generation needs idempotency per rule/month; implementation must not rely on UI preventing duplicates.
 - Reporting performance is an accepted MVP risk if computed on read.
 - Dense mobile reimbursement/report screens need verification for no horizontal overflow and accessible labels.
+- Dark theme requires contrast verification for forms, tables/lists, badges, dialogs, and financial status colors, especially income `--income` and expense `--expense`.
 
 ## Review Gate
 

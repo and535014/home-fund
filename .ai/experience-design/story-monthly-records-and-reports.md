@@ -106,7 +106,7 @@ reviewed_at:
 - domain_terms: confirmed income, confirmed expense, pending recurring item, refundable, reimbursed.
 - required_messages: "Pending reminders are not included in confirmed totals."
 - prohibited_or_sensitive_language: Avoid accounting terms not in domain.
-- localization_notes: Currency, month, and category labels need locale.
+- localization_notes: Use Traditional Chinese (`zh-TW`) for month, category, and report labels; currency remains a product decision.
 
 ## Frontend / Backend Expectations
 

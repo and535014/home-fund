@@ -245,7 +245,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
     label: recorded by
 
 ## Risks and Open Questions
-- Currency and locale are unresolved; Taiwan locale and TWD may be likely but should be confirmed before implementation.
+- Primary UI locale is decided as Traditional Chinese (`zh-TW`); currency remains unresolved, with TWD likely for MVP.
 - Role composition is unresolved: admin and finance manager may need to be independent roles that one member can both hold.
 - Category and recurring-rule management permissions are unresolved; current artifact marks them as admin or authorized manager.
 - Finance manager delete permission is decided for MVP: finance managers cannot delete other members' records. Admin-managed permission expansion may allow this later if explicitly enabled.

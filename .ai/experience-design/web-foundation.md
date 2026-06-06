@@ -36,6 +36,8 @@ reviewed_at:
 - target_user: Household members managing shared family money.
 - product_surface: Authenticated responsive web app.
 - source_of_truth: Domain artifacts under `.ai/idea`, `.ai/ddd`, and `.ai/stories`.
+- primary_language: Traditional Chinese (`zh-TW`).
+- theme_support: Dark-first semantic token system based on the shared `chit` design tokens; explicit light theme can be added later if needed.
 - applies_to_routes: Google sign-in, dashboard/monthly report, create income/expense, records, reimbursement, recurring rules, categories, members/settings.
 - known_exclusions: Public marketing pages, native mobile apps, payment execution, bank sync, production notification design.
 
@@ -73,16 +75,18 @@ reviewed_at:
 ## Design Tokens
 
 - color_tokens:
-  - background: app background
-  - surface: panels, forms, tables
-  - text: primary text
-  - muted_text: secondary labels and metadata
-  - border: separators and control borders
+  - background: app background in light and dark theme
+  - surface: panels, forms, tables in light and dark theme
+  - text: primary text in light and dark theme
+  - muted_text: secondary labels and metadata in light and dark theme
+  - border: separators and control borders in light and dark theme
   - primary: primary action and active navigation
   - danger: delete and destructive confirmation
   - warning: pending reminders and refundable status
   - success: confirmed, reimbursed, saved
   - info: neutral guidance and role notices
+  - income: income primary color, mapped to `--income`
+  - expense: expense primary color, mapped to `--expense`
 - typography_tokens:
   - font_family: system UI unless implementation selects otherwise
   - page_title: compact page heading
@@ -177,10 +181,11 @@ reviewed_at:
 - icon_style: Use established icon library during implementation; icons need labels or tooltips.
 - border_usage: Use borders and spacing for dense grouping; avoid decorative nested cards.
 - color_usage: Status colors must not be the only status cue.
+- theme_usage: Use semantic tokens from `globals.css` instead of fixed colors. Income uses `--income`; expenses use `--expense`.
 - elevation_usage: Reserve elevation for overlays.
-- copy_tone: Direct household finance language; avoid accounting jargon unless domain requires it.
+- copy_tone: Direct Traditional Chinese household finance language; avoid accounting jargon unless domain requires it.
 - data_density: Dense but legible financial rows with clear totals and status.
-- accessibility_baseline: Keyboard navigable, visible focus, semantic labels, announced errors, sufficient contrast.
+- accessibility_baseline: Keyboard navigable, visible focus, semantic labels, announced errors, sufficient contrast in both light and dark themes.
 
 ## Open Questions and Risks
 
@@ -188,8 +193,8 @@ reviewed_at:
 - token_source: Semantic tokens need implementation values later.
 - component_ownership: Unknown until architecture.
 - responsive_behavior: Minimum supported mobile width needs confirmation.
-- accessibility: Dense reimbursement tables need careful mobile and screen reader design.
-- technical_constraints: Stack, routing, persistence, and Google OAuth provider implementation are undecided.
+- accessibility: Dense reimbursement tables need careful mobile, screen reader, and dark-theme contrast design.
+- technical_constraints: Stack, routing, persistence, Google OAuth provider implementation, and exact currency decision are undecided.
 
 ## Review Gate
 
