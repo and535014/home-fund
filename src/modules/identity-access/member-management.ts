@@ -12,6 +12,7 @@ export type HouseholdMemberAccount = {
   id: string;
   displayName: string;
   googleAccountEmail?: string;
+  googleSubject?: string;
   roles: MemberRole[];
   capabilities: MemberCapability[];
   status: HouseholdMemberStatus;
