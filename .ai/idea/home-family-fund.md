@@ -43,7 +43,7 @@ Readiness for this target means authenticated users can create and manage income
 ## Initial Scope
 The first useful version should include:
 
-- Authentication gate: all functional pages require login.
+- Authentication gate: all functional pages require login through Google sign-in for MVP household member convenience.
 - Permission-controlled functionality: roles determine who can create records for others, edit or delete records, manage members, and perform reimbursements.
 - Flexible finance permissions: MVP defaults finance managers to creating and editing others' records without deleting them, while admins can adjust finance-manager permissions later as the product evolves.
 - Member management: admins can invite new members, manage member permissions, and update account information such as display names.
@@ -78,6 +78,7 @@ The MVP should not solve:
 Functional constraints:
 
 - All application functionality must require login.
+- MVP authentication uses Google sign-in; member authorization and household permissions remain owned by the app.
 - Every authenticated member can browse all household records.
 - General members can add income and expenses only for themselves and can edit or delete only records they created.
 - Admins can create, edit, and delete records for any member.
@@ -98,6 +99,7 @@ Operational assumptions:
 - MVP is for a single household or family fund, unless later changed.
 - Currency, timezone, and date handling should be consistent for household monthly settlement; exact currency is unresolved.
 - The initial app can run locally and does not yet require production hosting, backups, or external notification delivery.
+- The development workflow should include basic linting before changes are considered ready.
 
 ## Success Metrics
 The idea worked if:
@@ -116,6 +118,7 @@ The idea worked if:
 - Are admin and finance manager separate assignable roles, or can one member hold both roles at the same time?
 - Who is allowed to manage categories and recurring rules: admin only, finance manager, or both?
 - Should member invitations be email-based, link-based, or manually created accounts for MVP?
+- How should admins map invited household members to Google accounts: invite by email, first-login approval, or manual linking?
 - Should recurring reminders generate in-app reminders only, or are email/push/LINE notifications required later?
 - Can an expense be split across categories or members, or is one category and one upfront payer enough for MVP?
 - Should reimbursements reduce the shared fund balance, or are they recorded only as settlement state against member-paid expenses?

@@ -25,7 +25,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Term | Meaning | Context |
 |---|---|---|
 | Household fund | The shared family money pool being tracked. | Fund ledger |
-| Member | A logged-in household participant who can browse all records. | Identity and access |
+| Member | A household participant who signs in with Google and can browse all records after being recognized by the app. | Identity and access |
 | Admin | Member who can invite members, manage account information and permissions, and edit or delete any record. | Identity and access |
 | Finance manager | Member who can create or edit records for others and perform reimbursements; MVP does not grant delete permission for other members' records. | Financial operations |
 | General member | Member who can create records for themselves and edit or delete only records they created. | Identity and access |
@@ -72,7 +72,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 ## Policies
 | When Event Happens | Policy / Rule | Command Issued | Notes |
 |---|---|---|---|
-| Member attempts to access functionality | All functional pages require login. | Authenticate member | Applies before any domain command is allowed. |
+| Member attempts to access functionality | All functional pages require Google sign-in and app-owned member authorization. | Authenticate member | Google proves identity; the app decides household membership, roles, and capabilities. |
 | Member permissions changed | New permissions determine allowed commands immediately. | Re-evaluate authorization | Admin is the only role that changes permissions in MVP. |
 | General member records income or expense | The payer/source member must be themselves. | Record income or Record expense | Admin and finance manager can record on behalf of another member. |
 | General member attempts correction or deletion | The member must be the record owner. | Correct ledger record or Delete ledger record | Other members' records are read-only to general members. |
@@ -100,7 +100,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 ## Bounded Context Candidates
 | Context | Language | Responsibilities | Upstream / Downstream |
 |---|---|---|---|
-| Identity and Access | member, admin, finance manager, general member, permission, account information | Login gate, member invitation, account profile, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members. |
+| Identity and Access | member, Google account, admin, finance manager, general member, permission, account information | Google sign-in gate, member invitation/linking, account profile, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members. |
 | Fund Ledger | income record, expense record, payment source, payer member, record owner, fund-paid expense, member-paid expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
 | Categorization | category, income category, expense category | Manage category options and classify ledger records. | Feeds Fund Ledger and Reporting. |
 | Recurring Schedule | recurring rule, immediate posting, reminder-based posting, pending recurring item | Manage monthly expected items, auto-post immediate items, and confirm reminder items. | Creates ledger records in Fund Ledger; feeds Reporting with pending items. |
@@ -249,7 +249,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 - Role composition is unresolved: admin and finance manager may need to be independent roles that one member can both hold.
 - Category and recurring-rule management permissions are unresolved; current artifact marks them as admin or authorized manager.
 - Finance manager delete permission is decided for MVP: finance managers cannot delete other members' records. Admin-managed permission expansion may allow this later if explicitly enabled.
-- Member invitation mechanism is unresolved: email invitation, invite link, or manually created accounts.
+- Member invitation/linking mechanism is unresolved: admin invite by Google email, invite link, first-login approval, or manual account linking.
 - Reminder delivery is unresolved; MVP can use in-app pending reminders unless external notification is selected later.
 - Expense split rules are unresolved; MVP assumes one category and one upfront payer unless changed.
 - Reimbursement accounting effect is unresolved; current model changes member-paid expenses from refundable/unreimbursed to reimbursed and leaves whether fund balance changes as an open policy decision.

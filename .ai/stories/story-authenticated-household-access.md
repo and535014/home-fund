@@ -30,7 +30,7 @@ reviewed_at:
 This story targets `local_dev` under the `mvp` release gate.
 
 ## User Story
-As a household member, I want to sign in and only access functionality allowed by my role, so that shared financial records are visible but protected from unauthorized changes.
+As a household member, I want to sign in with Google and only access functionality allowed by my role, so that shared financial records are visible but protected from unauthorized changes.
 
 ## Domain Trace
 | Type | ID / Name | Why It Matters |
@@ -47,6 +47,8 @@ As a household member, I want to sign in and only access functionality allowed b
 
 ## Draft Acceptance Criteria
 - Unauthenticated users cannot access functional household pages.
+- Members sign in through Google for MVP.
+- A successful Google sign-in must still map to an app member before household data is available.
 - Authenticated users can see their own role or permission status.
 - General members can browse household records but are not offered actions they cannot perform.
 - Admin-only and finance-manager-only actions are blocked when attempted by unauthorized members.
@@ -102,7 +104,7 @@ P0. This is the first enabling slice because every other workflow depends on aut
 
 ## Open Questions
 - Can one member hold both admin and finance manager roles?
-- What local-dev authentication mechanism should be used for MVP?
+- How should local development support Google sign-in and member linking?
 
 ## Review Gate
 

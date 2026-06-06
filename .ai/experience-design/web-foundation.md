@@ -36,7 +36,7 @@ reviewed_at:
 - target_user: Household members managing shared family money.
 - product_surface: Authenticated responsive web app.
 - source_of_truth: Domain artifacts under `.ai/idea`, `.ai/ddd`, and `.ai/stories`.
-- applies_to_routes: Login, dashboard/monthly report, create income/expense, records, reimbursement, recurring rules, categories, members/settings.
+- applies_to_routes: Google sign-in, dashboard/monthly report, create income/expense, records, reimbursement, recurring rules, categories, members/settings.
 - known_exclusions: Public marketing pages, native mobile apps, payment execution, bank sync, production notification design.
 
 ## App Shell
@@ -189,7 +189,7 @@ reviewed_at:
 - component_ownership: Unknown until architecture.
 - responsive_behavior: Minimum supported mobile width needs confirmation.
 - accessibility: Dense reimbursement tables need careful mobile and screen reader design.
-- technical_constraints: Stack, routing, persistence, and auth mechanism are undecided.
+- technical_constraints: Stack, routing, persistence, and Google OAuth provider implementation are undecided.
 
 ## Review Gate
 
