@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MemberStatus {
+  invited
+  active
+  disabled
+}
+
+enum MemberRole {
+  admin
+  finance_manager
+  general_member
+}
+
+enum MemberCapability {
+  manage_categories
+}
+
+enum CategoryType {
+  income
+  expense
+}
+
+enum CategoryStatus {
+  active
+  archived
+}
+
+enum LedgerRecordType {
+  income
+  expense
+}
+
+enum PaymentSource {
+  fund
+  member
+}
+
+enum ReimbursementStatus {
+  not_applicable
+  not_refundable
+  refundable
+  reimbursed
+}
+
+enum RecurringPostingMode {
+  immediate
+  reminder
+}
+
+enum RecurringOccurrenceStatus {
+  pending
+  posted
+  skipped
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members              Member[]
+  categories           Category[]
+  ledgerRecords        LedgerRecord[]
+  recurringRules       RecurringRule[]
+  recurringOccurrences RecurringOccurrence[]
+  reimbursementBatches ReimbursementBatch[]
+}
+
+model Member {
+  id                 String       @id @default(cuid())
+  householdId        String
+  displayName        String
+  googleAccountEmail String?      @unique
+  googleSubject      String?      @unique
+  status             MemberStatus @default(invited)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  roles                MemberRoleAssignment[]
+  capabilities         MemberCapabilityAssignment[]
+  createdLedgerRecords LedgerRecord[]               @relation("LedgerRecordCreator")
+  sourcedIncomeRecords LedgerRecord[]               @relation("IncomeSourceMember")
+  paidExpenseRecords   LedgerRecord[]               @relation("ExpensePayerMember")
+  reimbursementBatches ReimbursementBatch[]         @relation("ReimbursementBatchActor")
+
+  @@index([householdId])
+}
+
+model MemberRoleAssignment {
+  memberId  String
+  role      MemberRole
+  createdAt DateTime   @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, role])
+}
+
+model MemberCapabilityAssignment {
+  memberId   String
+  capability MemberCapability
+  createdAt  DateTime         @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, capability])
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  householdId String
+  type        CategoryType
+  name        String
+  status      CategoryStatus @default(active)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  household      Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  ledgerRecords  LedgerRecord[]
+  recurringRules RecurringRule[]
+
+  @@index([householdId, type, name])
+  @@index([householdId, type, status])
+}
+
+model LedgerRecord {
+  id                  String              @id @default(cuid())
+  householdId         String
+  type                LedgerRecordType
+  amountCents         Int
+  occurredOn          DateTime            @db.Date
+  categoryId          String
+  createdByMemberId   String
+  sourceMemberId      String?
+  paymentSource       PaymentSource?
+  payerMemberId       String?
+  reimbursementStatus ReimbursementStatus
+  note                String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  household       Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category        Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdByMember Member    @relation("LedgerRecordCreator", fields: [createdByMemberId], references: [id], onDelete: Restrict)
+  sourceMember    Member?   @relation("IncomeSourceMember", fields: [sourceMemberId], references: [id], onDelete: Restrict)
+  payerMember     Member?   @relation("ExpensePayerMember", fields: [payerMemberId], references: [id], onDelete: Restrict)
+
+  recurringOccurrence RecurringOccurrence?
+  reimbursementItems  ReimbursementBatchItem[]
+
+  @@index([householdId, occurredOn])
+  @@index([householdId, type, occurredOn])
+  @@index([householdId, reimbursementStatus, occurredOn])
+  @@index([payerMemberId, reimbursementStatus])
+}
+
+model RecurringRule {
+  id             String               @id @default(cuid())
+  householdId    String
+  type           LedgerRecordType
+  amountCents    Int
+  categoryId     String
+  sourceMemberId String?
+  paymentSource  PaymentSource?
+  payerMemberId  String?
+  postingMode    RecurringPostingMode
+  dayOfMonth     Int
+  note           String?
+  active         Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  household   Household             @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category    Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  occurrences RecurringOccurrence[]
+
+  @@index([householdId, active])
+}
+
+model RecurringOccurrence {
+  id              String                    @id @default(cuid())
+  householdId     String
+  recurringRuleId String
+  month           String
+  status          RecurringOccurrenceStatus
+  ledgerRecordId  String?                   @unique
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  household     Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  recurringRule RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
+  ledgerRecord  LedgerRecord? @relation(fields: [ledgerRecordId], references: [id], onDelete: SetNull)
+
+  @@unique([recurringRuleId, month])
+  @@index([householdId, month, status])
+}
+
+model ReimbursementBatch {
+  id             String   @id @default(cuid())
+  householdId    String
+  reimbursedById String
+  reimbursedAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  household    Household                @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  reimbursedBy Member                   @relation("ReimbursementBatchActor", fields: [reimbursedById], references: [id], onDelete: Restrict)
+  items        ReimbursementBatchItem[]
+
+  @@index([householdId, reimbursedAt])
+}
+
+model ReimbursementBatchItem {
+  reimbursementBatchId String
+  ledgerRecordId       String
+
+  reimbursementBatch ReimbursementBatch @relation(fields: [reimbursementBatchId], references: [id], onDelete: Cascade)
+  ledgerRecord       LedgerRecord       @relation(fields: [ledgerRecordId], references: [id], onDelete: Restrict)
+
+  @@id([reimbursementBatchId, ledgerRecordId])
+  @@unique([ledgerRecordId])
+}

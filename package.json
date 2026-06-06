@@ -7,6 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "db:validate": "prisma validate",
+    "db:format": "prisma format",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
