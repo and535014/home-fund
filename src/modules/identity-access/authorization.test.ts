@@ -23,6 +23,13 @@ const admin: AuthenticatedMember = {
   roles: ["admin"],
 };
 
+const categoryManager: AuthenticatedMember = {
+  id: "member-category",
+  googleAccountLinked: true,
+  roles: ["general_member"],
+  capabilities: ["manage_categories"],
+};
+
 function command(
   type: AuthorizationCommand["type"],
   target: Omit<AuthorizationCommand, "type"> = {},
@@ -99,6 +106,19 @@ describe("authorize", () => {
     expect(authorize(admin, command("perform_reimbursement"))).toEqual({
       allowed: false,
       reason: "finance_manager_required",
+    });
+  });
+
+  it("allows admins and explicit category managers to manage categories", () => {
+    expect(authorize(admin, command("manage_categories"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(categoryManager, command("manage_categories"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(generalMember, command("manage_categories"))).toEqual({
+      allowed: false,
+      reason: "category_manager_required",
     });
   });
 });

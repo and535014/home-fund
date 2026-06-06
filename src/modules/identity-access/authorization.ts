@@ -1,14 +1,17 @@
 export type MemberRole = "admin" | "finance_manager" | "general_member";
+export type MemberCapability = "manage_categories";
 
 export type AuthenticatedMember = {
   id: string;
   googleAccountLinked: boolean;
   roles: MemberRole[];
+  capabilities?: MemberCapability[];
 };
 
 export type AuthorizationCommand =
   | { type: "browse_household_records" }
   | { type: "manage_members" }
+  | { type: "manage_categories" }
   | { type: "create_income_record"; targetMemberId: string }
   | { type: "create_expense_record"; targetMemberId: string }
   | { type: "edit_ledger_record"; recordOwnerId: string }
@@ -22,6 +25,7 @@ export type AuthorizationResult =
       reason:
         | "google_account_not_linked"
         | "admin_required"
+        | "category_manager_required"
         | "finance_manager_required"
         | "cannot_create_record_for_other_member"
         | "cannot_edit_other_member_record"
@@ -45,6 +49,12 @@ export function authorize(
     return hasRole(member, "admin")
       ? { allowed: true }
       : { allowed: false, reason: "admin_required" };
+  }
+
+  if (command.type === "manage_categories") {
+    return hasRole(member, "admin") || hasCapability(member, "manage_categories")
+      ? { allowed: true }
+      : { allowed: false, reason: "category_manager_required" };
   }
 
   if (
@@ -125,6 +135,13 @@ function canDeleteRecord(
 
 function hasRole(member: AuthenticatedMember, role: MemberRole): boolean {
   return member.roles.includes(role);
+}
+
+function hasCapability(
+  member: AuthenticatedMember,
+  capability: MemberCapability,
+): boolean {
+  return member.capabilities?.includes(capability) ?? false;
 }
 
 function exhaustive(value: never): never {
