@@ -8,20 +8,17 @@ import {
   Tags,
   Users,
 } from "lucide-react";
+import { headers } from "next/headers";
 import {
-  buildHomeAccessView,
+  buildHomeAccessViewFromAccess,
   type HomeBlockedView,
   type HomeDashboardView,
 } from "./home-access";
+import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdMemberAccount } from "@/modules/identity-access/member-management";
 import type { RecurringOccurrence } from "@/modules/recurring-schedule/recurring-rules";
-
-const mockGoogleIdentity = {
-  subject: "google-lin",
-  email: "lin@example.com",
-};
 
 const members: HouseholdMemberAccount[] = [
   {
@@ -124,17 +121,21 @@ const pendingOccurrences: RecurringOccurrence[] = [
   },
 ];
 
-const homeView = buildHomeAccessView({
-  googleIdentity: mockGoogleIdentity,
-  householdMembers: members,
-  month: "2026-06",
-  records,
-  categories,
-  pendingOccurrences,
-});
 const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
 
-export default function HomePage() {
+export default async function HomePage() {
+  const currentMember = await getCurrentMemberFromHeaders(
+    new Headers(await headers()),
+  );
+  const homeView = buildHomeAccessViewFromAccess({
+    access: currentMember,
+    householdMembers: members,
+    month: "2026-06",
+    records,
+    categories,
+    pendingOccurrences,
+  });
+
   if (homeView.kind !== "dashboard") {
     return <AccessBlockedScreen view={homeView} />;
   }

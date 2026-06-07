@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildHomeAccessView } from "./home-access";
+import {
+  buildHomeAccessView,
+  buildHomeAccessViewFromAccess,
+} from "./home-access";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdMemberAccount } from "@/modules/identity-access/member-management";
@@ -117,5 +120,51 @@ describe("buildHomeAccessView", () => {
     expect(view.accessHints.actions.canPerformReimbursement).toBe(true);
     expect(view.report.totals.confirmedIncomeCents).toBe(120_000_00);
     expect(view.reimbursementTable.groups).toHaveLength(1);
+  });
+});
+
+describe("buildHomeAccessViewFromAccess", () => {
+  it("builds a blocked view from a resolved current-member failure", () => {
+    expect(buildHomeAccessViewFromAccess({
+      ...baseInput,
+      access: {
+        ok: false,
+        reason: "google_account_not_linked",
+      },
+    })).toMatchObject({
+      kind: "google_account_not_linked",
+      title: "找不到家庭成員帳號",
+    });
+  });
+
+  it("builds dashboard data from an already resolved active member", () => {
+    const view = buildHomeAccessViewFromAccess({
+      ...baseInput,
+      access: {
+        ok: true,
+        member: {
+          id: "member-fin",
+          googleAccountLinked: true,
+          roles: ["finance_manager"],
+          capabilities: ["manage_categories"],
+        },
+        profile: {
+          id: "member-fin",
+          displayName: "Lin",
+          roles: ["finance_manager"],
+          capabilities: ["manage_categories"],
+        },
+        events: ["Household member access resolved"],
+      },
+    });
+
+    expect(view.kind).toBe("dashboard");
+
+    if (view.kind !== "dashboard") {
+      throw new Error("Expected dashboard view");
+    }
+
+    expect(view.profile.displayName).toBe("Lin");
+    expect(view.report.totals.confirmedIncomeCents).toBe(120_000_00);
   });
 });

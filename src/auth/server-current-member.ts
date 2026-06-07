@@ -1,10 +1,13 @@
-import { getPrismaClient } from "../db/prisma";
+import { getPrismaClient as getRuntimePrismaClient } from "../db/prisma";
 import {
   resolveCurrentMember,
   type CurrentMemberDataSource,
 } from "./current-member";
-import { createCurrentMemberDataSource } from "./current-member-data-source";
-import { createAuth } from "./index";
+import {
+  createCurrentMemberDataSource,
+  type CurrentMemberPrismaClient,
+} from "./current-member-data-source";
+import { createAuth as createRuntimeAuth } from "./index";
 
 type AuthSessionUser = {
   id: string;
@@ -27,6 +30,16 @@ export type ResolveCurrentMemberFromRequestInput = {
   dataSource: CurrentMemberDataSource;
 };
 
+export type CurrentMemberRuntimeFactories = {
+  createAuth(): Promise<CurrentMemberAuthApi>;
+  getPrismaClient(): CurrentMemberPrismaClient;
+};
+
+const defaultRuntimeFactories: CurrentMemberRuntimeFactories = {
+  createAuth: createRuntimeAuth,
+  getPrismaClient: getRuntimePrismaClient,
+};
+
 export async function resolveCurrentMemberFromRequest(
   input: ResolveCurrentMemberFromRequestInput,
 ) {
@@ -41,11 +54,18 @@ export async function resolveCurrentMemberFromRequest(
 }
 
 export async function getCurrentMember(request: Request) {
-  const auth = await createAuth();
+  return getCurrentMemberFromHeaders(request.headers);
+}
+
+export async function getCurrentMemberFromHeaders(
+  headers: Headers,
+  factories: CurrentMemberRuntimeFactories = defaultRuntimeFactories,
+) {
+  const auth = await factories.createAuth();
 
   return resolveCurrentMemberFromRequest({
-    headers: request.headers,
+    headers,
     auth,
-    dataSource: createCurrentMemberDataSource(getPrismaClient()),
+    dataSource: createCurrentMemberDataSource(factories.getPrismaClient()),
   });
 }

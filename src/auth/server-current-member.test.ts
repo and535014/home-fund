@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveCurrentMemberFromRequest } from "./server-current-member";
+import {
+  getCurrentMemberFromHeaders,
+  resolveCurrentMemberFromRequest,
+} from "./server-current-member";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
 
 const members: HouseholdMemberAccount[] = [
@@ -81,5 +84,31 @@ describe("resolveCurrentMemberFromRequest", () => {
         googleAccountLinked: true,
       },
     });
+  });
+});
+
+describe("getCurrentMemberFromHeaders", () => {
+  it("uses the default auth and Prisma factories with server headers", async () => {
+    const headers = new Headers();
+    const auth = {
+      api: {
+        getSession: async () => null,
+      },
+    };
+    const createAuth = vi.fn(async () => auth);
+    const getPrismaClient = vi.fn(() => ({
+      account: { findMany: vi.fn() },
+      member: { findMany: vi.fn() },
+    }));
+
+    await expect(getCurrentMemberFromHeaders(headers, {
+      createAuth,
+      getPrismaClient,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "unauthenticated",
+    });
+    expect(createAuth).toHaveBeenCalledOnce();
+    expect(getPrismaClient).toHaveBeenCalledOnce();
   });
 });

@@ -6,6 +6,7 @@ import {
   resolveHouseholdAccess,
   type GoogleIdentity,
   type HouseholdAccessProfile,
+  type ResolveHouseholdAccessResult,
 } from "../modules/identity-access/session-access";
 import { buildMonthlyReport, type MonthlyReport } from "../modules/reporting/monthly-report";
 import type { RecurringOccurrence } from "../modules/recurring-schedule/recurring-rules";
@@ -21,6 +22,13 @@ export type HomeAccessInput = {
   categories: Category[];
   records: LedgerRecord[];
   pendingOccurrences: RecurringOccurrence[];
+};
+
+export type ResolvedHomeAccessInput = Omit<
+  HomeAccessInput,
+  "googleIdentity"
+> & {
+  access: ResolveHouseholdAccessResult;
 };
 
 export type HomeBlockedView = {
@@ -45,6 +53,17 @@ export function buildHomeAccessView(input: HomeAccessInput): HomeAccessView {
     googleIdentity: input.googleIdentity,
     members: input.householdMembers,
   });
+
+  return buildHomeAccessViewFromAccess({
+    ...input,
+    access,
+  });
+}
+
+export function buildHomeAccessViewFromAccess(
+  input: ResolvedHomeAccessInput,
+): HomeAccessView {
+  const { access } = input;
 
   if (!access.ok) {
     return blockedViewFor(access.reason);
