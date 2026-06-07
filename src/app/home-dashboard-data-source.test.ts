@@ -1,0 +1,144 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  createHomeDashboardDataSource,
+  mapPrismaLedgerRecordToLedgerRecord,
+} from "./home-dashboard-data-source";
+
+describe("createHomeDashboardDataSource", () => {
+  it("loads dashboard data for the selected month", async () => {
+    const memberFindMany = vi.fn(async () => [
+      {
+        id: "member-fin",
+        displayName: "Lin",
+        googleAccountEmail: "lin@example.com",
+        googleSubject: "google-lin",
+        status: "active" as const,
+        roles: [{ role: "finance_manager" as const }],
+        capabilities: [{ capability: "manage_categories" as const }],
+      },
+    ]);
+    const categoryFindMany = vi.fn(async () => [
+      {
+        id: "expense-grocery",
+        type: "expense" as const,
+        name: "日用品",
+        status: "active" as const,
+      },
+    ]);
+    const ledgerRecordFindMany = vi.fn(async () => [
+      {
+        id: "expense-grocery-june",
+        type: "expense" as const,
+        amountCents: 642_000,
+        occurredOn: new Date("2026-06-09T00:00:00.000Z"),
+        categoryId: "expense-grocery",
+        createdByMemberId: "member-fin",
+        sourceMemberId: null,
+        paymentSource: "member" as const,
+        payerMemberId: "member-fin",
+        reimbursementStatus: "refundable" as const,
+        note: "日用品代墊",
+      },
+    ]);
+    const recurringOccurrenceFindMany = vi.fn(async () => [
+      {
+        id: "occurrence-living-kai",
+        recurringRuleId: "rule-living-kai",
+        month: "2026-06",
+        status: "pending" as const,
+        ledgerRecordId: null,
+      },
+    ]);
+    const dataSource = createHomeDashboardDataSource({
+      member: { findMany: memberFindMany },
+      category: { findMany: categoryFindMany },
+      ledgerRecord: { findMany: ledgerRecordFindMany },
+      recurringOccurrence: { findMany: recurringOccurrenceFindMany },
+    });
+
+    await expect(dataSource.getMonthlyDashboardData("2026-06")).resolves.toEqual({
+      householdMembers: [
+        {
+          id: "member-fin",
+          displayName: "Lin",
+          googleAccountEmail: "lin@example.com",
+          googleSubject: "google-lin",
+          status: "active",
+          roles: ["finance_manager"],
+          capabilities: ["manage_categories"],
+        },
+      ],
+      categories: [
+        {
+          id: "expense-grocery",
+          type: "expense",
+          name: "日用品",
+          status: "active",
+        },
+      ],
+      records: [
+        {
+          id: "expense-grocery-june",
+          type: "expense",
+          amountCents: 642_000,
+          occurredOn: "2026-06-09",
+          categoryId: "expense-grocery",
+          createdByMemberId: "member-fin",
+          paymentSource: "member",
+          payerMemberId: "member-fin",
+          reimbursementStatus: "refundable",
+          note: "日用品代墊",
+        },
+      ],
+      pendingOccurrences: [
+        {
+          id: "occurrence-living-kai",
+          recurringRuleId: "rule-living-kai",
+          month: "2026-06",
+          status: "pending",
+        },
+      ],
+    });
+    expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        occurredOn: {
+          gte: new Date("2026-06-01T00:00:00.000Z"),
+          lt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+      },
+    }));
+    expect(recurringOccurrenceFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        month: "2026-06",
+        status: "pending",
+      },
+    }));
+  });
+});
+
+describe("mapPrismaLedgerRecordToLedgerRecord", () => {
+  it("maps income records with source member ids", () => {
+    expect(mapPrismaLedgerRecordToLedgerRecord({
+      id: "income-rent-june",
+      type: "income",
+      amountCents: 120_000_00,
+      occurredOn: new Date("2026-06-05T00:00:00.000Z"),
+      categoryId: "income-rent",
+      createdByMemberId: "member-mei",
+      sourceMemberId: "member-mei",
+      paymentSource: null,
+      payerMemberId: null,
+      reimbursementStatus: "not_applicable",
+      note: null,
+    })).toEqual({
+      id: "income-rent-june",
+      type: "income",
+      amountCents: 120_000_00,
+      occurredOn: "2026-06-05",
+      categoryId: "income-rent",
+      createdByMemberId: "member-mei",
+      sourceMemberId: "member-mei",
+      reimbursementStatus: "not_applicable",
+    });
+  });
+});

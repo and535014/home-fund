@@ -10,118 +10,25 @@ import {
 } from "lucide-react";
 import { headers } from "next/headers";
 import {
+  createHomeDashboardDataSource,
+  type HomeDashboardData,
+} from "./home-dashboard-data-source";
+import {
   buildHomeAccessViewFromAccess,
   type HomeBlockedView,
   type HomeDashboardView,
 } from "./home-access";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
-import type { Category } from "@/modules/categorization/category-catalog";
+import { getPrismaClient } from "@/db/prisma";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-import type { HouseholdMemberAccount } from "@/modules/identity-access/member-management";
-import type { RecurringOccurrence } from "@/modules/recurring-schedule/recurring-rules";
 
-const members: HouseholdMemberAccount[] = [
-  {
-    id: "member-mei",
-    displayName: "Mei",
-    googleAccountEmail: "mei@example.com",
-    googleSubject: "google-mei",
-    roles: ["general_member"],
-    capabilities: [],
-    status: "active",
-  },
-  {
-    id: "member-kai",
-    displayName: "Kai",
-    googleAccountEmail: "kai@example.com",
-    googleSubject: "google-kai",
-    roles: ["general_member"],
-    capabilities: [],
-    status: "active",
-  },
-  {
-    id: "member-fin",
-    displayName: "Lin",
-    googleAccountEmail: "lin@example.com",
-    googleSubject: "google-lin",
-    roles: ["finance_manager"],
-    capabilities: ["manage_categories"],
-    status: "active",
-  },
-];
-
-const categories: Category[] = [
-  { id: "income-rent", type: "income", name: "房租", status: "active" },
-  { id: "income-living", type: "income", name: "生活費", status: "active" },
-  { id: "expense-grocery", type: "expense", name: "日用品", status: "active" },
-  { id: "expense-internet", type: "expense", name: "網路費", status: "active" },
-];
-
-const records: LedgerRecord[] = [
-  {
-    id: "income-rent-june",
-    type: "income",
-    amountCents: 120_000_00,
-    occurredOn: "2026-06-05",
-    categoryId: "income-rent",
-    createdByMemberId: "member-mei",
-    sourceMemberId: "member-mei",
-    reimbursementStatus: "not_applicable",
-  },
-  {
-    id: "income-living-june",
-    type: "income",
-    amountCents: 80_000_00,
-    occurredOn: "2026-06-10",
-    categoryId: "income-living",
-    createdByMemberId: "member-kai",
-    sourceMemberId: "member-kai",
-    reimbursementStatus: "not_applicable",
-  },
-  {
-    id: "expense-grocery-june",
-    type: "expense",
-    amountCents: 6_420_00,
-    occurredOn: "2026-06-09",
-    categoryId: "expense-grocery",
-    createdByMemberId: "member-mei",
-    paymentSource: "member",
-    payerMemberId: "member-mei",
-    reimbursementStatus: "refundable",
-  },
-  {
-    id: "expense-supplies-june",
-    type: "expense",
-    amountCents: 1_880_00,
-    occurredOn: "2026-06-13",
-    categoryId: "expense-grocery",
-    createdByMemberId: "member-kai",
-    paymentSource: "member",
-    payerMemberId: "member-kai",
-    reimbursementStatus: "refundable",
-  },
-  {
-    id: "expense-internet-june",
-    type: "expense",
-    amountCents: 899_00,
-    occurredOn: "2026-06-05",
-    categoryId: "expense-internet",
-    createdByMemberId: "member-fin",
-    paymentSource: "fund",
-    reimbursementStatus: "not_refundable",
-  },
-];
-
-const pendingOccurrences: RecurringOccurrence[] = [
-  {
-    id: "occurrence-living-kai",
-    recurringRuleId: "rule-living-kai",
-    month: "2026-06",
-    status: "pending",
-  },
-];
-
-const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+const dashboardMonth = "2026-06";
+const emptyDashboardData: HomeDashboardData = {
+  householdMembers: [],
+  categories: [],
+  records: [],
+  pendingOccurrences: [],
+};
 
 type HomePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -132,14 +39,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     new Headers(await headers()),
   );
   const authError = readSingleSearchParam((await searchParams)?.error);
+  const dashboardData = currentMember.ok
+    ? await createHomeDashboardDataSource(
+        getPrismaClient(),
+      ).getMonthlyDashboardData(dashboardMonth)
+    : emptyDashboardData;
   const homeView = buildHomeAccessViewFromAccess({
     access: currentMember,
     authError,
-    householdMembers: members,
-    month: "2026-06",
-    records,
-    categories,
-    pendingOccurrences,
+    householdMembers: dashboardData.householdMembers,
+    month: dashboardMonth,
+    records: dashboardData.records,
+    categories: dashboardData.categories,
+    pendingOccurrences: dashboardData.pendingOccurrences,
   });
 
   if (homeView.kind !== "dashboard") {
@@ -148,6 +60,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const { accessHints, profile, reimbursementTable, report } = homeView;
   const visibleNavigationItems = getVisibleNavigationItems(accessHints);
+  const categoryNames = new Map(
+    dashboardData.categories.map((category) => [category.id, category.name]),
+  );
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -254,10 +169,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   <span className="text-right">金額</span>
                 </div>
                 <div className="divide-y divide-border">
-                  {records
-                    .filter((record) => record.occurredOn.startsWith("2026-06-"))
+                  {dashboardData.records
+                    .filter((record) => record.occurredOn.startsWith(`${dashboardMonth}-`))
                     .map((record) => (
-                      <RecordRow key={record.id} record={record} />
+                      <RecordRow
+                        categoryNames={categoryNames}
+                        key={record.id}
+                        record={record}
+                      />
                     ))}
                 </div>
               </div>
@@ -481,7 +400,13 @@ function SummaryMetric({
   );
 }
 
-function RecordRow({ record }: { record: LedgerRecord }) {
+function RecordRow({
+  categoryNames,
+  record,
+}: {
+  categoryNames: Map<string, string>;
+  record: LedgerRecord;
+}) {
   const isIncome = record.type === "income";
 
   return (
