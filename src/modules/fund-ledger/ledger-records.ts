@@ -20,6 +20,7 @@ export type ReimbursementStatus =
 
 export type CreateIncomeRecordCommand = {
   type: "income";
+  name: string;
   amountCents: number;
   occurredOn: string;
   categoryId: string;
@@ -29,6 +30,7 @@ export type CreateIncomeRecordCommand = {
 
 export type CreateExpenseRecordCommand = {
   type: "expense";
+  name: string;
   amountCents: number;
   occurredOn: string;
   categoryId: string;
@@ -44,6 +46,7 @@ export type CreateLedgerRecordCommand =
 export type IncomeLedgerRecord = {
   id: string;
   type: "income";
+  name: string;
   amountCents: number;
   occurredOn: string;
   categoryId: string;
@@ -56,6 +59,7 @@ export type IncomeLedgerRecord = {
 export type ExpenseLedgerRecord = {
   id: string;
   type: "expense";
+  name: string;
   amountCents: number;
   occurredOn: string;
   categoryId: string;
@@ -87,6 +91,7 @@ export type CreateLedgerRecordResult =
       ok: false;
       reason:
         | "permission_denied"
+        | "missing_name"
         | "invalid_amount"
         | "invalid_date"
         | "missing_category"
@@ -126,6 +131,7 @@ export function createLedgerRecord(
       record: {
         id,
         type: "income",
+        name: command.name,
         amountCents: command.amountCents,
         occurredOn: command.occurredOn,
         categoryId: command.categoryId,
@@ -144,6 +150,7 @@ export function createLedgerRecord(
       record: {
         id,
         type: "expense",
+        name: command.name,
         amountCents: command.amountCents,
         occurredOn: command.occurredOn,
         categoryId: command.categoryId,
@@ -161,6 +168,7 @@ export function createLedgerRecord(
     record: {
       id,
       type: "expense",
+      name: command.name,
       amountCents: command.amountCents,
       occurredOn: command.occurredOn,
       categoryId: command.categoryId,
@@ -178,6 +186,10 @@ function validateLedgerRecordCommand(
   command: CreateLedgerRecordCommand,
   context: CreateLedgerRecordContext,
 ): Extract<CreateLedgerRecordResult, { ok: false }> | { ok: true } {
+  if (!command.name.trim()) {
+    return { ok: false, reason: "missing_name" };
+  }
+
   if (!Number.isInteger(command.amountCents) || command.amountCents <= 0) {
     return { ok: false, reason: "invalid_amount" };
   }

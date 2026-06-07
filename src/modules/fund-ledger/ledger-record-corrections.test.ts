@@ -39,6 +39,7 @@ const admin: AuthenticatedMember = {
 const memberPaidExpense: ExpenseLedgerRecord = {
   id: "expense-1",
   type: "expense",
+  name: "日用品代墊",
   amountCents: 3_200,
   occurredOn: "2026-06-09",
   categoryId: "expense-grocery",

@@ -31,7 +31,9 @@
     "radix-ui": "^1.5.0",
     "react": "latest",
     "react-dom": "latest",
+    "sonner": "^2.0.7",
     "tailwind-merge": "latest",
+    "tw-animate-css": "^1.3.0",
     "zod": "latest"
   },
   "devDependencies": {

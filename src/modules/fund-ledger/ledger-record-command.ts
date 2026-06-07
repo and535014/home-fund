@@ -28,6 +28,7 @@ export type LedgerRecordCommandPrismaClient = {
         id: string;
         householdId: string;
         type: LedgerRecord["type"];
+        name: string;
         amountCents: number;
         occurredOn: Date;
         categoryId: string;
@@ -84,6 +85,7 @@ function toLedgerRecordCreateData(record: LedgerRecord, householdId: string) {
     id: record.id,
     householdId,
     type: record.type,
+    name: record.name,
     amountCents: record.amountCents,
     occurredOn: new Date(`${record.occurredOn}T00:00:00.000Z`),
     categoryId: record.categoryId,

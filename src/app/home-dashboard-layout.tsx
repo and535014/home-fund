@@ -2,12 +2,17 @@ import {
   CalendarClock,
   HandCoins,
   Home,
-  Plus,
+  TrendingDown,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import {
   Sidebar,
   SidebarContent,
@@ -32,19 +37,36 @@ export type HomeDashboardLayoutProps = {
   canCreateOwnRecords: boolean;
   canPerformReimbursement: boolean;
   children: ReactNode;
+  createExpenseHref?: string;
+  createIncomeHref?: string;
+  createRecordDialogContent?: ReactNode;
+  defaultOpenCreateRecordDialog?: boolean;
   displayName: string;
   navigationItems: DashboardNavigationItem[];
+  showMonthSwitcher?: boolean;
+  subtitle?: string;
+  title?: string;
 };
 
 export function HomeDashboardLayout({
   canCreateOwnRecords,
   canPerformReimbursement,
   children,
+  createExpenseHref = "/?create=expense",
+  createIncomeHref = "/?create=income",
+  createRecordDialogContent,
+  defaultOpenCreateRecordDialog = false,
   displayName,
   navigationItems,
+  showMonthSwitcher = true,
+  subtitle = "2026 年 6 月",
+  title = "家庭資金總覽",
 }: HomeDashboardLayoutProps) {
+  const canShowCreateActions = canCreateOwnRecords;
+
   return (
     <SidebarProvider className="min-h-screen bg-background text-foreground">
+      <Dialog defaultOpen={defaultOpenCreateRecordDialog}>
       <DashboardSidebar
         displayName={displayName}
         navigationItems={navigationItems}
@@ -53,21 +75,35 @@ export function HomeDashboardLayout({
         <header className="fixed inset-x-0 top-0 z-20 border-b border-border bg-background/95 px-4 py-4 backdrop-blur md:left-(--sidebar-width) sm:px-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-label text-muted-foreground">2026 年 6 月</p>
+              <p className="text-label text-muted-foreground">{subtitle}</p>
               <h2 className="mt-1 text-heading text-foreground">
-                家庭資金總覽
+                {title}
               </h2>
             </div>
             <div className="hidden flex-wrap gap-2 md:flex">
-              <Button type="button" variant="outline">
-                <CalendarClock aria-hidden="true" size={18} />
-                <span>切換月份</span>
-              </Button>
-              {canCreateOwnRecords ? (
+              {showMonthSwitcher ? (
+                <Button
+                  aria-label="切換月份"
+                  size="icon"
+                  type="button"
+                  variant="outline"
+                >
+                  <CalendarClock aria-hidden="true" size={18} />
+                </Button>
+              ) : null}
+              {canShowCreateActions ? (
+                <Button asChild variant="secondary">
+                  <a href={createIncomeHref}>
+                    <TrendingUp aria-hidden="true" size={18} />
+                    <span>新增收入</span>
+                  </a>
+                </Button>
+              ) : null}
+              {canShowCreateActions ? (
                 <Button asChild>
-                  <a href="#new-record">
-                    <Plus aria-hidden="true" size={18} />
-                    <span>新增紀錄</span>
+                  <a href={createExpenseHref}>
+                    <TrendingDown aria-hidden="true" size={18} />
+                    <span>新增支出</span>
                   </a>
                 </Button>
               ) : null}
@@ -81,17 +117,32 @@ export function HomeDashboardLayout({
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-12px_30px_rgba(0,0,0,0.28)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-2">
-            <Button className="h-12 min-w-0 flex-1 px-3" size="lg" type="button" variant="outline">
-              <CalendarClock aria-hidden="true" size={18} />
-              <span className="truncate">切換月份</span>
-            </Button>
-            {canCreateOwnRecords ? (
-              <Button asChild className="h-12 min-w-0 flex-1 px-3" size="lg">
-                <a href="#new-record">
-                  <Plus aria-hidden="true" size={18} />
-                  <span className="truncate">新增紀錄</span>
-                </a>
+            {showMonthSwitcher ? (
+              <Button
+                aria-label="切換月份"
+                className="size-12"
+                size="icon"
+                type="button"
+                variant="outline"
+              >
+                <CalendarClock aria-hidden="true" size={18} />
               </Button>
+            ) : null}
+            {canShowCreateActions ? (
+                <Button asChild className="h-12 min-w-0 flex-1 px-3" size="lg" variant="secondary">
+                  <a href={createIncomeHref}>
+                    <TrendingUp aria-hidden="true" size={18} />
+                    <span className="truncate">收入</span>
+                  </a>
+                </Button>
+            ) : null}
+            {canShowCreateActions ? (
+                <Button asChild className="h-12 min-w-0 flex-1 px-3" size="lg">
+                  <a href={createExpenseHref}>
+                    <TrendingDown aria-hidden="true" size={18} />
+                    <span className="truncate">支出</span>
+                  </a>
+                </Button>
             ) : null}
             {canPerformReimbursement ? (
               <Button
@@ -107,6 +158,12 @@ export function HomeDashboardLayout({
           </div>
         </div>
       </SidebarInset>
+      {createRecordDialogContent ? (
+        <DialogContent disableOutsidePointerDown>
+          {createRecordDialogContent}
+        </DialogContent>
+      ) : null}
+      </Dialog>
     </SidebarProvider>
   );
 }

@@ -13,6 +13,7 @@ export type ParseCreateLedgerRecordFormResult =
       ok: false;
       reason:
         | "invalid_record_type"
+        | "missing_name"
         | "invalid_amount"
         | "missing_category"
         | "missing_source_member"
@@ -26,10 +27,15 @@ export function parseCreateLedgerRecordForm(
 ): ParseCreateLedgerRecordFormResult {
   const month = readDashboardMonth(readFormString(formData, "month"));
   const type = readFormString(formData, "recordType");
+  const name = readFormString(formData, "name");
   const amountCents = parseAmountCents(readFormString(formData, "amountTwd"));
   const occurredOn = readFormString(formData, "occurredOn");
   const categoryId = readFormString(formData, "categoryId");
   const note = readOptionalFormString(formData, "note");
+
+  if (!name) {
+    return { ok: false, reason: "missing_name", month };
+  }
 
   if (amountCents === null) {
     return { ok: false, reason: "invalid_amount", month };
@@ -51,6 +57,7 @@ export function parseCreateLedgerRecordForm(
       month,
       command: {
         type: "income",
+        name,
         amountCents,
         occurredOn,
         categoryId,
@@ -72,6 +79,7 @@ export function parseCreateLedgerRecordForm(
       month,
       command: {
         type: "expense",
+        name,
         amountCents,
         occurredOn,
         categoryId,
@@ -96,6 +104,7 @@ export function parseCreateLedgerRecordForm(
     month,
     command: {
       type: "expense",
+      name,
       amountCents,
       occurredOn,
       categoryId,

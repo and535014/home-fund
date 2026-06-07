@@ -6,6 +6,7 @@ describe("parseCreateLedgerRecordForm", () => {
     const formData = new FormData();
     formData.set("month", "2026-06");
     formData.set("recordType", "income");
+    formData.set("name", "六月房租");
     formData.set("amountTwd", "12000");
     formData.set("occurredOn", "2026-06-05");
     formData.set("categoryId", "income-rent");
@@ -17,6 +18,7 @@ describe("parseCreateLedgerRecordForm", () => {
       month: "2026-06",
       command: {
         type: "income",
+        name: "六月房租",
         amountCents: 1_200_000,
         occurredOn: "2026-06-05",
         categoryId: "income-rent",
@@ -30,6 +32,7 @@ describe("parseCreateLedgerRecordForm", () => {
     const formData = new FormData();
     formData.set("month", "2026-06");
     formData.set("recordType", "expense");
+    formData.set("name", "網路費");
     formData.set("paymentSource", "fund");
     formData.set("amountTwd", "899.5");
     formData.set("occurredOn", "2026-06-09");
@@ -40,6 +43,7 @@ describe("parseCreateLedgerRecordForm", () => {
       month: "2026-06",
       command: {
         type: "expense",
+        name: "網路費",
         amountCents: 89_950,
         occurredOn: "2026-06-09",
         categoryId: "expense-internet",
@@ -52,6 +56,7 @@ describe("parseCreateLedgerRecordForm", () => {
     const formData = new FormData();
     formData.set("month", "2026-06");
     formData.set("recordType", "expense");
+    formData.set("name", "日用品");
     formData.set("paymentSource", "member");
     formData.set("amountTwd", "180");
     formData.set("occurredOn", "2026-06-10");
@@ -68,6 +73,7 @@ describe("parseCreateLedgerRecordForm", () => {
     const formData = new FormData();
     formData.set("month", "2026-06");
     formData.set("recordType", "income");
+    formData.set("name", "六月房租");
     formData.set("amountTwd", "12.345");
     formData.set("occurredOn", "2026-06-05");
     formData.set("categoryId", "income-rent");

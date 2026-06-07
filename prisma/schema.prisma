@@ -139,6 +139,7 @@ model LedgerRecord {
   id                  String              @id @default(cuid())
   householdId         String
   type                LedgerRecordType
+  name                String
   amountCents         Int
   occurredOn          DateTime            @db.Date
   categoryId          String

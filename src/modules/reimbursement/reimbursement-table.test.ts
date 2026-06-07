@@ -8,6 +8,7 @@ import { buildMonthlyReimbursementTable } from "./reimbursement-table";
 const refundableMeiExpense: ExpenseLedgerRecord = {
   id: "expense-mei-1",
   type: "expense",
+  name: "日用品代墊",
   amountCents: 3_200,
   occurredOn: "2026-06-09",
   categoryId: "expense-grocery",
@@ -52,6 +53,7 @@ const records: LedgerRecord[] = [
   {
     id: "income-rent",
     type: "income",
+    name: "六月房租",
     amountCents: 120_000,
     occurredOn: "2026-06-05",
     categoryId: "income-rent",

@@ -37,6 +37,7 @@ const records: LedgerRecord[] = [
   {
     id: "income-rent-june",
     type: "income",
+    name: "六月房租",
     amountCents: 120_000_00,
     occurredOn: "2026-06-05",
     categoryId: "income-rent",
@@ -47,6 +48,7 @@ const records: LedgerRecord[] = [
   {
     id: "expense-grocery-june",
     type: "expense",
+    name: "日用品代墊",
     amountCents: 6_420_00,
     occurredOn: "2026-06-09",
     categoryId: "expense-grocery",

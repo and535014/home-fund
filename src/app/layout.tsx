@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Noto_Sans_TC } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,7 +29,10 @@ export default function RootLayout({
       className={`${notoSansTc.variable} ${jetbrainsMono.variable}`}
       lang="zh-TW"
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

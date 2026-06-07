@@ -291,6 +291,7 @@ function commandFromRule(
   if (rule.type === "income") {
     return {
       type: "income",
+      name: rule.note?.trim() || "週期收入",
       amountCents: rule.amountCents,
       occurredOn,
       categoryId: rule.categoryId,
@@ -301,6 +302,7 @@ function commandFromRule(
 
   return {
     type: "expense",
+    name: rule.note?.trim() || "週期支出",
     amountCents: rule.amountCents,
     occurredOn,
     categoryId: rule.categoryId,

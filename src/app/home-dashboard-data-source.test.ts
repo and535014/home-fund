@@ -29,6 +29,7 @@ describe("createHomeDashboardDataSource", () => {
       {
         id: "expense-grocery-june",
         type: "expense" as const,
+        name: "日用品代墊",
         amountCents: 642_000,
         occurredOn: new Date("2026-06-09T00:00:00.000Z"),
         categoryId: "expense-grocery",
@@ -80,6 +81,7 @@ describe("createHomeDashboardDataSource", () => {
         {
           id: "expense-grocery-june",
           type: "expense",
+          name: "日用品代墊",
           amountCents: 642_000,
           occurredOn: "2026-06-09",
           categoryId: "expense-grocery",
@@ -121,6 +123,7 @@ describe("mapPrismaLedgerRecordToLedgerRecord", () => {
     expect(mapPrismaLedgerRecordToLedgerRecord({
       id: "income-rent-june",
       type: "income",
+      name: "六月房租",
       amountCents: 120_000_00,
       occurredOn: new Date("2026-06-05T00:00:00.000Z"),
       categoryId: "income-rent",
@@ -133,6 +136,7 @@ describe("mapPrismaLedgerRecordToLedgerRecord", () => {
     })).toEqual({
       id: "income-rent-june",
       type: "income",
+      name: "六月房租",
       amountCents: 120_000_00,
       occurredOn: "2026-06-05",
       categoryId: "income-rent",

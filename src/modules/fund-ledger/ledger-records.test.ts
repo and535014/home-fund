@@ -27,6 +27,7 @@ describe("createLedgerRecord", () => {
   it("creates an income record for the source member", () => {
     const result = createLedgerRecord(generalMember, {
       type: "income",
+      name: "六月房租",
       amountCents: 120_000,
       occurredOn: "2026-06-05",
       categoryId: "income-rent",
@@ -39,6 +40,7 @@ describe("createLedgerRecord", () => {
       record: {
         id: "record-1",
         type: "income",
+        name: "六月房租",
         amountCents: 120_000,
         occurredOn: "2026-06-05",
         categoryId: "income-rent",
@@ -54,6 +56,7 @@ describe("createLedgerRecord", () => {
   it("rejects a general member creating an income for another member", () => {
     const result = createLedgerRecord(generalMember, {
       type: "income",
+      name: "六月房租",
       amountCents: 120_000,
       occurredOn: "2026-06-05",
       categoryId: "income-rent",
@@ -70,6 +73,7 @@ describe("createLedgerRecord", () => {
   it("creates a fund-paid expense that is not refundable", () => {
     const result = createLedgerRecord(generalMember, {
       type: "expense",
+      name: "超市採買",
       amountCents: 6_500,
       occurredOn: "2026-06-08",
       categoryId: "expense-grocery",
@@ -81,6 +85,7 @@ describe("createLedgerRecord", () => {
       record: {
         id: "record-2",
         type: "expense",
+        name: "超市採買",
         amountCents: 6_500,
         occurredOn: "2026-06-08",
         categoryId: "expense-grocery",
@@ -95,6 +100,7 @@ describe("createLedgerRecord", () => {
   it("creates a member-paid expense as refundable and unreimbursed", () => {
     const result = createLedgerRecord(generalMember, {
       type: "expense",
+      name: "日用品代墊",
       amountCents: 3_200,
       occurredOn: "2026-06-09",
       categoryId: "expense-grocery",
@@ -107,6 +113,7 @@ describe("createLedgerRecord", () => {
       record: {
         id: "record-3",
         type: "expense",
+        name: "日用品代墊",
         amountCents: 3_200,
         occurredOn: "2026-06-09",
         categoryId: "expense-grocery",
@@ -122,6 +129,7 @@ describe("createLedgerRecord", () => {
   it("allows a finance manager to create a member-paid expense for another member", () => {
     const result = createLedgerRecord(financeManager, {
       type: "expense",
+      name: "日用品代墊",
       amountCents: 3_200,
       occurredOn: "2026-06-09",
       categoryId: "expense-grocery",
@@ -141,6 +149,7 @@ describe("createLedgerRecord", () => {
   it("rejects missing or invalid categories before creating a record", () => {
     expect(createLedgerRecord(generalMember, {
       type: "expense",
+      name: "分類錯誤",
       amountCents: 1_000,
       occurredOn: "2026-06-09",
       categoryId: "income-rent",
@@ -152,6 +161,7 @@ describe("createLedgerRecord", () => {
 
     expect(createLedgerRecord(generalMember, {
       type: "expense",
+      name: "封存分類",
       amountCents: 1_000,
       occurredOn: "2026-06-09",
       categoryId: "expense-inactive",
@@ -165,6 +175,7 @@ describe("createLedgerRecord", () => {
   it("rejects invalid amounts and impossible dates", () => {
     expect(createLedgerRecord(generalMember, {
       type: "income",
+      name: "金額錯誤",
       amountCents: 0,
       occurredOn: "2026-06-09",
       categoryId: "income-rent",
@@ -176,6 +187,7 @@ describe("createLedgerRecord", () => {
 
     expect(createLedgerRecord(generalMember, {
       type: "income",
+      name: "日期錯誤",
       amountCents: 1_000,
       occurredOn: "2026-02-31",
       categoryId: "income-rent",

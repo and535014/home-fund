@@ -14,6 +14,7 @@ const records: LedgerRecord[] = [
   {
     id: "income-june-rent",
     type: "income",
+    name: "六月房租",
     amountCents: 120_000,
     occurredOn: "2026-06-05",
     categoryId: "income-rent",
@@ -24,6 +25,7 @@ const records: LedgerRecord[] = [
   {
     id: "expense-grocery-june",
     type: "expense",
+    name: "日用品代墊",
     amountCents: 3_200,
     occurredOn: "2026-06-09",
     categoryId: "expense-grocery",
@@ -35,6 +37,7 @@ const records: LedgerRecord[] = [
   {
     id: "expense-internet-june",
     type: "expense",
+    name: "網路費",
     amountCents: 899,
     occurredOn: "2026-06-05",
     categoryId: "expense-internet",
@@ -45,6 +48,7 @@ const records: LedgerRecord[] = [
   {
     id: "income-july-rent",
     type: "income",
+    name: "七月房租",
     amountCents: 120_000,
     occurredOn: "2026-07-05",
     categoryId: "income-rent",

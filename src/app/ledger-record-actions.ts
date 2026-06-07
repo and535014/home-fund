@@ -11,10 +11,11 @@ import {
 import { parseCreateLedgerRecordForm } from "./ledger-record-form";
 
 export async function createLedgerRecordAction(formData: FormData) {
+  const createIntent = readCreateRecordIntent(formData);
   const parsed = parseCreateLedgerRecordForm(formData);
 
   if (!parsed.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, parsed.reason));
+    redirect(createRecordRedirectUrl(parsed.month, parsed.reason, createIntent));
   }
 
   const currentMember = await getCurrentMemberFromHeaders(
@@ -22,7 +23,7 @@ export async function createLedgerRecordAction(formData: FormData) {
   );
 
   if (!currentMember.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, "permission_denied"));
+    redirect(createRecordRedirectUrl(parsed.month, "permission_denied", createIntent));
   }
 
   const result = await createLedgerRecordInDatabase(
@@ -34,13 +35,32 @@ export async function createLedgerRecordAction(formData: FormData) {
   );
 
   if (!result.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, result.reason));
+    redirect(createRecordRedirectUrl(parsed.month, result.reason, createIntent));
   }
 
   revalidatePath("/");
   redirect(createRecordRedirectUrl(parsed.month, "success"));
 }
 
-function createRecordRedirectUrl(month: string, result: string): string {
-  return `/?month=${encodeURIComponent(month)}&create=${encodeURIComponent(result)}#new-record`;
+function createRecordRedirectUrl(
+  month: string,
+  result: string,
+  createIntent?: "income" | "expense",
+): string {
+  const params = new URLSearchParams({ month });
+
+  if (result === "success") {
+    params.set("create", "success");
+  } else {
+    params.set("create", createIntent ?? "income");
+    params.set("result", result);
+  }
+
+  return `/?${params.toString()}`;
+}
+
+function readCreateRecordIntent(formData: FormData): "income" | "expense" | undefined {
+  const value = formData.get("createIntent");
+
+  return value === "income" || value === "expense" ? value : undefined;
 }

@@ -1,48 +1,25 @@
-import {
-  CalendarClock,
-  CircleDollarSign,
-  HandCoins,
-  Plus,
-  ReceiptText,
-  Tags,
-  Users,
-} from "lucide-react";
+import { HandCoins } from "lucide-react";
 import { headers } from "next/headers";
-import type { ReactNode } from "react";
+import { CreateRecordToast } from "./create-record-toast";
+import { DashboardAccessScreen } from "./dashboard-access-screen";
+import { getVisibleDashboardNavigationItems } from "./dashboard-navigation";
 import {
   createHomeDashboardDataSource,
   type HomeDashboardData,
 } from "./home-dashboard-data-source";
 import { HomeDashboardLayout } from "./home-dashboard-layout";
-import { createLedgerRecordAction } from "./ledger-record-actions";
-import {
-  buildHomeAccessViewFromAccess,
-  type HomeBlockedView,
-  type HomeDashboardView,
-} from "./home-access";
+import { buildHomeAccessViewFromAccess } from "./home-access";
 import { readDashboardMonth } from "./month-selection";
+import { RecordEntryPanel } from "./record-entry-panel";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldContent,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Item,
   ItemContent,
@@ -80,6 +57,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const dashboardMonth = readDashboardMonth(resolvedSearchParams?.month);
   const authError = readSingleSearchParam(resolvedSearchParams?.error);
   const createResult = readSingleSearchParam(resolvedSearchParams?.create);
+  const createFeedbackResult = readSingleSearchParam(resolvedSearchParams?.result);
   const dashboardData = currentMember.ok
     ? await createHomeDashboardDataSource(
         getPrismaClient(),
@@ -96,19 +74,55 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   });
 
   if (homeView.kind !== "dashboard") {
-    return <AccessBlockedScreen view={homeView} />;
+    return <DashboardAccessScreen view={homeView} />;
   }
 
   const { accessHints, profile, reimbursementTable, report } = homeView;
-  const visibleNavigationItems = getVisibleNavigationItems(accessHints);
+  const visibleNavigationItems = getVisibleDashboardNavigationItems(
+    accessHints,
+    "/",
+  );
   const categoryNames = new Map(
     dashboardData.categories.map((category) => [category.id, category.name]),
+  );
+  const createRecordMode = readCreateRecordMode(createResult);
+  const createRecordFeedback = readCreateRecordFeedback(
+    createResult,
+    createFeedbackResult,
   );
 
   return (
     <HomeDashboardLayout
       canCreateOwnRecords={accessHints.actions.canCreateOwnRecords}
       canPerformReimbursement={accessHints.actions.canPerformReimbursement}
+      createExpenseHref={`/?month=${encodeURIComponent(dashboardMonth)}&create=expense`}
+      createIncomeHref={`/?month=${encodeURIComponent(dashboardMonth)}&create=income`}
+      createRecordDialogContent={
+        createRecordMode ? (
+        <>
+          <DialogHeader>
+            <DialogTitle>
+              {createRecordMode === "income" ? "新增收入" : "新增支出"}
+            </DialogTitle>
+            <DialogDescription>
+              {createRecordMode === "income"
+                ? "建立家庭成員繳交的房租、生活費或其他收入。"
+                : "建立基金直接支出，或成員先代墊的支出。"}
+            </DialogDescription>
+          </DialogHeader>
+          <RecordEntryPanel
+            canCreateRecordsForOthers={accessHints.actions.canCreateRecordsForOthers}
+            categories={dashboardData.categories}
+            feedback={createRecordFeedback}
+            members={dashboardData.householdMembers}
+            mode={createRecordMode}
+            month={dashboardMonth}
+            profile={profile}
+          />
+        </>
+        ) : undefined
+      }
+      defaultOpenCreateRecordDialog={createRecordMode !== undefined}
       displayName={profile.displayName}
       navigationItems={visibleNavigationItems}
     >
@@ -137,17 +151,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               value={formatAmount(report.reimbursementSummary.refundableTotalCents)}
             />
           </section>
-
-          {accessHints.actions.canCreateOwnRecords ? (
-            <CreateRecordPanel
-              canCreateRecordsForOthers={accessHints.actions.canCreateRecordsForOthers}
-              categories={dashboardData.categories}
-              feedback={createResult}
-              members={dashboardData.householdMembers}
-              month={dashboardMonth}
-              profile={profile}
-            />
-          ) : null}
 
           <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.8fr)]">
             <section aria-labelledby="records-title" className="min-w-0">
@@ -294,297 +297,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </section>
             </aside>
           </div>
+          {createResult === "success" ? <CreateRecordToast /> : null}
     </HomeDashboardLayout>
-  );
-}
-
-function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
-  const canStartGoogleSignIn =
-    view.kind === "unauthenticated" || view.kind === "google_account_not_linked";
-
-  return (
-    <main className="grid min-h-screen place-items-center bg-background px-4 py-8 text-foreground">
-      <Card
-        aria-labelledby="access-state-title"
-        className="w-full max-w-sm"
-      >
-        <CardHeader>
-          <CardDescription>家庭共用金管理</CardDescription>
-          <CardTitle>
-            <h1 id="access-state-title" className="text-heading leading-tight">
-              {view.title}
-            </h1>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-        <p className="text-body text-muted-foreground">{view.description}</p>
-        {view.errorMessage ? (
-          <Alert className="mt-4 text-body" role="alert" variant="destructive">
-            <AlertDescription>{view.errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
-        {canStartGoogleSignIn ? (
-          <form action="/auth/google" method="post">
-            <Button className="mt-5 w-full" size="lg" type="submit">
-              <Users aria-hidden="true" size={18} />
-              <span>{view.primaryActionLabel}</span>
-            </Button>
-          </form>
-        ) : (
-          <Button className="mt-5 w-full" size="lg" type="button">
-            <Users aria-hidden="true" size={18} />
-            <span>{view.primaryActionLabel}</span>
-          </Button>
-        )}
-        </CardContent>
-      </Card>
-    </main>
-  );
-}
-
-function CreateRecordPanel({
-  canCreateRecordsForOthers,
-  categories,
-  feedback,
-  members,
-  month,
-  profile,
-}: {
-  canCreateRecordsForOthers: boolean;
-  categories: HomeDashboardData["categories"];
-  feedback: string | undefined;
-  members: HomeDashboardData["householdMembers"];
-  month: string;
-  profile: HomeDashboardView["profile"];
-}) {
-  const incomeCategories = categories.filter(
-    (category) => category.type === "income" && category.status === "active",
-  );
-  const expenseCategories = categories.filter(
-    (category) => category.type === "expense" && category.status === "active",
-  );
-  const activeMembers = members.filter((member) => member.status === "active");
-  const defaultOccurredOn = `${month}-01`;
-  const feedbackMessage = createRecordFeedbackMessage(feedback);
-
-  return (
-    <section
-      aria-labelledby="new-record-title"
-      className="mt-5 scroll-mt-32"
-      id="new-record"
-    >
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h3 id="new-record-title" className="text-subheading">
-            新增紀錄
-          </h3>
-          <p className="text-caption text-muted-foreground">
-            收入、基金支出與成員代墊會依照權限與分類規則寫入本月紀錄。
-          </p>
-        </div>
-        {feedbackMessage ? (
-          <Alert
-            variant={feedbackMessage.tone === "success" ? "default" : "destructive"}
-            role={feedbackMessage.tone === "error" ? "alert" : "status"}
-          >
-            <AlertDescription>{feedbackMessage.message}</AlertDescription>
-          </Alert>
-        ) : null}
-      </div>
-
-      <div className="grid min-w-0 gap-3 lg:grid-cols-3">
-        <CreateRecordFormCard
-          categories={incomeCategories}
-          defaultOccurredOn={defaultOccurredOn}
-          memberField={
-            <MemberSelectField
-              canSelectOthers={canCreateRecordsForOthers}
-              fieldName="sourceMemberId"
-              label="收入來源"
-              members={activeMembers}
-              profile={profile}
-            />
-          }
-          month={month}
-          recordType="income"
-          submitLabel="新增收入"
-          title="收入"
-        />
-        <CreateRecordFormCard
-          categories={expenseCategories}
-          defaultOccurredOn={defaultOccurredOn}
-          hiddenFields={<input name="paymentSource" type="hidden" value="fund" />}
-          month={month}
-          recordType="expense"
-          submitLabel="新增基金支出"
-          title="基金支出"
-        />
-        <CreateRecordFormCard
-          categories={expenseCategories}
-          defaultOccurredOn={defaultOccurredOn}
-          hiddenFields={<input name="paymentSource" type="hidden" value="member" />}
-          memberField={
-            <MemberSelectField
-              canSelectOthers={canCreateRecordsForOthers}
-              fieldName="payerMemberId"
-              label="代墊成員"
-              members={activeMembers}
-              profile={profile}
-            />
-          }
-          month={month}
-          recordType="expense"
-          submitLabel="新增代墊"
-          title="成員代墊"
-        />
-      </div>
-    </section>
-  );
-}
-
-function CreateRecordFormCard({
-  categories,
-  defaultOccurredOn,
-  hiddenFields,
-  memberField,
-  month,
-  recordType,
-  submitLabel,
-  title,
-}: {
-  categories: HomeDashboardData["categories"];
-  defaultOccurredOn: string;
-  hiddenFields?: ReactNode;
-  memberField?: ReactNode;
-  month: string;
-  recordType: "income" | "expense";
-  submitLabel: string;
-  title: string;
-}) {
-  const hasCategories = categories.length > 0;
-
-  return (
-    <Card className="min-w-0">
-      <form action={createLedgerRecordAction}>
-        <input name="month" type="hidden" value={month} />
-        <input name="recordType" type="hidden" value={recordType} />
-        {hiddenFields}
-
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <CardTitle>{title}</CardTitle>
-          <Badge
-            variant="secondary"
-            className={recordType === "income" ? "text-income" : "text-expense"}
-          >
-            {recordType === "income" ? "收入" : "支出"}
-          </Badge>
-        </CardHeader>
-
-        <CardContent>
-          <FieldGroup>
-        <Field>
-          <FieldLabel>金額</FieldLabel>
-          <Input
-            inputMode="decimal"
-            min="1"
-            name="amountTwd"
-            placeholder="例如 1200"
-            required
-            step="0.01"
-            type="number"
-          />
-        </Field>
-        <Field>
-          <FieldLabel>日期</FieldLabel>
-          <Input
-            defaultValue={defaultOccurredOn}
-            name="occurredOn"
-            required
-            type="date"
-          />
-        </Field>
-        <Field>
-          <FieldLabel>分類</FieldLabel>
-          <NativeSelect
-            className="w-full"
-            disabled={!hasCategories}
-            name="categoryId"
-            required
-          >
-            <NativeSelectOption value="">選擇分類</NativeSelectOption>
-            {categories.map((category) => (
-              <NativeSelectOption key={category.id} value={category.id}>
-                {category.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-        {memberField}
-        <Field>
-          <FieldLabel>備註</FieldLabel>
-          <Input
-            name="note"
-            placeholder="可留空"
-            type="text"
-          />
-        </Field>
-
-        <Button className="mt-1 w-full" disabled={!hasCategories} type="submit">
-          <Plus aria-hidden="true" size={18} />
-          <span>{submitLabel}</span>
-        </Button>
-        </FieldGroup>
-      </CardContent>
-      </form>
-    </Card>
-  );
-}
-
-function MemberSelectField({
-  canSelectOthers,
-  fieldName,
-  label,
-  members,
-  profile,
-}: {
-  canSelectOthers: boolean;
-  fieldName: "sourceMemberId" | "payerMemberId";
-  label: string;
-  members: HomeDashboardData["householdMembers"];
-  profile: HomeDashboardView["profile"];
-}) {
-  if (!canSelectOthers) {
-    return (
-      <>
-        <input name={fieldName} type="hidden" value={profile.id} />
-        <Field>
-          <FieldLabel>{label}</FieldLabel>
-          <FieldContent>
-          <p className="flex h-10 items-center rounded-input border border-input bg-secondary px-3 text-body text-foreground">
-            {profile.displayName}
-          </p>
-          </FieldContent>
-        </Field>
-      </>
-    );
-  }
-
-  return (
-    <Field>
-      <FieldLabel>{label}</FieldLabel>
-      <NativeSelect
-        className="w-full"
-        defaultValue={profile.id}
-        name={fieldName}
-        required
-      >
-        {members.map((member) => (
-          <NativeSelectOption key={member.id} value={member.id}>
-            {member.displayName}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </Field>
   );
 }
 
@@ -598,37 +312,39 @@ function readSingleSearchParam(
   return value;
 }
 
-function createRecordFeedbackMessage(
-  result: string | undefined,
-): { tone: "success" | "error"; message: string } | undefined {
-  if (!result) {
+function readCreateRecordFeedback(
+  createResult: string | undefined,
+  createFeedbackResult: string | undefined,
+): string | undefined {
+  if (createFeedbackResult) {
+    return createFeedbackResult;
+  }
+
+  if (
+    !createResult ||
+    createResult === "open" ||
+    createResult === "income" ||
+    createResult === "expense" ||
+    createResult === "success"
+  ) {
     return undefined;
   }
 
-  if (result === "success") {
-    return {
-      tone: "success",
-      message: "紀錄已新增。",
-    };
+  return createResult;
+}
+
+function readCreateRecordMode(
+  createResult: string | undefined,
+): "income" | "expense" | undefined {
+  if (createResult === "income" || createResult === "open") {
+    return "income";
   }
 
-  const messages: Record<string, string> = {
-    archived_category: "這個分類已封存，請改選其他分類。",
-    category_type_mismatch: "分類類型與紀錄類型不一致。",
-    fund_paid_expense_cannot_have_member_payer: "基金支出不能指定代墊成員。",
-    invalid_amount: "金額格式不正確，請輸入大於 0 的金額。",
-    invalid_date: "日期格式不正確。",
-    missing_category: "請選擇分類。",
-    missing_member_payer: "請選擇代墊成員。",
-    missing_payer_member: "請選擇代墊成員。",
-    missing_source_member: "請選擇收入來源。",
-    permission_denied: "目前帳號沒有新增這筆紀錄的權限。",
-  };
+  if (createResult === "expense") {
+    return "expense";
+  }
 
-  return {
-    tone: "error",
-    message: messages[result] ?? "紀錄新增失敗，請確認欄位後再試一次。",
-  };
+  return undefined;
 }
 
 function SummaryMetric({
@@ -669,10 +385,10 @@ function RecordRow({
       </TableCell>
       <TableCell className="min-w-52">
         <p className="truncate text-body-strong">
-          {categoryNames.get(record.categoryId) ?? record.categoryId}
+          {record.name}
         </p>
         <p className="text-caption text-muted-foreground">
-          {isIncome
+          {categoryNames.get(record.categoryId) ?? record.categoryId} · {isIncome
             ? "家庭成員收入"
             : record.paymentSource === "member"
               ? "成員代墊"
@@ -714,58 +430,4 @@ function ledgerRecordStatusLabel(record: LedgerRecord): string {
   };
 
   return reimbursementStatusLabels[record.reimbursementStatus];
-}
-
-function getVisibleNavigationItems(accessHints: HomeDashboardView["accessHints"]) {
-  return [
-    {
-      label: "月報",
-      href: "#",
-      icon: CircleDollarSign,
-      active: true,
-      visible: accessHints.navigation.canOpenReports,
-    },
-    {
-      label: "紀錄",
-      href: "#",
-      icon: ReceiptText,
-      active: false,
-      visible: accessHints.navigation.canOpenRecords,
-    },
-    {
-      label: "新增",
-      href: "#",
-      icon: Plus,
-      active: false,
-      visible: accessHints.navigation.canOpenCreateRecord,
-    },
-    {
-      label: "退款",
-      href: "#",
-      icon: HandCoins,
-      active: false,
-      visible: accessHints.navigation.canOpenReimbursements,
-    },
-    {
-      label: "週期",
-      href: "#",
-      icon: CalendarClock,
-      active: false,
-      visible: accessHints.navigation.canOpenRecurring,
-    },
-    {
-      label: "分類",
-      href: "#",
-      icon: Tags,
-      active: false,
-      visible: accessHints.navigation.canOpenCategories,
-    },
-    {
-      label: "成員",
-      href: "#",
-      icon: Users,
-      active: false,
-      visible: accessHints.navigation.canOpenMembers,
-    },
-  ].filter((item) => item.visible);
 }

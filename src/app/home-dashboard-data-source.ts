@@ -23,6 +23,7 @@ type PrismaCategoryRow = {
 type PrismaLedgerRecordRow = {
   id: string;
   type: LedgerRecord["type"];
+  name: string;
   amountCents: number;
   occurredOn: Date;
   categoryId: string;
@@ -89,6 +90,7 @@ export type HomeDashboardPrismaClient = {
       select: {
         id: true;
         type: true;
+        name: true;
         amountCents: true;
         occurredOn: true;
         categoryId: true;
@@ -167,6 +169,7 @@ export function createHomeDashboardDataSource(
             select: {
               id: true,
               type: true,
+              name: true,
               amountCents: true,
               occurredOn: true,
               categoryId: true,
@@ -214,6 +217,7 @@ export function mapPrismaLedgerRecordToLedgerRecord(
 ): LedgerRecord {
   const base = {
     id: record.id,
+    name: record.name,
     amountCents: record.amountCents,
     occurredOn: formatDateOnly(record.occurredOn),
     categoryId: record.categoryId,

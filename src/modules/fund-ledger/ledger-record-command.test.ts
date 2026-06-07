@@ -21,6 +21,7 @@ describe("createLedgerRecordInDatabase", () => {
 
     await expect(createLedgerRecordInDatabase(actor, {
       type: "income",
+      name: "六月房租",
       amountCents: 120_000,
       occurredOn: "2026-06-05",
       categoryId: "income-rent",
@@ -44,6 +45,7 @@ describe("createLedgerRecordInDatabase", () => {
         id: "record-1",
         householdId: "household-demo",
         type: "income",
+        name: "六月房租",
         amountCents: 120_000,
         occurredOn: new Date("2026-06-05T00:00:00.000Z"),
         categoryId: "income-rent",
@@ -62,6 +64,7 @@ describe("createLedgerRecordInDatabase", () => {
 
     await expect(createLedgerRecordInDatabase(actor, {
       type: "expense",
+      name: "分類錯誤",
       amountCents: 1_000,
       occurredOn: "2026-06-09",
       categoryId: "income-rent",

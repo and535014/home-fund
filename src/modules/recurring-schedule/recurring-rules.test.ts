@@ -130,6 +130,7 @@ describe("recurring rules", () => {
       ledgerRecord: {
         id: "ledger-internet-june",
         type: "expense",
+        name: "週期支出",
         amountCents: 899,
         occurredOn: "2026-06-05",
         categoryId: "expense-internet",
@@ -182,6 +183,7 @@ describe("recurring rules", () => {
       ledgerRecord: {
         id: "ledger-living-june",
         type: "income",
+        name: "週期收入",
         amountCents: 20_000,
         occurredOn: "2026-06-10",
         categoryId: "income-living",
