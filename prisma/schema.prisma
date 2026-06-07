@@ -21,6 +21,7 @@ enum MemberRole {
 
 enum MemberCapability {
   manage_categories
+  manage_recurring
 }
 
 enum CategoryType {
