@@ -94,7 +94,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <HomeDashboardLayout
       canCreateOwnRecords={accessHints.actions.canCreateOwnRecords}
-      canPerformReimbursement={accessHints.actions.canPerformReimbursement}
       createExpenseHref={`/?month=${encodeURIComponent(dashboardMonth)}&create=expense`}
       createIncomeHref={`/?month=${encodeURIComponent(dashboardMonth)}&create=income`}
       createRecordDialogContent={
@@ -122,6 +121,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </>
         ) : undefined
       }
+      currentMonth={dashboardMonth}
       defaultOpenCreateRecordDialog={createRecordMode !== undefined}
       displayName={profile.displayName}
       navigationItems={visibleNavigationItems}
