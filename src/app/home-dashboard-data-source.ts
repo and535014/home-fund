@@ -212,6 +212,80 @@ export function createHomeDashboardDataSource(
   };
 }
 
+export function createE2eHomeDashboardData(month: string): HomeDashboardData {
+  return {
+    householdMembers: [
+      {
+        id: "member-e2e-fin",
+        displayName: "Lin",
+        googleAccountEmail: "e2e-finance@example.com",
+        googleSubject: "google-e2e-fin",
+        roles: ["finance_manager"],
+        capabilities: ["manage_categories"],
+        status: "active",
+      },
+      {
+        id: "member-e2e-mei",
+        displayName: "Mei",
+        googleAccountEmail: "mei@example.com",
+        roles: ["general_member"],
+        capabilities: [],
+        status: "active",
+      },
+    ],
+    categories: [
+      { id: "income-rent", type: "income", name: "房租", status: "active" },
+      { id: "income-living", type: "income", name: "生活費", status: "active" },
+      { id: "expense-grocery", type: "expense", name: "日用品", status: "active" },
+      { id: "expense-internet", type: "expense", name: "網路費", status: "active" },
+    ],
+    records: [
+      {
+        id: "income-rent-e2e",
+        type: "income",
+        name: "六月房租",
+        amountCents: 120_000_00,
+        occurredOn: `${month}-05`,
+        categoryId: "income-rent",
+        createdByMemberId: "member-e2e-fin",
+        sourceMemberId: "member-e2e-fin",
+        reimbursementStatus: "not_applicable",
+      },
+      {
+        id: "expense-grocery-e2e",
+        type: "expense",
+        name: "日用品代墊",
+        amountCents: 6_420_00,
+        occurredOn: `${month}-09`,
+        categoryId: "expense-grocery",
+        createdByMemberId: "member-e2e-mei",
+        paymentSource: "member",
+        payerMemberId: "member-e2e-mei",
+        reimbursementStatus: "refundable",
+      },
+      {
+        id: "expense-internet-e2e",
+        type: "expense",
+        name: "網路費",
+        amountCents: 899_00,
+        occurredOn: `${month}-05`,
+        categoryId: "expense-internet",
+        createdByMemberId: "member-e2e-fin",
+        paymentSource: "fund",
+        reimbursementStatus: "not_refundable",
+      },
+    ],
+    pendingOccurrences: [
+      {
+        id: "occurrence-living-e2e",
+        recurringRuleId: "rule-living-e2e",
+        month,
+        status: "pending",
+      },
+    ],
+  };
+}
+
 export function mapPrismaLedgerRecordToLedgerRecord(
   record: PrismaLedgerRecordRow,
 ): LedgerRecord {

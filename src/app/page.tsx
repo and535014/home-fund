@@ -4,6 +4,7 @@ import { CreateRecordToast } from "./create-record-toast";
 import { DashboardAccessScreen } from "./dashboard-access-screen";
 import { getVisibleDashboardNavigationItems } from "./dashboard-navigation";
 import {
+  createE2eHomeDashboardData,
   createHomeDashboardDataSource,
   type HomeDashboardData,
 } from "./home-dashboard-data-source";
@@ -50,18 +51,15 @@ type HomePageProps = {
 };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
+  const requestHeaders = new Headers(await headers());
+  const currentMember = await getCurrentMemberFromHeaders(requestHeaders);
   const resolvedSearchParams = await searchParams;
   const dashboardMonth = readDashboardMonth(resolvedSearchParams?.month);
   const authError = readSingleSearchParam(resolvedSearchParams?.error);
   const createResult = readSingleSearchParam(resolvedSearchParams?.create);
   const createFeedbackResult = readSingleSearchParam(resolvedSearchParams?.result);
   const dashboardData = currentMember.ok
-    ? await createHomeDashboardDataSource(
-        getPrismaClient(),
-      ).getMonthlyDashboardData(dashboardMonth)
+    ? await getDashboardData(dashboardMonth, requestHeaders)
     : emptyDashboardData;
   const homeView = buildHomeAccessViewFromAccess({
     access: currentMember,
@@ -299,6 +297,22 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </div>
           {createResult === "success" ? <CreateRecordToast /> : null}
     </HomeDashboardLayout>
+  );
+}
+
+async function getDashboardData(
+  month: string,
+  requestHeaders: Headers,
+): Promise<HomeDashboardData> {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    requestHeaders.has("x-e2e-current-member-email")
+  ) {
+    return createE2eHomeDashboardData(month);
+  }
+
+  return createHomeDashboardDataSource(getPrismaClient()).getMonthlyDashboardData(
+    month,
   );
 }
 

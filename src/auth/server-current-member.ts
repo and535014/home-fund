@@ -61,6 +61,12 @@ export async function getCurrentMemberFromHeaders(
   headers: Headers,
   factories: CurrentMemberRuntimeFactories = defaultRuntimeFactories,
 ) {
+  const e2eCurrentMember = resolveE2eCurrentMember(headers);
+
+  if (e2eCurrentMember) {
+    return e2eCurrentMember;
+  }
+
   const auth = await factories.createAuth();
 
   return resolveCurrentMemberFromRequest({
@@ -68,4 +74,35 @@ export async function getCurrentMemberFromHeaders(
     auth,
     dataSource: createCurrentMemberDataSource(factories.getPrismaClient()),
   });
+}
+
+function resolveE2eCurrentMember(headers: Headers) {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  const email = headers.get("x-e2e-current-member-email")?.trim().toLowerCase();
+
+  if (!email) {
+    return null;
+  }
+
+  return {
+    ok: true as const,
+    member: {
+      id: "member-e2e-fin",
+      googleAccountLinked: true,
+      roles: ["finance_manager" as const],
+      capabilities: ["manage_categories" as const],
+    },
+    profile: {
+      id: "member-e2e-fin",
+      displayName: "Lin",
+      roles: ["finance_manager" as const],
+      capabilities: ["manage_categories" as const],
+    },
+    events: ["Household member access resolved"] as [
+      "Household member access resolved",
+    ],
+  };
 }

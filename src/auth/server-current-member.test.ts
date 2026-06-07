@@ -88,6 +88,58 @@ describe("resolveCurrentMemberFromRequest", () => {
 });
 
 describe("getCurrentMemberFromHeaders", () => {
+  it("resolves a guarded E2E current member without auth or Prisma", async () => {
+    const createAuth = vi.fn();
+    const getPrismaClient = vi.fn();
+    const headers = new Headers({
+      "x-e2e-current-member-email": "e2e-finance@example.com",
+    });
+
+    await expect(getCurrentMemberFromHeaders(headers, {
+      createAuth,
+      getPrismaClient,
+    })).resolves.toMatchObject({
+      ok: true,
+      profile: {
+        id: "member-e2e-fin",
+        displayName: "Lin",
+      },
+    });
+    expect(createAuth).not.toHaveBeenCalled();
+    expect(getPrismaClient).not.toHaveBeenCalled();
+
+    vi.unstubAllEnvs();
+  });
+
+  it("does not use the E2E current member override in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const auth = {
+      api: {
+        getSession: async () => null,
+      },
+    };
+    const createAuth = vi.fn(async () => auth);
+    const getPrismaClient = vi.fn(() => ({
+      account: { findMany: vi.fn() },
+      member: { findMany: vi.fn() },
+    }));
+
+    await expect(getCurrentMemberFromHeaders(new Headers({
+      "x-e2e-current-member-email": "e2e-finance@example.com",
+    }), {
+      createAuth,
+      getPrismaClient,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "unauthenticated",
+    });
+    expect(createAuth).toHaveBeenCalledOnce();
+    expect(getPrismaClient).toHaveBeenCalledOnce();
+
+    vi.unstubAllEnvs();
+  });
+
   it("uses the default auth and Prisma factories with server headers", async () => {
     const headers = new Headers();
     const auth = {
