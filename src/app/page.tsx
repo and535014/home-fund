@@ -399,6 +399,9 @@ export default async function HomePage() {
 }
 
 function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
+  const canStartGoogleSignIn =
+    view.kind === "unauthenticated" || view.kind === "google_account_not_linked";
+
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 py-8 text-foreground">
       <section
@@ -410,13 +413,25 @@ function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
           {view.title}
         </h1>
         <p className="mt-3 text-body text-muted-foreground">{view.description}</p>
-        <button
-          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-button bg-primary px-4 text-label text-primary-foreground"
-          type="button"
-        >
-          <Users aria-hidden="true" size={18} />
-          <span>{view.primaryActionLabel}</span>
-        </button>
+        {canStartGoogleSignIn ? (
+          <form action="/auth/google" method="post">
+            <button
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-button bg-primary px-4 text-label text-primary-foreground"
+              type="submit"
+            >
+              <Users aria-hidden="true" size={18} />
+              <span>{view.primaryActionLabel}</span>
+            </button>
+          </form>
+        ) : (
+          <button
+            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-button bg-primary px-4 text-label text-primary-foreground"
+            type="button"
+          >
+            <Users aria-hidden="true" size={18} />
+            <span>{view.primaryActionLabel}</span>
+          </button>
+        )}
       </section>
     </main>
   );
