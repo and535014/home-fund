@@ -1,0 +1,130 @@
+import type {
+  CreateLedgerRecordCommand,
+} from "@/modules/fund-ledger/ledger-records";
+import { readDashboardMonth } from "./month-selection";
+
+export type ParseCreateLedgerRecordFormResult =
+  | {
+      ok: true;
+      command: CreateLedgerRecordCommand;
+      month: string;
+    }
+  | {
+      ok: false;
+      reason:
+        | "invalid_record_type"
+        | "invalid_amount"
+        | "missing_category"
+        | "missing_source_member"
+        | "invalid_payment_source"
+        | "missing_payer_member";
+      month: string;
+    };
+
+export function parseCreateLedgerRecordForm(
+  formData: FormData,
+): ParseCreateLedgerRecordFormResult {
+  const month = readDashboardMonth(readFormString(formData, "month"));
+  const type = readFormString(formData, "recordType");
+  const amountCents = parseAmountCents(readFormString(formData, "amountTwd"));
+  const occurredOn = readFormString(formData, "occurredOn");
+  const categoryId = readFormString(formData, "categoryId");
+  const note = readOptionalFormString(formData, "note");
+
+  if (amountCents === null) {
+    return { ok: false, reason: "invalid_amount", month };
+  }
+
+  if (!categoryId) {
+    return { ok: false, reason: "missing_category", month };
+  }
+
+  if (type === "income") {
+    const sourceMemberId = readFormString(formData, "sourceMemberId");
+
+    if (!sourceMemberId) {
+      return { ok: false, reason: "missing_source_member", month };
+    }
+
+    return {
+      ok: true,
+      month,
+      command: {
+        type: "income",
+        amountCents,
+        occurredOn,
+        categoryId,
+        sourceMemberId,
+        ...(note ? { note } : {}),
+      },
+    };
+  }
+
+  if (type !== "expense") {
+    return { ok: false, reason: "invalid_record_type", month };
+  }
+
+  const paymentSource = readFormString(formData, "paymentSource");
+
+  if (paymentSource === "fund") {
+    return {
+      ok: true,
+      month,
+      command: {
+        type: "expense",
+        amountCents,
+        occurredOn,
+        categoryId,
+        paymentSource,
+        ...(note ? { note } : {}),
+      },
+    };
+  }
+
+  if (paymentSource !== "member") {
+    return { ok: false, reason: "invalid_payment_source", month };
+  }
+
+  const payerMemberId = readFormString(formData, "payerMemberId");
+
+  if (!payerMemberId) {
+    return { ok: false, reason: "missing_payer_member", month };
+  }
+
+  return {
+    ok: true,
+    month,
+    command: {
+      type: "expense",
+      amountCents,
+      occurredOn,
+      categoryId,
+      paymentSource,
+      payerMemberId,
+      ...(note ? { note } : {}),
+    },
+  };
+}
+
+function parseAmountCents(value: string): number | null {
+  if (!/^\d+(?:\.\d{1,2})?$/u.test(value)) {
+    return null;
+  }
+
+  const [dollars, cents = ""] = value.split(".");
+  const amountCents = Number(dollars) * 100 + Number(cents.padEnd(2, "0"));
+
+  return amountCents > 0 ? amountCents : null;
+}
+
+function readFormString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readOptionalFormString(formData: FormData, key: string): string | undefined {
+  const value = readFormString(formData, key);
+
+  return value || undefined;
+}
