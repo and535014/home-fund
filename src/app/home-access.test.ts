@@ -137,6 +137,21 @@ describe("buildHomeAccessViewFromAccess", () => {
     });
   });
 
+  it("shows an auth callback error on blocked views", () => {
+    expect(buildHomeAccessViewFromAccess({
+      ...baseInput,
+      access: {
+        ok: false,
+        reason: "unauthenticated",
+      },
+      authError: "state_mismatch",
+    })).toMatchObject({
+      kind: "unauthenticated",
+      errorMessage:
+        "登入驗證狀態已失效，請重新點選 Google 登入。若仍發生，請清除 localhost 的 cookie 後再試一次。",
+    });
+  });
+
   it("builds dashboard data from an already resolved active member", () => {
     const view = buildHomeAccessViewFromAccess({
       ...baseInput,

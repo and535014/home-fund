@@ -8,16 +8,22 @@ type GoogleSignInResult =
       url?: undefined;
     };
 
+type GoogleSignInResponse = {
+  headers: Headers;
+  response: GoogleSignInResult;
+};
+
 export type GoogleSignInAuthApi = {
   api: {
     signInSocial(context: {
       headers: Headers;
+      returnHeaders: true;
       body: {
         provider: "google";
         callbackURL: string;
         errorCallbackURL: string;
       };
-    }): Promise<GoogleSignInResult>;
+    }): Promise<GoogleSignInResponse>;
   };
 };
 
@@ -31,15 +37,17 @@ export async function startGoogleSignIn(
 ): Promise<Response> {
   const result = await input.auth.api.signInSocial({
     headers: input.headers,
+    returnHeaders: true,
     body: {
       provider: "google",
       callbackURL: "/",
       errorCallbackURL: "/",
     },
   });
+  const redirectUrl = result.headers.get("location") ?? result.response.url;
 
-  if (result.url) {
-    return Response.redirect(result.url);
+  if (redirectUrl) {
+    return redirectWithHeaders(redirectUrl, result.headers);
   }
 
   return Response.redirect(new URL("/?auth_error=google_sign_in", originFrom(
@@ -49,4 +57,21 @@ export async function startGoogleSignIn(
 
 function originFrom(headers: Headers): string {
   return headers.get("origin") ?? "http://localhost:3000";
+}
+
+function redirectWithHeaders(url: string, headers: Headers): Response {
+  const responseHeaders = new Headers();
+
+  headers.forEach((value, key) => {
+    if (key.toLowerCase() !== "location") {
+      responseHeaders.append(key, value);
+    }
+  });
+
+  responseHeaders.set("location", url);
+
+  return new Response(null, {
+    status: 302,
+    headers: responseHeaders,
+  });
 }

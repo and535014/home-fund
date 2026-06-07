@@ -29,6 +29,7 @@ export type ResolvedHomeAccessInput = Omit<
   "googleIdentity"
 > & {
   access: ResolveHouseholdAccessResult;
+  authError?: string;
 };
 
 export type HomeBlockedView = {
@@ -36,6 +37,7 @@ export type HomeBlockedView = {
   title: string;
   description: string;
   primaryActionLabel: string;
+  errorMessage?: string;
 };
 
 export type HomeDashboardView = {
@@ -66,7 +68,7 @@ export function buildHomeAccessViewFromAccess(
   const { access } = input;
 
   if (!access.ok) {
-    return blockedViewFor(access.reason);
+    return blockedViewFor(access.reason, input.authError);
   }
 
   const reimbursementTable = buildMonthlyReimbursementTable({
@@ -93,6 +95,7 @@ export function buildHomeAccessViewFromAccess(
 
 function blockedViewFor(
   reason: Exclude<ReturnType<typeof resolveHouseholdAccess>, { ok: true }>["reason"],
+  authError?: string,
 ): HomeBlockedView {
   if (reason === "unauthenticated") {
     return {
@@ -100,6 +103,7 @@ function blockedViewFor(
       title: "請先使用 Google 登入",
       description: "登入後才能查看家庭共用金、收支紀錄與退款資訊。",
       primaryActionLabel: "使用 Google 登入",
+      ...authErrorMessageFor(authError),
     };
   }
 
@@ -109,6 +113,7 @@ function blockedViewFor(
       title: "找不到家庭成員帳號",
       description: "這個 Google 帳號尚未被管理員邀請或連結，請確認登入帳號是否正確。",
       primaryActionLabel: "重新選擇 Google 帳號",
+      ...authErrorMessageFor(authError),
     };
   }
 
@@ -117,5 +122,25 @@ function blockedViewFor(
     title: "帳號尚未啟用",
     description: "你的家庭成員帳號目前不是啟用狀態，請聯絡管理員確認權限。",
     primaryActionLabel: "重新整理狀態",
+    ...authErrorMessageFor(authError),
+  };
+}
+
+function authErrorMessageFor(
+  authError: string | undefined,
+): Pick<HomeBlockedView, "errorMessage"> {
+  if (!authError) {
+    return {};
+  }
+
+  if (authError === "state_mismatch") {
+    return {
+      errorMessage:
+        "登入驗證狀態已失效，請重新點選 Google 登入。若仍發生，請清除 localhost 的 cookie 後再試一次。",
+    };
+  }
+
+  return {
+    errorMessage: "Google 登入沒有完成，請重新嘗試。",
   };
 }

@@ -4,9 +4,16 @@ import { startGoogleSignIn } from "./google-sign-in";
 describe("startGoogleSignIn", () => {
   it("starts Better Auth Google social sign-in with request headers", async () => {
     const headers = new Headers({ origin: "http://localhost:3000" });
+    const responseHeaders = new Headers({
+      location: "https://accounts.google.com/o/oauth2/v2/auth",
+      "set-cookie": "better-auth.state=state-value; Path=/; HttpOnly",
+    });
     const signInSocial = vi.fn(async () => ({
-      redirect: true,
-      url: "https://accounts.google.com/o/oauth2/v2/auth",
+      headers: responseHeaders,
+      response: {
+        redirect: true,
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+      },
     }));
 
     const response = await startGoogleSignIn({
@@ -18,6 +25,7 @@ describe("startGoogleSignIn", () => {
 
     expect(signInSocial).toHaveBeenCalledWith({
       headers,
+      returnHeaders: true,
       body: {
         provider: "google",
         callbackURL: "/",
@@ -28,6 +36,9 @@ describe("startGoogleSignIn", () => {
     expect(response.headers.get("location")).toBe(
       "https://accounts.google.com/o/oauth2/v2/auth",
     );
+    expect(response.headers.get("set-cookie")).toBe(
+      "better-auth.state=state-value; Path=/; HttpOnly",
+    );
   });
 
   it("returns a local error redirect when Better Auth does not provide a URL", async () => {
@@ -36,7 +47,10 @@ describe("startGoogleSignIn", () => {
       auth: {
         api: {
           signInSocial: async () => ({
-            redirect: false,
+            headers: new Headers(),
+            response: {
+              redirect: false,
+            },
           }),
         },
       },

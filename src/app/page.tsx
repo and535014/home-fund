@@ -123,12 +123,18 @@ const pendingOccurrences: RecurringOccurrence[] = [
 
 const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
 
-export default async function HomePage() {
+type HomePageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   const currentMember = await getCurrentMemberFromHeaders(
     new Headers(await headers()),
   );
+  const authError = readSingleSearchParam((await searchParams)?.error);
   const homeView = buildHomeAccessViewFromAccess({
     access: currentMember,
+    authError,
     householdMembers: members,
     month: "2026-06",
     records,
@@ -413,6 +419,14 @@ function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
           {view.title}
         </h1>
         <p className="mt-3 text-body text-muted-foreground">{view.description}</p>
+        {view.errorMessage ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-card border border-expense/60 bg-expense/10 p-3 text-body text-expense"
+          >
+            {view.errorMessage}
+          </p>
+        ) : null}
         {canStartGoogleSignIn ? (
           <form action="/auth/google" method="post">
             <button
@@ -435,6 +449,16 @@ function AccessBlockedScreen({ view }: { view: HomeBlockedView }) {
       </section>
     </main>
   );
+}
+
+function readSingleSearchParam(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
 }
 
 function SummaryMetric({
