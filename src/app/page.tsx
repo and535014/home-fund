@@ -18,11 +18,11 @@ import {
   type HomeBlockedView,
   type HomeDashboardView,
 } from "./home-access";
+import { readDashboardMonth } from "./month-selection";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
 import { getPrismaClient } from "@/db/prisma";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
-const dashboardMonth = "2026-06";
 const emptyDashboardData: HomeDashboardData = {
   householdMembers: [],
   categories: [],
@@ -38,7 +38,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const currentMember = await getCurrentMemberFromHeaders(
     new Headers(await headers()),
   );
-  const authError = readSingleSearchParam((await searchParams)?.error);
+  const resolvedSearchParams = await searchParams;
+  const dashboardMonth = readDashboardMonth(resolvedSearchParams?.month);
+  const authError = readSingleSearchParam(resolvedSearchParams?.error);
   const dashboardData = currentMember.ok
     ? await createHomeDashboardDataSource(
         getPrismaClient(),
