@@ -8,6 +8,8 @@ export type AuthEnvironment = {
   usesPlaceholderGoogleCredentials: boolean;
 };
 
+export type AuthDatabaseAdapter = NonNullable<BetterAuthOptions["database"]>;
+
 type RuntimeEnvironment = "development" | "production" | "test";
 
 const localDefaults = {
@@ -51,10 +53,14 @@ export function readAuthEnvironment(
   };
 }
 
-export function buildAuthConfig(env: AuthEnvironment): BetterAuthOptions {
+export function buildAuthConfig(
+  env: AuthEnvironment,
+  database?: AuthDatabaseAdapter,
+): BetterAuthOptions {
   return {
     baseURL: env.baseUrl,
     secret: env.secret,
+    ...(database ? { database } : {}),
     socialProviders: {
       google: {
         clientId: env.googleClientId,

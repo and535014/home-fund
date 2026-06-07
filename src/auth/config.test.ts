@@ -44,4 +44,19 @@ describe("buildAuthConfig", () => {
       },
     });
   });
+
+  it("accepts an injected database adapter for persistent sessions", () => {
+    const env: AuthEnvironment = {
+      baseUrl: "https://example.com",
+      googleClientId: "google-client-id",
+      googleClientSecret: "google-client-secret",
+      secret: "better-auth-secret",
+      usesPlaceholderGoogleCredentials: false,
+    };
+    const database = () => {
+      throw new Error("not called in config test");
+    };
+
+    expect(buildAuthConfig(env, database).database).toBe(database);
+  });
 });
