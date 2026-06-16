@@ -1,5 +1,6 @@
 import { HandCoins } from "lucide-react";
 import { headers } from "next/headers";
+import { CreateRecordDialog } from "./create-record-dialog";
 import { CreateRecordToast } from "./create-record-toast";
 import { DashboardAccessScreen } from "./dashboard-access-screen";
 import { getVisibleDashboardNavigationItems } from "./dashboard-navigation";
@@ -11,16 +12,10 @@ import {
 import { HomeDashboardLayout } from "./home-dashboard-layout";
 import { buildHomeAccessViewFromAccess } from "./home-access";
 import { readDashboardMonth } from "./month-selection";
-import { RecordEntryPanel } from "./record-entry-panel";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Item,
   ItemContent,
@@ -47,17 +42,19 @@ const emptyDashboardData: HomeDashboardData = {
 };
 
 type HomePageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | URLSearchParams>;
 };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const requestHeaders = new Headers(await headers());
   const currentMember = await getCurrentMemberFromHeaders(requestHeaders);
   const resolvedSearchParams = await searchParams;
-  const dashboardMonth = readDashboardMonth(resolvedSearchParams?.month);
-  const authError = readSingleSearchParam(resolvedSearchParams?.error);
-  const createResult = readSingleSearchParam(resolvedSearchParams?.create);
-  const createFeedbackResult = readSingleSearchParam(resolvedSearchParams?.result);
+  const dashboardMonth = readDashboardMonth(
+    readSearchParam(resolvedSearchParams, "month"),
+  );
+  const authError = readSearchParam(resolvedSearchParams, "error");
+  const createResult = readSearchParam(resolvedSearchParams, "create");
+  const createFeedbackResult = readSearchParam(resolvedSearchParams, "result");
   const dashboardData = currentMember.ok
     ? await getDashboardData(dashboardMonth, requestHeaders)
     : emptyDashboardData;
@@ -96,31 +93,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       createIncomeHref={`/?month=${encodeURIComponent(dashboardMonth)}&create=income`}
       createRecordDialogContent={
         createRecordMode ? (
-        <>
-          <DialogHeader>
-            <DialogTitle>
-              {createRecordMode === "income" ? "新增收入" : "新增支出"}
-            </DialogTitle>
-            <DialogDescription>
-              {createRecordMode === "income"
-                ? "建立家庭成員繳交的房租、生活費或其他收入。"
-                : "建立基金直接支出，或成員先代墊的支出。"}
-            </DialogDescription>
-          </DialogHeader>
-          <RecordEntryPanel
+          <CreateRecordDialog
             canCreateRecordsForOthers={accessHints.actions.canCreateRecordsForOthers}
             categories={dashboardData.categories}
+            defaultOpen={createRecordMode !== undefined}
             feedback={createRecordFeedback}
             members={dashboardData.householdMembers}
             mode={createRecordMode}
             month={dashboardMonth}
             profile={profile}
           />
-        </>
         ) : undefined
       }
       currentMonth={dashboardMonth}
-      defaultOpenCreateRecordDialog={createRecordMode !== undefined}
       displayName={profile.displayName}
       navigationItems={visibleNavigationItems}
     >
@@ -316,9 +301,20 @@ async function getDashboardData(
   );
 }
 
-function readSingleSearchParam(
-  value: string | string[] | undefined,
+function readSearchParam(
+  searchParams: Record<string, string | string[] | undefined> | URLSearchParams | undefined,
+  key: string,
 ): string | undefined {
+  if (!searchParams) {
+    return undefined;
+  }
+
+  if (searchParams instanceof URLSearchParams) {
+    return searchParams.get(key) ?? undefined;
+  }
+
+  const value = searchParams[key];
+
   if (Array.isArray(value)) {
     return value[0];
   }

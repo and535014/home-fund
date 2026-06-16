@@ -14,13 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 type RecordEntryKind = "income" | "fund_expense" | "member_expense";
 type RecordEntryMode = "income" | "expense";
@@ -45,7 +39,6 @@ export function RecordEntryPanel({
   const [entryKind, setEntryKind] = useState<RecordEntryKind>(
     mode === "income" ? "income" : "member_expense",
   );
-  const [categoryId, setCategoryId] = useState("");
   const activeMembers = members.filter((member) => member.status === "active");
   const activeCategories = useMemo(
     () =>
@@ -62,11 +55,6 @@ export function RecordEntryPanel({
   const isMemberPaidExpense = entryKind === "member_expense";
   const hasCategories = activeCategories.length > 0;
 
-  function handleEntryKindChange(value: string) {
-    setEntryKind(value as RecordEntryKind);
-    setCategoryId("");
-  }
-
   return (
     <section aria-label="新增紀錄表單" className="scroll-mt-32">
       {feedbackMessage ? (
@@ -80,122 +68,117 @@ export function RecordEntryPanel({
       ) : null}
 
       <form action={createLedgerRecordAction}>
-            <input name="month" type="hidden" value={month} />
-            <input name="createIntent" type="hidden" value={mode} />
-            <input
-              name="recordType"
-              type="hidden"
-              value={isIncome ? "income" : "expense"}
-            />
-            {!isIncome ? (
-              <input
+        <input name="month" type="hidden" value={month} />
+        <input name="createIntent" type="hidden" value={mode} />
+        <input
+          name="recordType"
+          type="hidden"
+          value={isIncome ? "income" : "expense"}
+        />
+
+        <FieldGroup>
+          <input name="entryKind" type="hidden" value={entryKind} />
+          {mode === "expense" ? (
+            <Field>
+              <FieldLabel>支出類型</FieldLabel>
+              <NativeSelect
+                aria-label="支出類型"
+                onChange={(event) =>
+                  setEntryKind(
+                    event.currentTarget.value === "fund"
+                      ? "fund_expense"
+                      : "member_expense",
+                  )
+                }
                 name="paymentSource"
-                type="hidden"
                 value={isMemberPaidExpense ? "member" : "fund"}
-              />
-            ) : null}
+              >
+                <option value="member">成員代墊</option>
+                <option value="fund">基金支出</option>
+              </NativeSelect>
+            </Field>
+          ) : null}
 
-            <FieldGroup>
-              <input name="entryKind" type="hidden" value={entryKind} />
-              {mode === "expense" ? (
-                <Field>
-                  <FieldLabel>支出類型</FieldLabel>
-                  <Select onValueChange={handleEntryKindChange} value={entryKind}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="member_expense">成員代墊</SelectItem>
-                      <SelectItem value="fund_expense">基金支出</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              ) : null}
+          <Field>
+            <FieldLabel>名稱</FieldLabel>
+            <Input
+              name="name"
+              placeholder={mode === "income" ? "例如 六月房租" : "例如 晚餐食材"}
+              required
+              type="text"
+            />
+          </Field>
 
-              <Field>
-                <FieldLabel>名稱</FieldLabel>
-                <Input
-                  name="name"
-                  placeholder={mode === "income" ? "例如 六月房租" : "例如 晚餐食材"}
-                  required
-                  type="text"
-                />
-              </Field>
+          <Field>
+            <FieldLabel>金額</FieldLabel>
+            <Input
+              inputMode="decimal"
+              min="1"
+              name="amountTwd"
+              placeholder="例如 1200"
+              required
+              step="0.01"
+              type="number"
+            />
+          </Field>
 
-              <Field>
-                <FieldLabel>金額</FieldLabel>
-                <Input
-                  inputMode="decimal"
-                  min="1"
-                  name="amountTwd"
-                  placeholder="例如 1200"
-                  required
-                  step="0.01"
-                  type="number"
-                />
-              </Field>
+          <Field>
+            <FieldLabel>日期</FieldLabel>
+            <Input
+              defaultValue={defaultOccurredOn}
+              name="occurredOn"
+              required
+              type="date"
+            />
+          </Field>
 
-              <Field>
-                <FieldLabel>日期</FieldLabel>
-                <Input
-                  defaultValue={defaultOccurredOn}
-                  name="occurredOn"
-                  required
-                  type="date"
-                />
-              </Field>
+          <Field>
+            <FieldLabel>分類</FieldLabel>
+            <NativeSelect
+              aria-label="分類"
+              disabled={!hasCategories}
+              key={entryKind}
+              name="categoryId"
+            >
+              <option value="">選擇分類</option>
+              {activeCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
 
-              <Field>
-                <FieldLabel>分類</FieldLabel>
-                <input name="categoryId" type="hidden" value={categoryId} />
-                <Select
-                  disabled={!hasCategories}
-                  onValueChange={setCategoryId}
-                  value={categoryId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="選擇分類" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+          {isIncome ? (
+            <MemberSelectField
+              canSelectOthers={canCreateRecordsForOthers}
+              fieldName="sourceMemberId"
+              label="收入來源"
+              members={activeMembers}
+              profile={profile}
+            />
+          ) : null}
 
-              {isIncome ? (
-                <MemberSelectField
-                  canSelectOthers={canCreateRecordsForOthers}
-                  fieldName="sourceMemberId"
-                  label="收入來源"
-                  members={activeMembers}
-                  profile={profile}
-                />
-              ) : null}
+          {isMemberPaidExpense ? (
+            <MemberSelectField
+              canSelectOthers={canCreateRecordsForOthers}
+              fieldName="payerMemberId"
+              label="代墊成員"
+              members={activeMembers}
+              profile={profile}
+            />
+          ) : null}
 
-              {isMemberPaidExpense ? (
-                <MemberSelectField
-                  canSelectOthers={canCreateRecordsForOthers}
-                  fieldName="payerMemberId"
-                  label="代墊成員"
-                  members={activeMembers}
-                  profile={profile}
-                />
-              ) : null}
+          <Field>
+            <FieldLabel>備註</FieldLabel>
+            <Input name="note" placeholder="可留空" type="text" />
+          </Field>
 
-              <Field>
-                <FieldLabel>備註</FieldLabel>
-                <Input name="note" placeholder="可留空" type="text" />
-              </Field>
-
-              <Button className="mt-1 w-full" disabled={!hasCategories} type="submit">
-                <Plus aria-hidden="true" size={18} />
-                <span>{mode === "income" ? "新增收入" : "新增支出"}</span>
-              </Button>
-            </FieldGroup>
+          <Button className="mt-1 w-full" disabled={!hasCategories} type="submit">
+            <Plus aria-hidden="true" size={18} />
+            <span>{mode === "income" ? "新增收入" : "新增支出"}</span>
+          </Button>
+        </FieldGroup>
       </form>
     </section>
   );
@@ -251,25 +234,40 @@ function MemberSelectInput({
   members: HomeDashboardData["householdMembers"];
   profileId: string;
 }) {
-  const [selectedMemberId, setSelectedMemberId] = useState(profileId);
-
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
-      <input name={fieldName} type="hidden" value={selectedMemberId} />
-      <Select onValueChange={setSelectedMemberId} value={selectedMemberId}>
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {members.map((member) => (
-            <SelectItem key={member.id} value={member.id}>
-              {member.displayName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <NativeSelect
+        aria-label={label}
+        defaultValue={profileId}
+        name={fieldName}
+        required
+      >
+        {members.map((member) => (
+          <option key={member.id} value={member.id}>
+            {member.displayName}
+          </option>
+        ))}
+      </NativeSelect>
     </Field>
+  );
+}
+
+function NativeSelect({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"select">) {
+  return (
+    <select
+      className={cn(
+        "flex h-10 w-full rounded-input border border-input bg-background px-3 py-2 text-body text-foreground outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
   );
 }
 

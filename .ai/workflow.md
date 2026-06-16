@@ -24,6 +24,11 @@ trace_links:
   - .ai/verification-design/home-family-fund-controlled-auth-session-e2e.md
   - .ai/implementation/home-family-fund-controlled-auth-session-e2e.md
   - .ai/verification/home-family-fund-controlled-auth-session-e2e.md
+  - .ai/experience-design/story-mvp-hardening-browser-create-record-flow.md
+  - .ai/architecture/home-family-fund-browser-create-record-flow.md
+  - .ai/verification-design/home-family-fund-browser-create-record-flow.md
+  - .ai/implementation/home-family-fund-browser-create-record-flow.md
+  - .ai/verification/home-family-fund-browser-create-record-flow.md
 reviewed_at: 2026-06-07
 ---
 
@@ -90,9 +95,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: home-family-fund MVP local_dev implementation; latest slice is controlled auth session E2E.
-- current_stage: verification approved for controlled auth session E2E completion story.
-- recommended_next_skill: commit, then architecture-planner or verification-design for the next MVP hardening story.
+- active_change: home-family-fund MVP local_dev implementation; latest slice is browser create-record flow.
+- current_stage: verification passed for browser create-record flow completion story.
+- recommended_next_skill: story-slicing
 
 ## Artifact Inventory
 
@@ -101,11 +106,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts: 9 original capability stories and 6 MVP hardening completion stories.
-- experience-design: 10 artifacts including `web-foundation.md`.
-- architecture: 3 artifacts, including `.ai/architecture/home-family-fund-controlled-auth-session-e2e.md`.
-- verification-design: 3 artifacts, including `.ai/verification-design/home-family-fund-controlled-auth-session-e2e.md`.
-- implementation: 26 implementation artifacts; latest observed slice is `home-family-fund-controlled-auth-session-e2e`.
-- verification: 26 verification artifacts; latest observed slice is `home-family-fund-controlled-auth-session-e2e` and is approved for `local_dev`.
+- experience-design: 11 artifacts including `.ai/experience-design/story-mvp-hardening-browser-create-record-flow.md`.
+- architecture: 4 artifacts, including `.ai/architecture/home-family-fund-browser-create-record-flow.md`.
+- verification-design: 4 artifacts, including `.ai/verification-design/home-family-fund-browser-create-record-flow.md`.
+- implementation: 27 implementation artifacts; latest observed slice is `home-family-fund-browser-create-record-flow`.
+- verification: 27 verification artifacts; latest observed slice is `home-family-fund-browser-create-record-flow` and is approved for `local_dev`.
 - deploy: directory created, no artifacts yet.
 - post-release: directory created, no artifacts yet.
 - reviews: directory created, no review artifacts yet.

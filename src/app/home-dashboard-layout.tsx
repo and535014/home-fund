@@ -9,10 +9,6 @@ import { MonthSwitcher } from "./month-switcher";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
-import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -39,7 +35,6 @@ export type HomeDashboardLayoutProps = {
   createIncomeHref?: string;
   createRecordDialogContent?: ReactNode;
   currentMonth: string;
-  defaultOpenCreateRecordDialog?: boolean;
   displayName: string;
   navigationItems: DashboardNavigationItem[];
   showMonthSwitcher?: boolean;
@@ -54,7 +49,6 @@ export function HomeDashboardLayout({
   createIncomeHref = "/?create=income",
   createRecordDialogContent,
   currentMonth,
-  defaultOpenCreateRecordDialog = false,
   displayName,
   navigationItems,
   showMonthSwitcher = true,
@@ -65,7 +59,6 @@ export function HomeDashboardLayout({
 
   return (
     <SidebarProvider className="min-h-screen bg-background text-foreground">
-      <Dialog defaultOpen={defaultOpenCreateRecordDialog}>
       <DashboardSidebar
         displayName={displayName}
         navigationItems={navigationItems}
@@ -130,12 +123,7 @@ export function HomeDashboardLayout({
           </div>
         </div>
       </SidebarInset>
-      {createRecordDialogContent ? (
-        <DialogContent disableOutsidePointerDown>
-          {createRecordDialogContent}
-        </DialogContent>
-      ) : null}
-      </Dialog>
+      {createRecordDialogContent}
     </SidebarProvider>
   );
 }
