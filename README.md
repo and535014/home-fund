@@ -235,7 +235,8 @@ corepack pnpm test:e2e
 
 執行 DB-backed dashboard E2E。這會重建本機 Docker Postgres 內的
 `home_fund_e2e` database、套用 migration、匯入 deterministic seed，並用
-`x-e2e-current-member-email` 只處理測試登入，dashboard 資料會從 Prisma 讀取：
+production-disabled controlled auth header 驗證 current-member mapping，
+dashboard 資料會從 Prisma 讀取：
 
 ```sh
 docker compose up -d

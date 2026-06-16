@@ -67,6 +67,16 @@ export async function getCurrentMemberFromHeaders(
     return e2eCurrentMember;
   }
 
+  const controlledE2eAuth = createControlledE2eAuth(headers);
+
+  if (controlledE2eAuth) {
+    return resolveCurrentMemberFromRequest({
+      headers,
+      auth: controlledE2eAuth,
+      dataSource: createCurrentMemberDataSource(factories.getPrismaClient()),
+    });
+  }
+
   const auth = await factories.createAuth();
 
   return resolveCurrentMemberFromRequest({
@@ -104,5 +114,27 @@ function resolveE2eCurrentMember(headers: Headers) {
     events: ["Household member access resolved"] as [
       "Household member access resolved",
     ],
+  };
+}
+
+function createControlledE2eAuth(headers: Headers): CurrentMemberAuthApi | null {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  const userId = headers.get("x-e2e-auth-user-id")?.trim();
+
+  if (!userId) {
+    return null;
+  }
+
+  return {
+    api: {
+      getSession: async () => ({
+        user: {
+          id: userId,
+        },
+      }),
+    },
   };
 }

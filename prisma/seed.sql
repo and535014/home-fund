@@ -42,8 +42,17 @@ VALUES
     'household-demo',
     'Lin',
     '__SEED_GOOGLE_ACCOUNT_EMAIL__',
-    NULL,
+    'google-e2e-linked',
     'active',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'member-e2e-disabled',
+    'household-demo',
+    'Disabled Lin',
+    'e2e-disabled@example.com',
+    'google-e2e-disabled',
+    'disabled',
     CURRENT_TIMESTAMP
   )
 ON CONFLICT ("id") DO UPDATE
@@ -57,13 +66,125 @@ INSERT INTO "MemberRoleAssignment" ("memberId", "role")
 VALUES
   ('member-mei', 'general_member'),
   ('member-kai', 'general_member'),
-  ('member-fin', 'finance_manager')
+  ('member-fin', 'finance_manager'),
+  ('member-e2e-disabled', 'general_member')
 ON CONFLICT ("memberId", "role") DO NOTHING;
 
 INSERT INTO "MemberCapabilityAssignment" ("memberId", "capability")
 VALUES
   ('member-fin', 'manage_categories')
 ON CONFLICT ("memberId", "capability") DO NOTHING;
+
+INSERT INTO "User" (
+  "id",
+  "name",
+  "email",
+  "emailVerified",
+  "image",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'user-e2e-linked',
+    'Linked E2E User',
+    '__SEED_GOOGLE_ACCOUNT_EMAIL__',
+    true,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'user-e2e-unlinked',
+    'Unlinked E2E User',
+    'e2e-unlinked@example.com',
+    true,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'user-e2e-disabled',
+    'Disabled E2E User',
+    'e2e-disabled@example.com',
+    true,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT ("id") DO UPDATE
+SET "name" = EXCLUDED."name",
+    "email" = EXCLUDED."email",
+    "emailVerified" = EXCLUDED."emailVerified",
+    "image" = EXCLUDED."image",
+    "updatedAt" = CURRENT_TIMESTAMP;
+
+INSERT INTO "Account" (
+  "id",
+  "accountId",
+  "providerId",
+  "userId",
+  "accessToken",
+  "refreshToken",
+  "idToken",
+  "accessTokenExpiresAt",
+  "refreshTokenExpiresAt",
+  "scope",
+  "password",
+  "createdAt",
+  "updatedAt"
+)
+VALUES
+  (
+    'account-e2e-linked-google',
+    'google-e2e-linked',
+    'google',
+    'user-e2e-linked',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'account-e2e-unlinked-google',
+    'google-e2e-unlinked',
+    'google',
+    'user-e2e-unlinked',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'account-e2e-disabled-google',
+    'google-e2e-disabled',
+    'google',
+    'user-e2e-disabled',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT ("id") DO UPDATE
+SET "accountId" = EXCLUDED."accountId",
+    "providerId" = EXCLUDED."providerId",
+    "userId" = EXCLUDED."userId",
+    "updatedAt" = CURRENT_TIMESTAMP;
 
 INSERT INTO "Category" ("id", "householdId", "type", "name", "status", "updatedAt")
 VALUES

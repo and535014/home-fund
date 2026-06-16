@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await page.setExtraHTTPHeaders({
-    "x-e2e-current-member-email": "e2e-finance@example.com",
+    "x-e2e-auth-user-id": "user-e2e-linked",
   });
 
   await page.goto("/?month=2026-06");
@@ -18,7 +18,7 @@ test("renders the dashboard from the E2E database seed", async ({ page }) => {
 
 test("keeps fund-paid expenses out of reimbursement rows", async ({ page }) => {
   await page.setExtraHTTPHeaders({
-    "x-e2e-current-member-email": "e2e-finance@example.com",
+    "x-e2e-auth-user-id": "user-e2e-linked",
   });
 
   await page.goto("/?month=2026-06");

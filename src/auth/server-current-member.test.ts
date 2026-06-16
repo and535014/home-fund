@@ -88,6 +88,82 @@ describe("resolveCurrentMemberFromRequest", () => {
 });
 
 describe("getCurrentMemberFromHeaders", () => {
+  it("resolves a controlled E2E auth user through the current-member data source", async () => {
+    const createAuth = vi.fn();
+    const accountFindMany = vi.fn(async () => [
+      {
+        providerId: "google",
+        accountId: "google-mei",
+        userId: "user-mei",
+      },
+    ]);
+    const memberFindMany = vi.fn(async () => members.map((member) => ({
+      id: member.id,
+      displayName: member.displayName,
+      googleAccountEmail: member.googleAccountEmail ?? null,
+      googleSubject: member.googleSubject ?? null,
+      status: member.status,
+      roles: member.roles.map((role) => ({ role })),
+      capabilities: member.capabilities.map((capability) => ({ capability })),
+    })));
+    const getPrismaClient = vi.fn(() => ({
+      account: { findMany: accountFindMany },
+      member: { findMany: memberFindMany },
+    }));
+
+    await expect(getCurrentMemberFromHeaders(new Headers({
+      "x-e2e-auth-user-id": "user-mei",
+    }), {
+      createAuth,
+      getPrismaClient,
+    })).resolves.toMatchObject({
+      ok: true,
+      member: {
+        id: "member-mei",
+        googleAccountLinked: true,
+      },
+    });
+    expect(createAuth).not.toHaveBeenCalled();
+    expect(getPrismaClient).toHaveBeenCalledOnce();
+    expect(accountFindMany).toHaveBeenCalledWith({
+      where: { userId: "user-mei" },
+      select: {
+        providerId: true,
+        accountId: true,
+        userId: true,
+      },
+    });
+  });
+
+  it("does not use the controlled E2E auth override in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const auth = {
+      api: {
+        getSession: async () => null,
+      },
+    };
+    const createAuth = vi.fn(async () => auth);
+    const getPrismaClient = vi.fn(() => ({
+      account: { findMany: vi.fn() },
+      member: { findMany: vi.fn() },
+    }));
+
+    await expect(getCurrentMemberFromHeaders(new Headers({
+      "x-e2e-auth-user-id": "user-mei",
+    }), {
+      createAuth,
+      getPrismaClient,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "unauthenticated",
+    });
+    expect(createAuth).toHaveBeenCalledOnce();
+    expect(getPrismaClient).toHaveBeenCalledOnce();
+
+    vi.unstubAllEnvs();
+  });
+
   it("resolves a guarded E2E current member without auth or Prisma", async () => {
     const createAuth = vi.fn();
     const getPrismaClient = vi.fn();
