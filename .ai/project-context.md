@@ -101,6 +101,6 @@ reviewed_at: 2026-06-07
 
 ## Next Step
 
-- recommended_next_skill: architecture-planner
-- required input: first completion story `story-mvp-hardening-db-backed-dashboard-e2e` and a local test database lifecycle decision or assumption.
-- reason: story slicing has produced the MVP hardening completion backlog; the first story now needs boundary and test-environment decisions before verification design and implementation.
+- recommended_next_skill: implementation-cycle
+- required input: `.ai/verification-design/home-family-fund-db-backed-dashboard-e2e.md`.
+- reason: verification design now defines AC, BDD scenarios, test plan, and implementation preconditions for DB-backed dashboard E2E.

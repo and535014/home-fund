@@ -62,6 +62,7 @@ async function signInAsE2eMember(page: {
   setExtraHTTPHeaders(headers: Record<string, string>): Promise<void>;
 }) {
   await page.setExtraHTTPHeaders({
+    "x-e2e-dashboard-fixture": "1",
     "x-e2e-current-member-email": "e2e-finance@example.com",
   });
 }

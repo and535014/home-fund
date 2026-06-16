@@ -306,7 +306,7 @@ async function getDashboardData(
 ): Promise<HomeDashboardData> {
   if (
     process.env.NODE_ENV !== "production" &&
-    requestHeaders.has("x-e2e-current-member-email")
+    requestHeaders.get("x-e2e-dashboard-fixture") === "1"
   ) {
     return createE2eHomeDashboardData(month);
   }

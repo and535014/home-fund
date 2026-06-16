@@ -219,6 +219,29 @@ corepack pnpm dev
 http://localhost:3000
 ```
 
+## 測試
+
+執行 unit/integration tests：
+
+```sh
+corepack pnpm test
+```
+
+執行不依賴資料庫的 Playwright smoke tests：
+
+```sh
+corepack pnpm test:e2e
+```
+
+執行 DB-backed dashboard E2E。這會重建本機 Docker Postgres 內的
+`home_fund_e2e` database、套用 migration、匯入 deterministic seed，並用
+`x-e2e-current-member-email` 只處理測試登入，dashboard 資料會從 Prisma 讀取：
+
+```sh
+docker compose up -d
+corepack pnpm test:e2e:db
+```
+
 首頁會從 request headers 讀取 Better Auth session。未登入時，主要按鈕會 POST 到 `/auth/google`，並透過 Better Auth 開始 Google OAuth flow。
 
 本機第一次測試建議順序：

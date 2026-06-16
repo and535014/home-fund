@@ -14,9 +14,15 @@ type PrismaMemberRow = {
   googleAccountEmail: string | null;
   googleSubject: string | null;
   status: HouseholdMemberAccount["status"];
-  roles: { role: MemberRole }[];
-  capabilities: { capability: MemberCapability }[];
+  roles: { role: unknown }[];
+  capabilities: { capability: unknown }[];
 };
+
+const memberRoles = ["admin", "finance_manager", "general_member"] as const;
+const memberCapabilities = [
+  "manage_categories",
+  "manage_recurring",
+] as const;
 
 export type CurrentMemberPrismaClient = {
   account: {
@@ -109,9 +115,21 @@ export function mapPrismaMemberToHouseholdMember(
       : {}),
     ...(member.googleSubject ? { googleSubject: member.googleSubject } : {}),
     status: member.status,
-    roles: member.roles.map((role) => role.role),
-    capabilities: member.capabilities.map(
-      (capability) => capability.capability,
-    ),
+    roles: member.roles
+      .map((role) => role.role)
+      .filter(isMemberRole),
+    capabilities: member.capabilities
+      .map((capability) => capability.capability)
+      .filter(isMemberCapability),
   };
+}
+
+function isMemberRole(role: unknown): role is MemberRole {
+  return memberRoles.includes(role as MemberRole);
+}
+
+function isMemberCapability(
+  capability: unknown,
+): capability is MemberCapability {
+  return memberCapabilities.includes(capability as MemberCapability);
 }

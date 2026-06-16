@@ -16,6 +16,10 @@ trace_links:
   - .ai/verification-design/home-family-fund-mvp.md
   - .ai/implementation/home-family-fund-e2e-foundation.md
   - .ai/verification/home-family-fund-e2e-foundation.md
+  - .ai/architecture/home-family-fund-db-backed-dashboard-e2e.md
+  - .ai/verification-design/home-family-fund-db-backed-dashboard-e2e.md
+  - .ai/implementation/home-family-fund-db-backed-dashboard-e2e.md
+  - .ai/verification/home-family-fund-db-backed-dashboard-e2e.md
 reviewed_at: 2026-06-07
 ---
 
@@ -82,9 +86,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: home-family-fund MVP local_dev implementation; latest slice is E2E foundation.
-- current_stage: story completion backlog sliced for MVP hardening.
-- recommended_next_skill: architecture-planner
+- active_change: home-family-fund MVP local_dev implementation; latest slice is DB-backed dashboard E2E.
+- current_stage: verification approved for DB-backed dashboard E2E completion story.
+- recommended_next_skill: architecture-planner or verification-design for the next MVP hardening story.
 
 ## Artifact Inventory
 
@@ -94,10 +98,10 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts: 9 original capability stories and 6 MVP hardening completion stories.
 - experience-design: 10 artifacts including `web-foundation.md`.
-- architecture: 1 artifact, `.ai/architecture/home-family-fund.md`.
-- verification-design: 1 MVP artifact.
-- implementation: 24 implementation artifacts; latest observed slice is `home-family-fund-e2e-foundation`.
-- verification: 24 verification artifacts; latest observed slice is `home-family-fund-e2e-foundation`.
+- architecture: 2 artifacts, including `.ai/architecture/home-family-fund-db-backed-dashboard-e2e.md`.
+- verification-design: 2 artifacts, including `.ai/verification-design/home-family-fund-db-backed-dashboard-e2e.md`.
+- implementation: 25 implementation artifacts; latest observed slice is `home-family-fund-db-backed-dashboard-e2e`.
+- verification: 25 verification artifacts; latest observed slice is `home-family-fund-db-backed-dashboard-e2e` and is approved for `local_dev`.
 - deploy: directory created, no artifacts yet.
 - post-release: directory created, no artifacts yet.
 - reviews: directory created, no review artifacts yet.
