@@ -19,6 +19,7 @@ trace_links:
   - .ai/technical-design/admin-only-category-management.md
   - .ai/implementation/admin-only-category-management.md
   - .ai/verification/admin-only-category-management.md
+  - .ai/learning/admin-only-category-management.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -125,9 +126,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-only category management.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin-only category management Target-Aware Release is complete for `local_dev`.
-- recommended_resume_gate: Learning Loop for admin-only category management.
-- recommended_next_skill: learning-loop
+- current_stage: admin-only category management Learning Loop is complete for `local_dev`.
+- recommended_resume_gate: Artifact Compression for admin-only category management.
+- recommended_next_skill: artifact-compression
 
 ## Artifact Inventory
 
@@ -145,7 +146,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
 - deploy/release: v2 local_dev release readiness at `.ai/release/home-family-fund-local-dev-readiness.md` includes admin-only category management and supports `local_dev`; production deploy readiness is not assessed.
-- release/learning: v2 `.ai/release/` has refreshed local_dev readiness; v2 `.ai/learning/` exists with no artifacts.
+- release/learning: v2 `.ai/release/` has refreshed local_dev readiness; active admin-only category management learning signals exist at `.ai/learning/admin-only-category-management.md`.
 - archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration, including optional manual prune candidates.
 - prune: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were manually pruned after compression; use the archive summary and git history for full trace.
 
@@ -154,5 +155,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery, prototype, behavior spec, technical design, implementation, verification, or release. Continue admin-only category management at Learning Loop, or explicitly skip learning signals before artifact compression.
+- Smallest next backfill path: do not restart discovery, prototype, behavior spec, technical design, implementation, verification, release, or learning. Continue admin-only category management at Artifact Compression.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.

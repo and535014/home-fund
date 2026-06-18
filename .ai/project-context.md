@@ -120,7 +120,7 @@ reviewed_at: 2026-06-18
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - active_change: admin-only category management
-- recommended_resume_gate: Learning Loop
-- recommended_next_skill: learning-loop
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, `.ai/verification/admin-only-category-management.md`, and `.ai/release/home-family-fund-local-dev-readiness.md`.
-- reason: The admin-only category management Target-Aware Release refresh is complete for `local_dev`. The next lifecycle step is defining or explicitly skipping learning signals before artifact compression.
+- recommended_resume_gate: Artifact Compression
+- recommended_next_skill: artifact-compression
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, `.ai/verification/admin-only-category-management.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, and `.ai/learning/admin-only-category-management.md`.
+- reason: The admin-only category management Learning Loop is complete for `local_dev`. The next lifecycle step is compressing completed artifacts and preserving traceable decisions.
