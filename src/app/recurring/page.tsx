@@ -1,0 +1,93 @@
+import type { DashboardSearchParams } from "../dashboard-page-context";
+import {
+  loadDashboardPageContext,
+  readSearchParam,
+} from "../dashboard-page-context";
+import { DashboardRouteFrame } from "../dashboard-route-frame";
+import { SummaryMetric } from "../dashboard-widgets";
+import { confirmRecurringReminderAction } from "../recurring-reminder-actions";
+import {
+  recurringReminderFeedbackValues,
+  type RecurringReminderFeedback,
+} from "../recurring-reminder-feedback";
+import { RecurringReminderConfirmationPanel } from "../recurring-reminder-confirmation-panel";
+import { Card, CardContent } from "@/components/ui/card";
+
+type RecurringPageProps = {
+  searchParams?: DashboardSearchParams;
+};
+
+export default async function RecurringPage({ searchParams }: RecurringPageProps) {
+  const context = await loadDashboardPageContext({
+    activeHref: "/recurring",
+    searchParams,
+  });
+
+  if (context.kind === "blocked") {
+    return <DashboardRouteFrame context={context} title="週期" />;
+  }
+
+  const { dashboardData, homeView, month } = context;
+  const recurringFeedback = readRecurringReminderFeedback(
+    readSearchParam(context.rawSearchParams, "recurring"),
+  );
+
+  return (
+    <DashboardRouteFrame context={context} title="週期">
+      <section
+        aria-label="週期摘要"
+        className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        <SummaryMetric
+          label="待確認"
+          tone="default"
+          value={`${homeView.pendingRecurringReminders.length} 筆`}
+        />
+        <SummaryMetric
+          label="本月 occurrence"
+          tone="default"
+          value={`${dashboardData.pendingOccurrences.length} 筆`}
+        />
+        <SummaryMetric
+          label="規則管理"
+          tone="default"
+          value="即將推出"
+        />
+      </section>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.6fr)]">
+        <RecurringReminderConfirmationPanel
+          confirmRecurringReminderAction={confirmRecurringReminderAction}
+          feedback={recurringFeedback}
+          month={month}
+          pendingReminders={homeView.pendingRecurringReminders}
+          returnTo="/recurring"
+        />
+
+        <section aria-labelledby="recurring-rules-title">
+          <h3 id="recurring-rules-title" className="mb-3 text-subheading">
+            週期規則
+          </h3>
+          <Card>
+            <CardContent>
+              <p className="text-body-strong">規則管理即將推出</p>
+              <p className="mt-1 text-body text-muted-foreground">
+                目前先支援確認已產生的週期提醒。新增、暫停與編輯週期規則會在這個頁面延伸。
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
+    </DashboardRouteFrame>
+  );
+}
+
+function readRecurringReminderFeedback(
+  recurringResult: string | undefined,
+): RecurringReminderFeedback | undefined {
+  if (!recurringResult) {
+    return undefined;
+  }
+
+  return recurringReminderFeedbackValues.find((value) => value === recurringResult);
+}

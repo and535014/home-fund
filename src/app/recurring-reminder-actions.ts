@@ -11,9 +11,10 @@ import { readDashboardMonth } from "./month-selection";
 export async function confirmRecurringReminderAction(formData: FormData) {
   const month = readDashboardMonth(readFormValue(formData, "month"));
   const occurrenceId = readFormValue(formData, "occurrenceId");
+  const returnTo = sanitizeReturnTo(readFormValue(formData, "returnTo"));
 
   if (!occurrenceId) {
-    redirect(recurringReminderRedirectUrl(month, "missing_occurrence"));
+    redirect(recurringReminderRedirectUrl(returnTo, month, "missing_occurrence"));
   }
 
   const currentMember = await getCurrentMemberFromHeaders(
@@ -21,7 +22,7 @@ export async function confirmRecurringReminderAction(formData: FormData) {
   );
 
   if (!currentMember.ok) {
-    redirect(recurringReminderRedirectUrl(month, "permission_denied"));
+    redirect(recurringReminderRedirectUrl(returnTo, month, "permission_denied"));
   }
 
   const result = await confirmRecurringOccurrenceInDatabase(
@@ -31,24 +32,37 @@ export async function confirmRecurringReminderAction(formData: FormData) {
   );
 
   if (!result.ok) {
-    redirect(recurringReminderRedirectUrl(month, result.reason));
+    redirect(recurringReminderRedirectUrl(returnTo, month, result.reason));
   }
 
   revalidatePath("/");
-  redirect(recurringReminderRedirectUrl(month, "confirmed"));
+  revalidatePath(returnTo);
+  redirect(recurringReminderRedirectUrl(returnTo, month, "confirmed"));
 }
 
-function recurringReminderRedirectUrl(month: string, result: string): string {
+function recurringReminderRedirectUrl(
+  returnTo: string,
+  month: string,
+  result: string,
+): string {
   const params = new URLSearchParams({
     month,
     recurring: result,
   });
 
-  return `/?${params.toString()}`;
+  return `${returnTo}?${params.toString()}`;
 }
 
 function readFormValue(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
 
   return typeof value === "string" ? value : undefined;
+}
+
+function sanitizeReturnTo(value: string | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
+    return "/";
+  }
+
+  return value;
 }

@@ -27,6 +27,7 @@ export function RecordEntryPanel({
   mode,
   month,
   profile,
+  returnTo,
 }: {
   canCreateRecordsForOthers: boolean;
   categories: HomeDashboardData["categories"];
@@ -35,6 +36,7 @@ export function RecordEntryPanel({
   mode: RecordEntryMode;
   month: string;
   profile: HomeDashboardView["profile"];
+  returnTo: string;
 }) {
   const [entryKind, setEntryKind] = useState<RecordEntryKind>(
     mode === "income" ? "income" : "member_expense",
@@ -70,6 +72,7 @@ export function RecordEntryPanel({
       <form action={createLedgerRecordAction}>
         <input name="month" type="hidden" value={month} />
         <input name="createIntent" type="hidden" value={mode} />
+        <input name="returnTo" type="hidden" value={returnTo} />
         <input
           name="recordType"
           type="hidden"

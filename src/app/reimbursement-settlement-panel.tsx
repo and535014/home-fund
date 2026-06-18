@@ -39,6 +39,7 @@ type ReimbursementSettlementPanelProps = {
   markExpensesReimbursedAction: (formData: FormData) => void;
   month: string;
   reimbursementTable: MonthlyReimbursementTable;
+  returnTo?: string;
 };
 
 export function ReimbursementSettlementPanel({
@@ -47,6 +48,7 @@ export function ReimbursementSettlementPanel({
   markExpensesReimbursedAction,
   month,
   reimbursementTable,
+  returnTo = "/",
 }: ReimbursementSettlementPanelProps) {
   const isHydrated = useHydrated();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -208,6 +210,7 @@ export function ReimbursementSettlementPanel({
           </DialogHeader>
           <form action={markExpensesReimbursedAction} className="grid gap-4">
             <input name="month" type="hidden" value={month} />
+            <input name="returnTo" type="hidden" value={returnTo} />
             {selectedExpenseIds.map((expenseId) => (
               <input
                 key={expenseId}

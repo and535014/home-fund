@@ -9,7 +9,7 @@ test("finance manager cannot submit an empty reimbursement selection", async ({
     "x-e2e-auth-user-id": "user-e2e-linked",
   });
 
-  await page.goto("/?month=2026-06");
+  await page.goto("/reimbursements?month=2026-06");
 
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
@@ -30,7 +30,7 @@ test("general member cannot access reimbursement settlement controls", async ({
     "x-e2e-auth-user-id": "user-e2e-general",
   });
 
-  await page.goto("/?month=2026-06");
+  await page.goto("/reimbursements?month=2026-06");
 
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
@@ -53,7 +53,7 @@ test("finance manager reimburses a selected member-paid expense", async ({
     "x-e2e-auth-user-id": "user-e2e-linked",
   });
 
-  await page.goto("/?month=2026-06");
+  await page.goto("/reimbursements?month=2026-06");
 
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',

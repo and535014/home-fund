@@ -29,6 +29,7 @@ type RecurringReminderConfirmationPanelProps = {
   feedback?: RecurringReminderFeedback;
   month: string;
   pendingReminders: PendingRecurringReminder[];
+  returnTo?: string;
 };
 
 export function RecurringReminderConfirmationPanel({
@@ -36,6 +37,7 @@ export function RecurringReminderConfirmationPanel({
   feedback,
   month,
   pendingReminders,
+  returnTo = "/",
 }: RecurringReminderConfirmationPanelProps) {
   const isHydrated = useHydrated();
   const [selectedReminderId, setSelectedReminderId] = useState<string>();
@@ -137,6 +139,7 @@ export function RecurringReminderConfirmationPanel({
           {selectedReminder ? (
             <form action={confirmRecurringReminderAction} className="grid gap-4">
               <input name="month" type="hidden" value={month} />
+              <input name="returnTo" type="hidden" value={returnTo} />
               <input
                 name="occurrenceId"
                 type="hidden"

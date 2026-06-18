@@ -12,10 +12,11 @@ import { parseCreateLedgerRecordForm } from "./ledger-record-form";
 
 export async function createLedgerRecordAction(formData: FormData) {
   const createIntent = readCreateRecordIntent(formData);
+  const returnTo = sanitizeReturnTo(readFormValue(formData, "returnTo"));
   const parsed = parseCreateLedgerRecordForm(formData);
 
   if (!parsed.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, parsed.reason, createIntent));
+    redirect(createRecordRedirectUrl(returnTo, parsed.month, parsed.reason, createIntent));
   }
 
   const currentMember = await getCurrentMemberFromHeaders(
@@ -23,7 +24,7 @@ export async function createLedgerRecordAction(formData: FormData) {
   );
 
   if (!currentMember.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, "permission_denied", createIntent));
+    redirect(createRecordRedirectUrl(returnTo, parsed.month, "permission_denied", createIntent));
   }
 
   const result = await createLedgerRecordInDatabase(
@@ -35,14 +36,16 @@ export async function createLedgerRecordAction(formData: FormData) {
   );
 
   if (!result.ok) {
-    redirect(createRecordRedirectUrl(parsed.month, result.reason, createIntent));
+    redirect(createRecordRedirectUrl(returnTo, parsed.month, result.reason, createIntent));
   }
 
   revalidatePath("/");
-  redirect(createRecordRedirectUrl(parsed.month, "success"));
+  revalidatePath(returnTo);
+  redirect(createRecordRedirectUrl(returnTo, parsed.month, "success"));
 }
 
 function createRecordRedirectUrl(
+  returnTo: string,
   month: string,
   result: string,
   createIntent?: "income" | "expense",
@@ -56,11 +59,25 @@ function createRecordRedirectUrl(
     params.set("result", result);
   }
 
-  return `/?${params.toString()}`;
+  return `${returnTo}?${params.toString()}`;
 }
 
 function readCreateRecordIntent(formData: FormData): "income" | "expense" | undefined {
   const value = formData.get("createIntent");
 
   return value === "income" || value === "expense" ? value : undefined;
+}
+
+function readFormValue(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function sanitizeReturnTo(value: string | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
+    return "/";
+  }
+
+  return value;
 }

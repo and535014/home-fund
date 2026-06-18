@@ -21,6 +21,7 @@ export function CreateRecordDialog({
   mode,
   month,
   profile,
+  returnTo,
 }: {
   canCreateRecordsForOthers: boolean;
   categories: HomeDashboardData["categories"];
@@ -30,6 +31,7 @@ export function CreateRecordDialog({
   mode: "income" | "expense";
   month: string;
   profile: HomeDashboardView["profile"];
+  returnTo: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -54,6 +56,7 @@ export function CreateRecordDialog({
           mode={mode}
           month={month}
           profile={profile}
+          returnTo={returnTo}
         />
       </DialogContent>
     </Dialog>

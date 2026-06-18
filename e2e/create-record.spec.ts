@@ -44,6 +44,7 @@ test("creates a fund-paid expense without adding reimbursement", async ({
   await dialog.getByRole("button", { name: "新增支出" }).click();
 
   await expect(page.getByText("E2E 基金支出")).toBeVisible();
+  await page.goto("/reimbursements?month=2026-06");
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
   );
@@ -65,6 +66,7 @@ test("creates a member-paid expense and adds reimbursement", async ({
   await dialog.getByRole("button", { name: "新增支出" }).click();
 
   await expect(page.getByText("E2E 成員代墊")).toBeVisible();
+  await page.goto("/reimbursements?month=2026-06");
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
   );

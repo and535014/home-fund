@@ -9,7 +9,7 @@ test("general member cannot access confirmation control for another member remin
     "x-e2e-auth-user-id": "user-e2e-general",
   });
 
-  await page.goto("/?month=2026-06");
+  await page.goto("/recurring?month=2026-06");
 
   const pendingRegion = page.locator('section[aria-labelledby="pending-title"]');
   await expect(pendingRegion).toHaveAttribute("data-recurring-ready", "true");
@@ -25,7 +25,7 @@ test("finance manager confirms a pending recurring reminder", async ({ page }) =
     "x-e2e-auth-user-id": "user-e2e-linked",
   });
 
-  await page.goto("/?month=2026-06");
+  await page.goto("/recurring?month=2026-06");
 
   const pendingRegion = page.locator('section[aria-labelledby="pending-title"]');
   await expect(pendingRegion).toHaveAttribute("data-recurring-ready", "true");
@@ -42,6 +42,7 @@ test("finance manager confirms a pending recurring reminder", async ({ page }) =
   await dialog.getByRole("button", { name: "確認建立紀錄" }).click();
 
   await expect(pendingRegion.getByText("沒有待確認週期項目")).toBeVisible();
-  await expect(page.getByText("Kai 每月生活費提醒")).toBeVisible();
   await expect(page).toHaveURL(/recurring=confirmed/u);
+  await page.goto("/records?month=2026-06");
+  await expect(page.getByText("Kai 每月生活費提醒")).toBeVisible();
 });
