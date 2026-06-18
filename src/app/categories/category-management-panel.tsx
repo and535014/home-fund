@@ -9,10 +9,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import type { Category } from "@/modules/categorization/category-catalog";
-import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,10 +52,26 @@ type EditableCategory = Category & {
   recordCount: number;
 };
 
+type CategoryFormAction = (formData: FormData) => void | Promise<void>;
+
+export type CategoryResult =
+  | "created"
+  | "renamed"
+  | "archived"
+  | "permission_denied"
+  | "invalid_name"
+  | "category_not_found"
+  | "archived_category"
+  | "duplicate_active_category_name"
+  | "unknown_error";
+
 type CategoryManagementPanelProps = {
-  categories: Category[];
+  archiveAction?: CategoryFormAction;
+  categories: EditableCategory[];
+  categoryResult?: CategoryResult;
+  createAction?: CategoryFormAction;
   isAdmin: boolean;
-  records: LedgerRecord[];
+  renameAction?: CategoryFormAction;
   roleLabel: string;
 };
 
@@ -85,17 +100,15 @@ export function AddCategoryHeaderButton({
 }
 
 export function CategoryManagementPanel({
+  archiveAction,
   categories,
+  categoryResult,
+  createAction,
   isAdmin,
-  records,
+  renameAction,
   roleLabel,
 }: CategoryManagementPanelProps) {
-  const seededCategories = useMemo(
-    () => seedEditableCategories(categories, records),
-    [categories, records],
-  );
-  const [editableCategories, setEditableCategories] =
-    useState(seededCategories);
+  const [editableCategories, setEditableCategories] = useState(categories);
   const [newType, setNewType] = useState<CategoryType>("expense");
   const [newName, setNewName] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -103,17 +116,32 @@ export function CategoryManagementPanel({
   const [editingName, setEditingName] = useState("");
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isServerBacked = Boolean(createAction && renameAction && archiveAction);
+  const displayedCategories = isServerBacked ? categories : editableCategories;
 
-  const activeCategories = editableCategories.filter(
+  const activeCategories = displayedCategories.filter(
     (category) => category.status === "active",
   );
-  const archivedCategories = editableCategories.filter(
+  const archivedCategories = displayedCategories.filter(
     (category) => category.status === "archived",
   );
   const editingCategory =
-    editableCategories.find((category) => category.id === editingId) ?? null;
+    displayedCategories.find((category) => category.id === editingId) ?? null;
   const archivingCategory =
-    editableCategories.find((category) => category.id === archivingId) ?? null;
+    displayedCategories.find((category) => category.id === archivingId) ?? null;
+
+  useEffect(() => {
+    if (!categoryResult) {
+      return;
+    }
+
+    showCategoryResultToast(categoryResult);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("categoryResult");
+    url.searchParams.delete("categoryAction");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [categoryResult]);
 
   useEffect(() => {
     function openCreateDialog() {
@@ -131,6 +159,10 @@ export function CategoryManagementPanel({
   }, [isAdmin]);
 
   function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
+    if (isServerBacked) {
+      return;
+    }
+
     event.preventDefault();
 
     if (!isAdmin) {
@@ -261,13 +293,13 @@ export function CategoryManagementPanel({
             </TabsTrigger>
           </TabsList>
           <TabsContent value="active">
-          <ActiveCategoryTab
-            activeCategories={activeCategories}
-            editingId={editingId}
-            hasAnyCategory={editableCategories.length > 0}
-            onArchive={startArchive}
-            onEdit={startRename}
-          />
+            <ActiveCategoryTab
+              activeCategories={activeCategories}
+              editingId={editingId}
+              hasAnyCategory={displayedCategories.length > 0}
+              onArchive={startArchive}
+              onEdit={startRename}
+            />
           </TabsContent>
           <TabsContent value="archived">
             <ArchivedCategoryTab archivedCategories={archivedCategories} />
@@ -283,6 +315,7 @@ export function CategoryManagementPanel({
             </DialogDescription>
           </DialogHeader>
           <CategoryForm
+            action={createAction}
             isSubmitting={isSubmitting}
             name={newName}
             onNameChange={setNewName}
@@ -310,6 +343,8 @@ export function CategoryManagementPanel({
           </DialogHeader>
           {editingCategory ? (
             <CategoryForm
+              action={renameAction}
+              categoryId={editingCategory.id}
               isSubmitting={false}
               name={editingName}
               onNameChange={setEditingName}
@@ -356,14 +391,25 @@ export function CategoryManagementPanel({
                 >
                   取消
                 </Button>
-                <Button
-                  onClick={() => confirmArchiveCategory(archivingCategory)}
-                  type="button"
-                  variant="destructive"
-                >
-                  <Archive aria-hidden="true" />
-                  確認封存
-                </Button>
+                {archiveAction ? (
+                  <form action={archiveAction}>
+                    <input name="categoryId" type="hidden" value={archivingCategory.id} />
+                    <input name="returnTo" type="hidden" value="/categories" />
+                    <Button type="submit" variant="destructive">
+                      <Archive aria-hidden="true" />
+                      確認封存
+                    </Button>
+                  </form>
+                ) : (
+                  <Button
+                    onClick={() => confirmArchiveCategory(archivingCategory)}
+                    type="button"
+                    variant="destructive"
+                  >
+                    <Archive aria-hidden="true" />
+                    確認封存
+                  </Button>
+                )}
               </div>
             </div>
           ) : null}
@@ -486,6 +532,8 @@ function ArchivedCategoryTab({
 }
 
 function CategoryForm({
+  action,
+  categoryId,
   isSubmitting,
   name,
   onNameChange,
@@ -495,6 +543,8 @@ function CategoryForm({
   type,
   typeDisabled = false,
 }: {
+  action?: CategoryFormAction;
+  categoryId?: string;
   isSubmitting: boolean;
   name: string;
   onNameChange: (name: string) => void;
@@ -505,13 +555,16 @@ function CategoryForm({
   typeDisabled?: boolean;
 }) {
   return (
-    <form className="grid gap-4" onSubmit={onSubmit}>
+    <form action={action} className="grid gap-4" onSubmit={action ? undefined : onSubmit}>
+      {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
+      <input name="returnTo" type="hidden" value="/categories" />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="category-type">類型</FieldLabel>
           <NativeSelect
             disabled={typeDisabled}
             id="category-type"
+            name="type"
             onChange={(event) =>
               onTypeChange(event.currentTarget.value as CategoryType)
             }
@@ -528,6 +581,7 @@ function CategoryForm({
           <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
           <Input
             id="category-name"
+            name="name"
             onChange={(event) => onNameChange(event.target.value)}
             placeholder="例如：水電費"
             value={name}
@@ -683,7 +737,7 @@ function ArchivedCategoryGroup({
 
 function seedEditableCategories(
   categories: Category[],
-  records: LedgerRecord[],
+  records: { categoryId: string }[],
 ): EditableCategory[] {
   const recordCounts = records.reduce((counts, record) => {
     counts.set(record.categoryId, (counts.get(record.categoryId) ?? 0) + 1);
@@ -694,6 +748,52 @@ function seedEditableCategories(
     ...category,
     recordCount: recordCounts.get(category.id) ?? 0,
   }));
+}
+
+export function buildEditableCategories(
+  categories: Category[],
+  records: { categoryId: string }[],
+): EditableCategory[] {
+  return seedEditableCategories(categories, records);
+}
+
+function showCategoryResultToast(result: CategoryResult) {
+  if (result === "created") {
+    toast.success("分類已新增", {
+      description: "已加入啟用分類。",
+      id: "category-created",
+    });
+    return;
+  }
+
+  if (result === "renamed") {
+    toast.success("分類已更新", {
+      description: "已更新分類名稱。",
+      id: "category-renamed",
+    });
+    return;
+  }
+
+  if (result === "archived") {
+    toast.success("分類已封存", {
+      description: "既有紀錄仍會保留原分類。",
+      id: "category-archived",
+    });
+    return;
+  }
+
+  const messages: Record<Exclude<CategoryResult, "created" | "renamed" | "archived">, string> = {
+    archived_category: "封存分類不可修改。",
+    category_not_found: "找不到這個分類。",
+    duplicate_active_category_name: "同類型已有啟用中的相同分類名稱。",
+    invalid_name: "請輸入分類名稱。",
+    permission_denied: "只有管理者可以管理分類。",
+    unknown_error: "分類管理失敗，請稍後再試。",
+  };
+
+  toast.error(messages[result], {
+    id: `category-${result}`,
+  });
 }
 
 function hasDuplicateActiveName(

@@ -66,19 +66,15 @@ describe("category catalog", () => {
       });
   });
 
-  it("allows members with manage_categories capability to manage categories", () => {
+  it("rejects members with manage_categories capability when they are not admins", () => {
     expect(createCategory(categoryManager, {
       type: "income",
       name: "生活費",
-    }, { categories, generateId: () => "category-income-living" }))
-      .toMatchObject({
-        ok: true,
-        category: {
-          id: "category-income-living",
-          type: "income",
-          name: "生活費",
-        },
-      });
+    }, { categories, generateId: () => "category-income-living" })).toEqual({
+      ok: false,
+      reason: "permission_denied",
+      authorizationReason: "admin_required",
+    });
   });
 
   it("rejects unauthorized category management", () => {
@@ -88,7 +84,7 @@ describe("category catalog", () => {
     }, { categories })).toEqual({
       ok: false,
       reason: "permission_denied",
-      authorizationReason: "category_manager_required",
+      authorizationReason: "admin_required",
     });
   });
 

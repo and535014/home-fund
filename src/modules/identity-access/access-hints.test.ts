@@ -80,15 +80,15 @@ describe("buildAccessHints", () => {
     });
   });
 
-  it("uses explicit capabilities for category and recurring management hints", () => {
+  it("keeps category management admin-only while preserving recurring capabilities", () => {
     expect(buildAccessHints(categoryAndRecurringManager)).toMatchObject({
       navigation: {
-        canOpenCategories: true,
+        canOpenCategories: false,
         canOpenRecurring: true,
         canOpenMembers: false,
       },
       actions: {
-        canManageCategories: true,
+        canManageCategories: false,
         canManageRecurring: true,
         canManageMembers: false,
       },

@@ -116,16 +116,21 @@ describe("authorize", () => {
     });
   });
 
-  it("allows admins and explicit category managers to manage categories", () => {
+  it("allows only admins to manage categories", () => {
     expect(authorize(admin, command("manage_categories"))).toEqual({
       allowed: true,
     });
     expect(authorize(categoryManager, command("manage_categories"))).toEqual({
-      allowed: true,
+      allowed: false,
+      reason: "admin_required",
+    });
+    expect(authorize(financeManager, command("manage_categories"))).toEqual({
+      allowed: false,
+      reason: "admin_required",
     });
     expect(authorize(generalMember, command("manage_categories"))).toEqual({
       allowed: false,
-      reason: "category_manager_required",
+      reason: "admin_required",
     });
   });
 

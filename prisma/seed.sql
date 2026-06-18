@@ -20,6 +20,15 @@ INSERT INTO "Member" (
 )
 VALUES
   (
+    'member-admin',
+    'household-demo',
+    'Admin Lin',
+    'admin@example.com',
+    'google-e2e-admin',
+    'active',
+    CURRENT_TIMESTAMP
+  ),
+  (
     'member-mei',
     'household-demo',
     'Mei',
@@ -64,6 +73,7 @@ SET "displayName" = EXCLUDED."displayName",
 
 INSERT INTO "MemberRoleAssignment" ("memberId", "role")
 VALUES
+  ('member-admin', 'admin'),
   ('member-mei', 'general_member'),
   ('member-kai', 'general_member'),
   ('member-fin', 'finance_manager'),
@@ -85,6 +95,15 @@ INSERT INTO "User" (
   "updatedAt"
 )
 VALUES
+  (
+    'user-e2e-admin',
+    'Admin E2E User',
+    'admin@example.com',
+    true,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
   (
     'user-e2e-linked',
     'Linked E2E User',
@@ -144,6 +163,21 @@ INSERT INTO "Account" (
   "updatedAt"
 )
 VALUES
+  (
+    'account-e2e-admin-google',
+    'google-e2e-admin',
+    'google',
+    'user-e2e-admin',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
   (
     'account-e2e-linked-google',
     'google-e2e-linked',

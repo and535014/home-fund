@@ -6,7 +6,14 @@ import {
   Tags,
 } from "lucide-react";
 import type { Category } from "@/modules/categorization/category-catalog";
+import { getCategoryReferenceCounts } from "@/modules/categorization/category-command";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
+import { getPrismaClient } from "@/db/prisma";
+import {
+  archiveCategoryAction,
+  createCategoryAction,
+  renameCategoryAction,
+} from "../category-actions";
 import type { DashboardSearchParams } from "../dashboard-page-context";
 import {
   loadDashboardPageContext,
@@ -16,7 +23,9 @@ import { DashboardRouteFrame } from "../dashboard-route-frame";
 import { HomeDashboardLayout, type DashboardNavigationItem } from "../home-dashboard-layout";
 import {
   AddCategoryHeaderButton,
+  buildEditableCategories,
   CategoryManagementPanel,
+  type CategoryResult,
 } from "./category-management-panel";
 
 type CategoriesPageProps = {
@@ -29,6 +38,9 @@ const CATEGORY_HEADER_DESCRIPTION =
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
   const resolvedSearchParams = await searchParams;
   const previewRole = readSearchParam(resolvedSearchParams, "previewRole");
+  const categoryResult = readCategoryResult(
+    readSearchParam(resolvedSearchParams, "categoryResult"),
+  );
 
   if (canRenderPreview(previewRole)) {
     return (
@@ -49,6 +61,16 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   }
 
   const isAdmin = context.homeView.profile.roles.includes("admin");
+  const referenceCounts = await getCategoryReferenceCounts({
+    categoryIds: context.dashboardData.categories.map((category) => category.id),
+    prisma: getPrismaClient(),
+  });
+  const categoriesWithReferenceCounts = context.dashboardData.categories.map(
+    (category) => ({
+      ...category,
+      recordCount: referenceCounts.get(category.id) ?? 0,
+    }),
+  );
 
   return (
     <DashboardRouteFrame
@@ -66,9 +88,12 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
       title="分類"
     >
       <CategoryManagementPanel
-        categories={context.dashboardData.categories}
+        archiveAction={archiveCategoryAction}
+        categories={categoriesWithReferenceCounts}
+        categoryResult={categoryResult}
+        createAction={createCategoryAction}
         isAdmin={isAdmin}
-        records={context.dashboardData.records}
+        renameAction={renameCategoryAction}
         roleLabel={isAdmin ? "管理者" : "非管理者"}
       />
     </DashboardRouteFrame>
@@ -110,13 +135,28 @@ function PreviewCategoryManagementPage({
       title="分類"
     >
       <CategoryManagementPanel
-        categories={previewCategories}
+        categories={buildEditableCategories(previewCategories, previewRecords)}
         isAdmin={isAdmin}
-        records={previewRecords}
         roleLabel={roleLabel}
       />
     </HomeDashboardLayout>
   );
+}
+
+function readCategoryResult(value: string | undefined): CategoryResult | undefined {
+  const validResults: CategoryResult[] = [
+    "created",
+    "renamed",
+    "archived",
+    "permission_denied",
+    "invalid_name",
+    "category_not_found",
+    "archived_category",
+    "duplicate_active_category_name",
+    "unknown_error",
+  ];
+
+  return validResults.find((result) => result === value);
 }
 
 const adminPreviewNavigation: DashboardNavigationItem[] = [

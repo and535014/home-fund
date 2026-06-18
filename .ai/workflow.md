@@ -17,6 +17,7 @@ trace_links:
   - .ai/prototype/admin-only-category-management.md
   - .ai/spec/admin-only-category-management.md
   - .ai/technical-design/admin-only-category-management.md
+  - .ai/implementation/admin-only-category-management.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -123,9 +124,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-only category management.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin-only category management Feature Technical Design is drafted.
-- recommended_resume_gate: TDD Implementation for admin-only category management.
-- recommended_next_skill: implementation-cycle
+- current_stage: admin-only category management TDD Implementation is complete.
+- recommended_resume_gate: Verification for admin-only category management.
+- recommended_next_skill: verification-runner
 
 ## Artifact Inventory
 
@@ -138,7 +139,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - experience-design/prototype: active admin-only category management prototype exists at `.ai/prototype/admin-only-category-management.md`; completed prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - architecture/technical-design: active admin-only category management design exists at `.ai/technical-design/admin-only-category-management.md`; completed feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - behavior specs: active admin-only category management spec exists at `.ai/spec/admin-only-category-management.md`; completed feature specs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- implementation: completed implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui`.
+- implementation: active admin-only category management implementation exists at `.ai/implementation/admin-only-category-management.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - verification: completed verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
@@ -150,7 +151,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
-- Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and category management implementation evidence are not yet selected.
+- Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery, prototype, behavior spec, or technical design. Continue admin-only category management at TDD Implementation, then verification and local_dev release refresh.
+- Smallest next backfill path: do not restart discovery, prototype, behavior spec, technical design, or implementation. Continue admin-only category management at Verification, then local_dev release refresh.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.

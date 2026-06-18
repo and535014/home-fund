@@ -54,9 +54,9 @@ export function authorize(
   }
 
   if (command.type === "manage_categories") {
-    return hasRole(member, "admin") || hasCapability(member, "manage_categories")
+    return hasRole(member, "admin")
       ? { allowed: true }
-      : { allowed: false, reason: "category_manager_required" };
+      : { allowed: false, reason: "admin_required" };
   }
 
   if (command.type === "manage_recurring") {
