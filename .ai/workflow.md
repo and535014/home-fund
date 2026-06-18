@@ -37,25 +37,34 @@ trace_links:
   - .ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md
   - .ai/architecture/home-family-fund-reimbursement-settlement-ui.md
   - .ai/verification-design/home-family-fund-reimbursement-settlement-ui.md
-reviewed_at: 2026-06-07
+  - .ai/implementation/home-family-fund-reimbursement-settlement-ui.md
+  - .ai/verification/home-family-fund-reimbursement-settlement-ui.md
+  - .ai/reviews/verification/review-ver-home-family-fund-reimbursement-settlement-ui.md
+  - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
+reviewed_at: 2026-06-18
 ---
 
 # DDD Harness Workflow
 
+## Workflow Version
+
+- workflow_version: ddd-website-lifecycle-v2
+- migration_report: `.ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md`
+- migration_policy: Legacy artifacts are preserved in place. New v2 directories exist for future artifacts and backfills. Do not delete, rename, or bulk rewrite completed legacy artifacts only to fit v2 naming.
+
 ## Workflow Order
 
-1. `idea-intake` - clarify product or change intent.
-2. `ddd-event-storming` - model events, commands, actors, policies, aggregates, bounded contexts, and language.
-3. `code-understanding` - map current repo reality, architecture, tests, data flow, and code language.
-4. `impact-analysis` - compare desired domain behavior with implementation impact.
-5. `story-slicing` - create traceable vertical stories.
-6. `experience-design` - design traceable user journeys, task flows, screen states, accessibility, tracking drafts, and frontend/backend expectations for user-facing web stories.
-7. `architecture-planner` - record boundaries, ownership, contracts, and ADR-style decisions.
-8. `verification-design` - define acceptance criteria, BDD scenarios, and test plan.
-9. `implementation-cycle` - implement through TDD within the verified story scope.
-10. `verification-runner` - run tests, review code, and check domain alignment.
-11. `deploy-readiness` - assess release readiness, risks, rollback, operations, and environment needs.
-12. `post-release-tracking` - define or review release learning signals, analytics, monitoring, feedback, and follow-up decisions.
+1. Intent Intake - clarify idea, change, audience, outcome, constraints, and release intent.
+2. Domain Discovery - model events, commands, actors, policies, aggregates, bounded contexts, and language.
+3. Project Foundation Architecture - establish repo-wide architecture, web foundation, route/layout conventions, data ownership, and integration boundaries.
+4. Project Foundation Implementation / Init - prove scaffold, dev server, lint, type-check, unit, and E2E baseline.
+5. Experience Prototype - make user-facing flows concrete enough to review before final specs.
+6. Behavior Spec / BDD / E2E - define acceptance criteria, scenarios, selectors, data, and test strategy.
+7. Feature Technical Design - record feature-specific boundaries, state/data ownership, server actions, persistence, and ADRs.
+8. TDD Implementation - implement through failing tests, minimal code, and refactor.
+9. Verification - run tests, review code, validate UX/domain/architecture traceability, and record accepted risks.
+10. Target-Aware Release - assess release target, migrations, secrets, OAuth callbacks, rollback, smoke tests, and observability.
+11. Learning Loop - define product analytics, monitoring, feedback, cadence, and follow-up decision criteria.
 
 Use `workflow-review` as a non-linear review gate before any handoff when a concise approval, revision, or blocked decision is needed.
 When visual review is useful, `workflow-review` may also create self-contained HTML under `.ai/reviews/html/`.
@@ -68,10 +77,25 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 
 - `.ai/project-context.md`
 - `.ai/workflow.md`
-- `.ai/stories/<story-id>.md`
-- `.ai/verification-design/<story-id>.md`
-- `.ai/implementation/<story-id>.md`
-- `.ai/verification/<story-id>.md`
+- Intent/story artifact for the active change.
+- Behavior spec or verification-design artifact before implementation.
+- Implementation log for shipped local changes.
+- Verification report for implemented behavior.
+
+### V2 Directories
+
+- `.ai/intent/` - v2 intent intake and active change framing.
+- `.ai/domain/` - v2 domain discovery artifacts.
+- `.ai/foundation-architecture/` - repo-wide foundation architecture.
+- `.ai/foundation-implementation/` - scaffold/dev/test baseline evidence.
+- `.ai/prototype/` - interactive or reviewable experience prototypes.
+- `.ai/spec/` - behavior specs, BDD, E2E plans.
+- `.ai/technical-design/` - feature-level technical designs and ADR updates.
+- `.ai/implementation/` - implementation logs; legacy and v2 logs both live here.
+- `.ai/verification/` - verification reports; legacy and v2 reports both live here.
+- `.ai/release/` - target-aware release readiness.
+- `.ai/learning/` - post-release learning loop.
+- `.ai/workflow-migration/` - workflow migration reports.
 
 ### Conditional
 
@@ -103,9 +127,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: home-family-fund MVP local_dev implementation; latest slice is reimbursement settlement UI.
-- current_stage: verification design approved for reimbursement settlement UI.
-- recommended_next_skill: implementation-cycle
+- active_change: home-family-fund MVP local_dev hardening.
+- latest_completed_slice: reimbursement settlement UI.
+- current_stage: v2 migration complete; reimbursement settlement UI is verified and workflow-reviewed for `local_dev`.
+- recommended_resume_gate: Experience Prototype for recurring reminder confirmation UI.
+- recommended_next_skill: experience-design
 
 ## Artifact Inventory
 
@@ -117,14 +143,16 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - experience-design: 13 artifacts including `.ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md`.
 - architecture: 6 artifacts, including `.ai/architecture/home-family-fund-reimbursement-settlement-ui.md`.
 - verification-design: 6 artifacts, including `.ai/verification-design/home-family-fund-reimbursement-settlement-ui.md`.
-- implementation: 28 implementation artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks`.
-- verification: 28 verification artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks` and is approved for `local_dev`.
-- deploy: directory created, no artifacts yet.
-- post-release: directory created, no artifacts yet.
-- reviews: directory created, no review artifacts yet.
+- implementation: 29 implementation artifacts; latest completed slice is `home-family-fund-reimbursement-settlement-ui`.
+- verification: 29 verification artifacts; latest completed slice is `home-family-fund-reimbursement-settlement-ui` and is approved for `local_dev` with accepted risks.
+- reviews: workflow reviews exist for impact analysis and reimbursement settlement verification.
+- v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/` are present.
+- deploy/release: legacy `.ai/deploy/` exists but no deploy artifacts; v2 `.ai/release/` exists with no artifacts.
+- post-release/learning: legacy `.ai/post-release/` exists but no artifacts; v2 `.ai/learning/` exists with no artifacts.
 
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
-- Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
-- Deferred cleanup: deploy readiness and post-release artifacts are absent; production deployment slicing remains blocked until target environment is selected.
+- Open questions: recurring reminder confirmation role policy, production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
+- Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
+- Smallest next backfill path: do not restart discovery. Continue with recurring reminder confirmation UI at Experience Prototype / `experience-design`, then Behavior Spec, Feature Technical Design, Implementation, and Verification.

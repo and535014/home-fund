@@ -14,7 +14,7 @@ trace_links:
   - playwright.config.ts
   - vitest.config.ts
   - docker-compose.yml
-reviewed_at: 2026-06-07
+reviewed_at: 2026-06-18
 ---
 
 # Project Context
@@ -33,6 +33,8 @@ reviewed_at: 2026-06-07
 
 - delivery_profile: mvp
 - release_target: local_dev
+- workflow_version: ddd-website-lifecycle-v2
+- migration_report: `.ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md`
 - artifact id convention: kebab-case product/change ids, usually prefixed with `home-family-fund`.
 - source of truth: `.ai/workflow.md` for workflow governance, `.ai/project-context.md` for project-level assumptions, stage artifacts for scoped decisions and evidence.
 
@@ -59,6 +61,19 @@ reviewed_at: 2026-06-07
   - static-html-review
   - visual-model
   - graphify-refresh
+- v2_artifact_dirs:
+  - .ai/intent
+  - .ai/domain
+  - .ai/foundation-architecture
+  - .ai/foundation-implementation
+  - .ai/prototype
+  - .ai/spec
+  - .ai/technical-design
+  - .ai/implementation
+  - .ai/verification
+  - .ai/release
+  - .ai/learning
+  - .ai/workflow-migration
 - size_budget:
   - reviewer_brief: 1 page
   - standard_artifact: 1-3 pages
@@ -101,6 +116,7 @@ reviewed_at: 2026-06-07
 
 ## Next Step
 
-- recommended_next_skill: implementation-cycle
-- required input: `.ai/verification-design/home-family-fund-db-backed-dashboard-e2e.md`.
-- reason: verification design now defines AC, BDD scenarios, test plan, and implementation preconditions for DB-backed dashboard E2E.
+- recommended_resume_gate: Experience Prototype
+- recommended_next_skill: experience-design
+- required input: `.ai/stories/story-mvp-hardening-recurring-reminder-confirmation-ui.md`
+- reason: v2 migration preserved completed local_dev work and identified recurring reminder confirmation UI as the smallest remaining MVP hardening path. The story has open role-policy and interaction questions that should be resolved in experience design before behavior spec and technical design.
