@@ -24,6 +24,7 @@ trace_links:
   - .ai/intent/local-google-oauth-login.md
   - .ai/spec/local-google-oauth-login.md
   - .ai/intent/admin-google-oauth-member-invitations.md
+  - .ai/domain-impact/admin-google-oauth-member-invitations.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -130,15 +131,15 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-google-oauth-member-invitations.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin Google OAuth and member invitations Intent Intake is drafted and awaiting review.
-- recommended_resume_gate: targeted Domain Discovery for admin-google-oauth-member-invitations after explicit user approval.
-- recommended_next_skill: domain-discovery.
+- current_stage: admin Google OAuth and member invitations Domain Discovery is drafted and awaiting review.
+- recommended_resume_gate: Experience Prototype for admin-google-oauth-member-invitations after explicit user approval.
+- recommended_next_skill: experience-prototype.
 
 ## Artifact Inventory
 
 - idea: 1 artifact, `.ai/intent/home-family-fund.md`.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; active admin Google OAuth and member invitations change requires targeted Identity and Access domain discovery next.
+- domain-impact: active admin Google OAuth and member invitations impact is drafted at `.ai/domain-impact/admin-google-oauth-member-invitations.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
@@ -159,5 +160,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: review `.ai/intent/admin-google-oauth-member-invitations.md`, then approve targeted Domain Discovery for the admin Google OAuth and member invitations slice.
+- Smallest next path: review `.ai/domain-impact/admin-google-oauth-member-invitations.md` and `.ai/domain/home-family-fund.md`, then approve Experience Prototype for the admin Google OAuth and member invitations slice.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.

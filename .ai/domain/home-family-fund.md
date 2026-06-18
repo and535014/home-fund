@@ -16,6 +16,7 @@ outputs:
 trace_links:
   - .ai/intent/home-family-fund.md
   - .ai/intent/admin-only-category-management.md
+  - .ai/intent/admin-google-oauth-member-invitations.md
 reviewed_at: 2026-06-18
 ---
 
@@ -29,9 +30,15 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 |---|---|---|
 | Household fund | The shared family money pool being tracked. | Fund ledger |
 | Member | A household participant who signs in with Google and can browse all records after being recognized by the app. | Identity and access |
+| Invited member | A household participant pre-created by an admin through an invite, usually by Google email, who cannot access household data until the app's activation/linking policy is satisfied. | Identity and access |
 | Admin | Member who can invite members, manage account information and permissions, and edit or delete any record. | Identity and access |
 | Finance manager | Member who can create or edit records for others and perform reimbursements; MVP does not grant delete permission for other members' records. | Financial operations |
 | General member | Member who can create records for themselves and edit or delete only records they created. | Identity and access |
+| Display name | App-owned member name shown to all household users in navigation, member lists, records, reports, and attribution. Defaults from Google profile name when first linked, but admins can edit it. | Identity and access |
+| Avatar | Member image sourced from Google profile data for this slice. Admins cannot edit avatars. | Identity and access |
+| Google profile defaults | Name and image returned by Google OAuth and used to initialize member display name and avatar when available. | Identity and access |
+| Sign-in gate | The unauthenticated state where users start Google sign-in. It may live on `/` or a dedicated login route depending on UX design. | Identity and access / Web experience |
+| Logout | Member action that ends the app session and returns the browser to an unauthenticated sign-in surface so another Google account can be selected. | Identity and access |
 | Record owner | The member who created a ledger record and controls ordinary edit/delete rights. | Authorization |
 | Payer member | The member who paid an expense upfront or provided income. | Ledger |
 | Income record | Confirmed money received into the household fund, categorized by source/member. | Ledger |
@@ -82,10 +89,25 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | 25 | Reimbursement expenses selected | Select expenses for reimbursement | Finance manager | The finance manager chooses exact expenses to settle. |
 | 26 | Expenses reimbursed | Mark selected expenses reimbursed | Finance manager | Selected expenses are settled once and excluded from future unpaid reimbursement totals. |
 
+## Identity and Access Membership Events
+| Domain Event | Triggering Command | Actor | Business Outcome |
+|---|---|---|---|
+| Admin signed in with Google | Sign in with Google | Admin | A seeded or previously linked admin can access household functions through a real Google OAuth session. |
+| Member invited by email | Invite member by Google email | Admin | A future household participant is registered under admin control before accessing household data. |
+| Invited Google account matched | Sign in with Google | Invited member | The app recognizes the intended Google email and can apply the selected activation/linking policy. |
+| Member profile initialized from Google | Complete first Google account link | System | New member display name and avatar have sensible defaults from Google profile data. |
+| Member display name changed | Update member display name | Admin | The name all household users see changes without changing Google identity. |
+| Logout completed | Log out | Member | The current session ends and a different Google account can be selected. |
+
 ## Policies
 | When Event Happens | Policy / Rule | Command Issued | Notes |
 |---|---|---|---|
 | Member attempts to access functionality | All functional pages require Google sign-in and app-owned member authorization. | Authenticate member | Google proves identity; the app decides household membership, roles, and capabilities. |
+| Admin needs to invite a household participant | MVP invitation uses an admin-owned invitation flow; email-based invitation is the leading local_dev policy unless Domain Discovery selects invite links. | Invite member by Google email | Real email delivery may be out of scope for local_dev; the app still records invite state. |
+| Google account signs in for the first time | Google profile name and image can initialize display name and avatar, but app-owned membership decides access. | Link Google account | Display name becomes app-owned after initialization; avatar remains Google-owned for this slice. |
+| Admin updates member profile | Admin can update display name only; admins cannot edit avatars. | Update member display name | The updated display name is visible to all users wherever member names appear. |
+| Member wants to edit own profile | Self-service display-name/avatar editing is deferred from this slice. | None in MVP slice | Profile management remains admin-only for display name; avatar remains Google-sourced. |
+| Member logs out | Logout ends the Better Auth/app session and returns to an unauthenticated sign-in surface. | Log out | Enables switching Google accounts and verifies invitation/wrong-account states. |
 | Member permissions changed | New permissions determine allowed commands immediately. | Re-evaluate authorization | Admin is the only role that changes permissions in MVP. |
 | Dashboard navigation is resolved | Category management sidebar entry is visible only to admins. | Resolve dashboard navigation | Finance managers and general members must not see the category entry, even if they have `manage_categories` capability. |
 | Category management page is requested | Only admins can browse category management. | Open category management page | Direct route access must be denied server-side for non-admin members; hidden sidebar is not sufficient. |
@@ -106,8 +128,8 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 ## Aggregate Candidates
 | Aggregate | Events Owned | Invariants | Open Questions |
 |---|---|---|---|
-| Household | Member invited, Member account updated, Member permissions changed | Only admins manage members and permissions; every functional user belongs to the household. | Is MVP strictly one household, or should the model allow future household IDs now? |
-| MemberAccount | Member account updated, Member permissions changed | Display name identifies the member in records; permissions must map to known MVP roles; admins can adjust finance-manager permissions over time. | Can a member hold admin and finance manager roles at the same time? |
+| Household | Member invited, Member account updated, Member permissions changed, Member invited by email | Only admins manage members and permissions; every functional user belongs to the household. | Is MVP strictly one household, or should the model allow future household IDs now? |
+| MemberAccount | Member account updated, Member permissions changed, Invited Google account matched, Member profile initialized from Google, Member display name changed | Display name identifies the member in records and is app-owned; avatar is Google-owned for this slice; permissions must map to known MVP roles; admins can adjust finance-manager permissions over time. | Can a member hold admin and finance manager roles at the same time? Should invited members auto-activate on email match or require admin approval? |
 | LedgerRecord | Income recorded, Expense recorded, Member-paid expense became refundable, Ledger record corrected, Ledger record deleted | Records have amount, month/date, category, creator, payment source, payer/source member, and reimbursement status when member-paid; general members can modify only owned records; deleted records must not appear in totals. | Should deletion be hard delete or archived/voided state for auditability? |
 | CategoryCatalog | Category created, Category renamed, Category archived, Category management command rejected | Income and expense records reference valid categories; only admins create, rename, and archive categories; active categories are available for new records; archived categories remain readable for historical records and reports. | Should category name uniqueness compare only active categories, or also archived categories of the same type? |
 | RecurringRule | Recurring rule created, Recurring rule updated, Immediate recurring item posted, Recurring reminder created, Recurring reminder confirmed | Posting mode is either immediate or reminder-based; reminder-based items do not affect totals until confirmed. | How are missed or duplicate monthly occurrences prevented? |
@@ -117,7 +139,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 ## Bounded Context Candidates
 | Context | Language | Responsibilities | Upstream / Downstream |
 |---|---|---|---|
-| Identity and Access | member, Google account, admin, finance manager, general member, permission, account information | Google sign-in gate, member invitation/linking, account profile, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members. |
+| Identity and Access | member, invited member, Google account, admin, finance manager, general member, permission, display name, avatar, account information, logout | Google sign-in gate, logout, member invitation/linking, account profile defaults, admin-managed display names, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members and member names appear throughout financial records and reports. |
 | Fund Ledger | income record, expense record, payment source, payer member, record owner, fund-paid expense, member-paid expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
 | Categorization | category, income category, expense category, active category, archived category | Admin-only category management and category lifecycle; classify ledger records by active categories while preserving archived labels for history. | Uses Identity and Access for admin-only authorization; feeds Fund Ledger and Reporting. |
 | Recurring Schedule | recurring rule, immediate posting, reminder-based posting, pending recurring item | Manage monthly expected items, auto-post immediate items, and confirm reminder items. | Creates ledger records in Fund Ledger; feeds Reporting with pending items. |
@@ -267,7 +289,11 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 - Category management permission is decided for MVP: only admins can see the category sidebar entry, browse category management, create categories, rename categories, or archive categories. `manage_categories` capability is dormant for this workflow unless future delegation is approved.
 - Recurring-rule management permissions remain unresolved; current artifact marks them as admin or authorized manager.
 - Finance manager delete permission is decided for MVP: finance managers cannot delete other members' records. Admin-managed permission expansion may allow this later if explicitly enabled.
-- Member invitation/linking mechanism is unresolved: admin invite by Google email, invite link, first-login approval, or manual account linking.
+- Member invitation/linking mechanism is narrowed for the active slice: admin-managed Google email invitation is the leading MVP path, with invite links, first-login approval, and manual account linking still to be evaluated during targeted discovery.
+- Display-name ownership is decided for the active slice: Google profile can provide the default, but app-owned display name is what everyone sees, and admins can edit display names.
+- Avatar ownership is decided for the active slice: Google profile provides the avatar, and admins cannot edit avatars. Whether avatar syncs every login or is copied once remains open.
+- Self-service profile editing is deferred from the active slice; non-admin members cannot edit their own display name in this MVP path.
+- Logout is required for the active slice so users can end sessions and switch Google accounts; exact UI placement and return route remain UX decisions.
 - Reminder delivery is unresolved; MVP can use in-app pending reminders unless external notification is selected later.
 - Expense split rules are unresolved; MVP assumes one category and one upfront payer unless changed.
 - Reimbursement accounting effect is unresolved; current model changes member-paid expenses from refundable/unreimbursed to reimbursed and leaves whether fund balance changes as an open policy decision.
