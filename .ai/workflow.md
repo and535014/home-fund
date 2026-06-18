@@ -138,6 +138,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - deploy/release: v2 local_dev release readiness exists at `.ai/release/home-family-fund-local-dev-readiness.md`; production deploy readiness is not assessed.
 - release/learning: v2 `.ai/release/` has local_dev readiness; v2 `.ai/learning/` exists with no artifacts.
 - archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration, including optional manual prune candidates.
+- prune: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were manually pruned after compression; use the archive summary and git history for full trace.
 
 ## Notes
 
@@ -145,4 +146,4 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and the next product slice are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
 - Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining spec backlog.
-- Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` may be pruned only after explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, or active backlog artifacts.
+- Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
