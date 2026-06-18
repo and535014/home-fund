@@ -7,46 +7,16 @@ release_target: local_dev
 inputs: []
 outputs:
   - .ai/project-context.md
+  - .ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md
 trace_links:
   - .ai/intent/home-family-fund.md
   - .ai/domain/home-family-fund.md
   - .ai/foundation-architecture/home-family-fund.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
-  - .ai/spec/home-family-fund-mvp.md
-  - .ai/implementation/home-family-fund-e2e-foundation.md
-  - .ai/verification/home-family-fund-e2e-foundation.md
-  - .ai/technical-design/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/spec/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/implementation/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/verification/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/technical-design/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/spec/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/implementation/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/verification/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/prototype/story-mvp-hardening-browser-create-record-flow.md
-  - .ai/technical-design/home-family-fund-browser-create-record-flow.md
-  - .ai/spec/home-family-fund-browser-create-record-flow.md
-  - .ai/implementation/home-family-fund-browser-create-record-flow.md
-  - .ai/verification/home-family-fund-browser-create-record-flow.md
-  - .ai/prototype/story-mvp-hardening-permission-matrix-browser-checks.md
-  - .ai/technical-design/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/spec/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/implementation/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/verification/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/prototype/story-mvp-hardening-reimbursement-settlement-ui.md
-  - .ai/technical-design/home-family-fund-reimbursement-settlement-ui.md
-  - .ai/spec/home-family-fund-reimbursement-settlement-ui.md
-  - .ai/implementation/home-family-fund-reimbursement-settlement-ui.md
-  - .ai/verification/home-family-fund-reimbursement-settlement-ui.md
-  - .ai/reviews/verification/review-ver-home-family-fund-reimbursement-settlement-ui.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
-  - .ai/prototype/recurring-reminder-confirmation-ui.md
-  - .ai/spec/recurring-reminder-confirmation-ui.md
-  - .ai/technical-design/recurring-reminder-confirmation-ui.md
-  - .ai/implementation/recurring-reminder-confirmation-ui.md
-  - .ai/verification/recurring-reminder-confirmation-ui.md
   - .ai/release/home-family-fund-local-dev-readiness.md
+  - .ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md
 reviewed_at: 2026-06-18
 ---
 
@@ -102,6 +72,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - `.ai/release/` - target-aware release readiness.
 - `.ai/learning/` - post-release learning loop.
 - `.ai/workflow-migration/` - workflow migration reports.
+- `.ai/archive/` - compressed completed-work summaries and prune candidate records.
 
 ### Historical Inputs Now Migrated
 
@@ -156,16 +127,17 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - ddd: 1 artifact, `.ai/domain/home-family-fund.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
-- stories: 15 story artifacts: 9 original capability stories and 6 MVP hardening completion stories.
-- experience-design: 13 artifacts including `.ai/prototype/story-mvp-hardening-reimbursement-settlement-ui.md`.
-- architecture: 6 artifacts, including `.ai/technical-design/home-family-fund-reimbursement-settlement-ui.md`.
-- verification-design: 6 artifacts, including `.ai/spec/home-family-fund-reimbursement-settlement-ui.md`.
-- implementation: 30 implementation artifacts; latest completed slice is `recurring-reminder-confirmation-ui`.
-- verification: 30 verification artifacts; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
-- reviews: workflow reviews exist for impact analysis and reimbursement settlement verification.
+- stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
+- experience-design/prototype: completed prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; future active prototypes should be created under `.ai/prototype/`.
+- architecture/technical-design: completed feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; future active feature designs should be created under `.ai/technical-design/`.
+- behavior specs: completed feature specs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; future active specs should be created under `.ai/spec/`.
+- implementation: completed implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui`.
+- verification: completed verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
+- reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/` are present.
 - deploy/release: v2 local_dev release readiness exists at `.ai/release/home-family-fund-local-dev-readiness.md`; production deploy readiness is not assessed.
 - release/learning: v2 `.ai/release/` has local_dev readiness; v2 `.ai/learning/` exists with no artifacts.
+- archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration, including optional manual prune candidates.
 
 ## Notes
 
@@ -173,3 +145,4 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and the next product slice are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
 - Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining spec backlog.
+- Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` may be pruned only after explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, or active backlog artifacts.
