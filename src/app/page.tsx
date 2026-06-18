@@ -1,4 +1,3 @@
-import { HandCoins } from "lucide-react";
 import { headers } from "next/headers";
 import { CreateRecordDialog } from "./create-record-dialog";
 import { CreateRecordToast } from "./create-record-toast";
@@ -12,17 +11,11 @@ import {
 import { HomeDashboardLayout } from "./home-dashboard-layout";
 import { buildHomeAccessViewFromAccess } from "./home-access";
 import { readDashboardMonth } from "./month-selection";
+import { markExpensesReimbursedAction } from "./reimbursement-actions";
+import { ReimbursementSettlementPanel } from "./reimbursement-settlement-panel";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from "@/components/ui/item";
 import {
   Table,
   TableBody,
@@ -55,6 +48,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const authError = readSearchParam(resolvedSearchParams, "error");
   const createResult = readSearchParam(resolvedSearchParams, "create");
   const createFeedbackResult = readSearchParam(resolvedSearchParams, "result");
+  const reimbursementFeedback = readReimbursementFeedback(
+    readSearchParam(resolvedSearchParams, "reimbursement"),
+  );
   const dashboardData = currentMember.ok
     ? await getDashboardData(dashboardMonth, requestHeaders)
     : emptyDashboardData;
@@ -173,43 +169,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </section>
 
             <aside className="grid gap-5">
-              <section aria-labelledby="reimbursement-title">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 id="reimbursement-title" className="text-subheading">
-                      退款表
-                    </h3>
-                    <p className="text-caption text-muted-foreground">
-                      {report.reimbursementSummary.expenseIds.length} 筆待處理
-                    </p>
-                  </div>
-                  {accessHints.actions.canPerformReimbursement ? (
-                    <Button aria-label="執行退款" size="icon" type="button" variant="secondary">
-                      <HandCoins aria-hidden="true" size={18} />
-                    </Button>
-                  ) : null}
-                </div>
-                <Card className="p-0">
-                  <ItemGroup>
-                  {reimbursementTable.groups.map((group) => (
-                    <Item
-                      className="rounded-none border-b border-border last:border-b-0"
-                      key={group.memberId}
-                    >
-                      <ItemContent className="min-w-0">
-                        <ItemTitle>{group.displayName}</ItemTitle>
-                        <ItemDescription>
-                          {group.expenseIds.length} 筆支出需退款
-                        </ItemDescription>
-                      </ItemContent>
-                      <p className="shrink-0 text-body-strong">
-                        {formatAmount(group.totalAmountCents)}
-                      </p>
-                    </Item>
-                  ))}
-                  </ItemGroup>
-                </Card>
-              </section>
+              <ReimbursementSettlementPanel
+                canPerformReimbursement={accessHints.actions.canPerformReimbursement}
+                feedback={reimbursementFeedback}
+                markExpensesReimbursedAction={markExpensesReimbursedAction}
+                month={dashboardMonth}
+                reimbursementTable={reimbursementTable}
+              />
 
               <section aria-labelledby="category-title">
                 <h3 id="category-title" className="mb-3 text-subheading">
@@ -352,6 +318,30 @@ function readCreateRecordMode(
 
   if (createResult === "expense") {
     return "expense";
+  }
+
+  return undefined;
+}
+
+function readReimbursementFeedback(
+  reimbursementResult: string | undefined,
+):
+  | "success"
+  | "permission_denied"
+  | "empty_selection"
+  | "expense_not_found"
+  | "not_refundable"
+  | "already_reimbursed"
+  | undefined {
+  if (
+    reimbursementResult === "success" ||
+    reimbursementResult === "permission_denied" ||
+    reimbursementResult === "empty_selection" ||
+    reimbursementResult === "expense_not_found" ||
+    reimbursementResult === "not_refundable" ||
+    reimbursementResult === "already_reimbursed"
+  ) {
+    return reimbursementResult;
   }
 
   return undefined;
