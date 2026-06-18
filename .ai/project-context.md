@@ -120,7 +120,7 @@ reviewed_at: 2026-06-18
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - active_change: admin-only category management
-- recommended_resume_gate: Feature Technical Design
-- recommended_next_skill: architecture-planner
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, and `.ai/spec/admin-only-category-management.md`.
-- reason: The admin-only category management Behavior Spec / BDD / E2E artifact is drafted. The next risk-reducing step is to decide route guard, dashboard shell, server action, persistence, revalidation, and focus behavior before TDD implementation.
+- recommended_resume_gate: TDD Implementation
+- recommended_next_skill: implementation-cycle
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, and `.ai/technical-design/admin-only-category-management.md`.
+- reason: The admin-only category management Feature Technical Design is drafted. The next risk-reducing step is tests-first implementation for admin-only authorization, server actions, persistence, route guard, and E2E coverage.
