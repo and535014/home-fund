@@ -61,6 +61,24 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   }
 
   const isAdmin = context.homeView.profile.roles.includes("admin");
+
+  if (!isAdmin) {
+    return (
+      <DashboardRouteFrame
+        context={context}
+        headerDescription={CATEGORY_HEADER_DESCRIPTION}
+        showCreateRecordActions={false}
+        title="分類"
+      >
+        <CategoryManagementPanel
+          categories={[]}
+          isAdmin={false}
+          roleLabel="非管理者"
+        />
+      </DashboardRouteFrame>
+    );
+  }
+
   const referenceCounts = await getCategoryReferenceCounts({
     categoryIds: context.dashboardData.categories.map((category) => category.id),
     prisma: getPrismaClient(),
@@ -92,9 +110,9 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
         categories={categoriesWithReferenceCounts}
         categoryResult={categoryResult}
         createAction={createCategoryAction}
-        isAdmin={isAdmin}
+        isAdmin
         renameAction={renameCategoryAction}
-        roleLabel={isAdmin ? "管理者" : "非管理者"}
+        roleLabel="管理者"
       />
     </DashboardRouteFrame>
   );

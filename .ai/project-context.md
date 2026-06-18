@@ -120,7 +120,7 @@ reviewed_at: 2026-06-18
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - active_change: admin-only category management
-- recommended_resume_gate: Verification
-- recommended_next_skill: verification-runner
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, and `.ai/implementation/admin-only-category-management.md`.
-- reason: The admin-only category management TDD Implementation is complete. The next risk-reducing step is verification of code, UX behavior, E2E evidence, traceability, and local_dev release implications.
+- recommended_resume_gate: Target-Aware Release
+- recommended_next_skill: target-aware-release
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, and `.ai/verification/admin-only-category-management.md`.
+- reason: The admin-only category management Verification is complete and supports `local_dev`. The next risk-reducing step is refreshing target-aware local_dev release readiness for the new category management capability.
