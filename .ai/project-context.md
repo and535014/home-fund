@@ -119,8 +119,8 @@ reviewed_at: 2026-06-18
 ## Next Step
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
-- active_change: admin-only category management
-- recommended_resume_gate: Artifact Compression
-- recommended_next_skill: artifact-compression
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, `.ai/verification/admin-only-category-management.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, and `.ai/learning/admin-only-category-management.md`.
-- reason: The admin-only category management Learning Loop is complete for `local_dev`. The next lifecycle step is compressing completed artifacts and preserving traceable decisions.
+- active_change: none
+- recommended_resume_gate: User local_dev review, optional artifact-prune, production release intake, or next Intent Intake
+- recommended_next_skill: artifact-prune only if explicitly requested; otherwise site-change-intake or idea-intake for the next change
+- required input: `.ai/archive/archive-admin-only-category-management-2026-06-19.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
+- reason: The admin-only category management lifecycle is complete and compressed. Future work should start from the archive summary and maintained project/domain/release artifacts rather than restarting completed gates.

@@ -20,6 +20,7 @@ trace_links:
   - .ai/implementation/admin-only-category-management.md
   - .ai/verification/admin-only-category-management.md
   - .ai/learning/admin-only-category-management.md
+  - .ai/archive/archive-admin-only-category-management-2026-06-19.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -124,36 +125,36 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: admin-only category management.
+- active_change: none.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin-only category management Learning Loop is complete for `local_dev`.
-- recommended_resume_gate: Artifact Compression for admin-only category management.
-- recommended_next_skill: artifact-compression
+- current_stage: admin-only category management is compressed and ready for local_dev review.
+- recommended_resume_gate: User local_dev review, optional artifact-prune, production release intake, or next Intent Intake.
+- recommended_next_skill: artifact-prune only if explicitly requested; otherwise site-change-intake or idea-intake for the next change.
 
 ## Artifact Inventory
 
 - idea: 1 artifact, `.ai/intent/home-family-fund.md`.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: 1 active change artifact, `.ai/domain-impact/admin-only-category-management.md`.
+- domain-impact: completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; no active domain-impact artifact.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
-- experience-design/prototype: active admin-only category management prototype exists at `.ai/prototype/admin-only-category-management.md`; completed prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- architecture/technical-design: active admin-only category management design exists at `.ai/technical-design/admin-only-category-management.md`; completed feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- behavior specs: active admin-only category management spec exists at `.ai/spec/admin-only-category-management.md`; completed feature specs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- implementation: active admin-only category management implementation exists at `.ai/implementation/admin-only-category-management.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- verification: active admin-only category management verification exists at `.ai/verification/admin-only-category-management.md` and supports `local_dev`; completed prior verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- experience-design/prototype: completed admin-only category management prototype is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- architecture/technical-design: completed admin-only category management design is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- behavior specs: completed admin-only category management spec is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; remaining story specs stay active for future slice selection.
+- implementation: completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- verification: completed admin-only category management verification is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` and supports `local_dev`; completed prior verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
 - deploy/release: v2 local_dev release readiness at `.ai/release/home-family-fund-local-dev-readiness.md` includes admin-only category management and supports `local_dev`; production deploy readiness is not assessed.
-- release/learning: v2 `.ai/release/` has refreshed local_dev readiness; active admin-only category management learning signals exist at `.ai/learning/admin-only-category-management.md`.
-- archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration, including optional manual prune candidates.
+- release/learning: v2 `.ai/release/` has refreshed local_dev readiness; completed admin-only category management learning signals are summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration; `.ai/archive/archive-admin-only-category-management-2026-06-19.md` summarizes completed admin-only category management.
 - prune: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were manually pruned after compression; use the archive summary and git history for full trace.
 
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
-- Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery, prototype, behavior spec, technical design, implementation, verification, release, or learning. Continue admin-only category management at Artifact Compression.
-- Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
+- Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
+- Smallest next path: perform user local_dev review, explicitly request `artifact-prune` if pruning completed admin-only category management artifacts is desired, choose a production release target, or start the next change with Intent Intake.
+- Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
