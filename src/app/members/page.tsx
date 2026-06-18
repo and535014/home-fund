@@ -1,37 +1,202 @@
 import type { DashboardSearchParams } from "../dashboard-page-context";
-import { loadDashboardPageContext } from "../dashboard-page-context";
+import {
+  loadDashboardPageContext,
+  readSearchParam,
+} from "../dashboard-page-context";
 import { DashboardRouteFrame } from "../dashboard-route-frame";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  HomeDashboardLayout,
+  type DashboardNavigationItem,
+} from "../home-dashboard-layout";
+import {
+  CalendarClock,
+  CircleDollarSign,
+  HandCoins,
+  LogOut,
+  Plus,
+  ReceiptText,
+  Tags,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  MemberManagementPrototype,
+  type PrototypeMember,
+} from "./member-management-prototype";
 
 type MembersPageProps = {
   searchParams?: DashboardSearchParams;
 };
 
 export default async function MembersPage({ searchParams }: MembersPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const previewRole = readSearchParam(resolvedSearchParams, "previewRole");
+
+  if (canRenderPreview(previewRole)) {
+    return (
+      <PreviewMembersPage
+        canManageMembers={previewRole === "admin"}
+        roleLabel={previewRole === "admin" ? "管理者" : "一般成員"}
+      />
+    );
+  }
+
   const context = await loadDashboardPageContext({
     activeHref: "/members",
-    searchParams,
+    searchParams: resolvedSearchParams,
   });
 
   if (context.kind === "blocked") {
     return <DashboardRouteFrame context={context} title="成員" />;
   }
 
+  const canManageMembers = context.homeView.profile.roles.includes("admin");
+
   return (
-    <DashboardRouteFrame context={context} title="成員">
-      <section aria-labelledby="members-title" className="mt-5 max-w-2xl">
-        <h3 id="members-title" className="mb-3 text-subheading">
-          成員管理
-        </h3>
-        <Card>
-          <CardContent>
-            <p className="text-body-strong">成員管理即將推出</p>
-            <p className="mt-1 text-body text-muted-foreground">
-              這裡會放家庭成員邀請、狀態與權限設定。現在先保留正式入口，讓導覽結構完整。
-            </p>
-          </CardContent>
-        </Card>
-      </section>
+    <DashboardRouteFrame
+      context={context}
+      headerActions={<LogoutPrototypeButton />}
+      headerDescription="邀請家庭成員、管理全站顯示名稱，並檢視 Google 頭像來源。"
+      showCreateRecordActions={false}
+      title="成員"
+    >
+      <MemberManagementPrototype
+        canManageMembers={canManageMembers}
+        members={buildMembersFromContext(context.dashboardData.householdMembers)}
+        roleLabel={canManageMembers ? "管理者" : "非管理者"}
+      />
     </DashboardRouteFrame>
   );
 }
+
+function canRenderPreview(previewRole: string | undefined): previewRole is "admin" | "member" {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    (previewRole === "admin" || previewRole === "member")
+  );
+}
+
+function PreviewMembersPage({
+  canManageMembers,
+  roleLabel,
+}: {
+  canManageMembers: boolean;
+  roleLabel: string;
+}) {
+  return (
+    <HomeDashboardLayout
+      canCreateOwnRecords
+      currentMonth="2026-06"
+      displayName={canManageMembers ? "Lin 管理者" : "Mei"}
+      headerActions={<LogoutPrototypeButton />}
+      headerDescription="邀請家庭成員、管理全站顯示名稱，並檢視 Google 頭像來源。"
+      navigationItems={canManageMembers ? adminPreviewNavigation : memberPreviewNavigation}
+      showCreateRecordActions={false}
+      showMonthSwitcher={false}
+      subtitle="Experience Prototype · 不需登入"
+      title="成員"
+    >
+      <MemberManagementPrototype
+        canManageMembers={canManageMembers}
+        members={previewMembers}
+        roleLabel={roleLabel}
+      />
+    </HomeDashboardLayout>
+  );
+}
+
+function LogoutPrototypeButton() {
+  return (
+    <Button asChild className="hidden md:inline-flex" variant="secondary">
+      <a href="/login">
+        <LogOut aria-hidden="true" size={18} />
+        登出
+      </a>
+    </Button>
+  );
+}
+
+function buildMembersFromContext(
+  members: Array<{
+    id: string;
+    displayName: string;
+    googleAccountEmail?: string;
+    roles: PrototypeMember["roles"];
+    status: PrototypeMember["status"];
+  }>,
+): PrototypeMember[] {
+  return members.map((member) => {
+    const email = member.googleAccountEmail ?? `${member.id}@example.com`;
+
+    return {
+      id: member.id,
+      avatarUrl: avatarForEmail(email),
+      displayName: member.displayName,
+      email,
+      googleName: member.displayName,
+      roles: member.roles,
+      status: member.status,
+    };
+  });
+}
+
+function avatarForEmail(email: string): string {
+  const encoded = encodeURIComponent(email);
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encoded}&backgroundColor=0f766e,2563eb,9333ea`;
+}
+
+const adminPreviewNavigation: DashboardNavigationItem[] = [
+  { label: "月報", href: "#", icon: CircleDollarSign, active: false },
+  { label: "紀錄", href: "#", icon: ReceiptText, active: false },
+  { label: "新增", href: "#", icon: Plus, active: false },
+  { label: "退款", href: "#", icon: HandCoins, active: false },
+  { label: "週期", href: "#", icon: CalendarClock, active: false },
+  { label: "分類", href: "#", icon: Tags, active: false },
+  { label: "成員", href: "#", icon: Users, active: true },
+];
+
+const memberPreviewNavigation: DashboardNavigationItem[] = [
+  { label: "月報", href: "#", icon: CircleDollarSign, active: false },
+  { label: "紀錄", href: "#", icon: ReceiptText, active: false },
+  { label: "新增", href: "#", icon: Plus, active: false },
+  { label: "退款", href: "#", icon: HandCoins, active: false },
+];
+
+const previewMembers: PrototypeMember[] = [
+  {
+    id: "member-admin",
+    avatarUrl: avatarForEmail("lin.admin@example.com"),
+    displayName: "Lin 管理者",
+    email: "lin.admin@example.com",
+    googleName: "Lin Chen",
+    roles: ["admin"],
+    status: "active",
+  },
+  {
+    id: "member-fin",
+    avatarUrl: avatarForEmail("mei.finance@example.com"),
+    displayName: "Mei",
+    email: "mei.finance@example.com",
+    googleName: "Mei Wang",
+    roles: ["finance_manager"],
+    status: "active",
+  },
+  {
+    id: "member-invited",
+    avatarUrl: avatarForEmail("kai.invited@example.com"),
+    displayName: "Kai",
+    email: "kai.invited@example.com",
+    googleName: "Kai Lin",
+    roles: ["general_member"],
+    status: "invited",
+  },
+  {
+    id: "member-disabled",
+    avatarUrl: avatarForEmail("old.member@example.com"),
+    displayName: "舊成員",
+    email: "old.member@example.com",
+    googleName: "Old Member",
+    roles: ["general_member"],
+    status: "disabled",
+  },
+];

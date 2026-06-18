@@ -25,6 +25,7 @@ trace_links:
   - .ai/spec/local-google-oauth-login.md
   - .ai/intent/admin-google-oauth-member-invitations.md
   - .ai/domain-impact/admin-google-oauth-member-invitations.md
+  - .ai/prototype/admin-google-oauth-member-invitations.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -131,9 +132,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-google-oauth-member-invitations.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin Google OAuth and member invitations Domain Discovery is drafted and awaiting review.
-- recommended_resume_gate: Experience Prototype for admin-google-oauth-member-invitations after explicit user approval.
-- recommended_next_skill: experience-prototype.
+- current_stage: admin Google OAuth and member invitations Experience Prototype is drafted and awaiting review.
+- recommended_resume_gate: Behavior Spec / BDD / E2E for admin-google-oauth-member-invitations after explicit user approval.
+- recommended_next_skill: behavior-spec.
 
 ## Artifact Inventory
 
@@ -160,5 +161,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: review `.ai/domain-impact/admin-google-oauth-member-invitations.md` and `.ai/domain/home-family-fund.md`, then approve Experience Prototype for the admin Google OAuth and member invitations slice.
+- Smallest next path: review `http://localhost:3000/members?previewRole=admin`, `http://localhost:3000/members?previewRole=member`, and `.ai/prototype/admin-google-oauth-member-invitations.md`, then approve Behavior Spec / BDD / E2E for the admin Google OAuth and member invitations slice.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
