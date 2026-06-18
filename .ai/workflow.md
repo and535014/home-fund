@@ -22,6 +22,7 @@ trace_links:
   - .ai/learning/admin-only-category-management.md
   - .ai/archive/archive-admin-only-category-management-2026-06-19.md
   - .ai/intent/local-google-oauth-login.md
+  - .ai/spec/local-google-oauth-login.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -128,9 +129,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: local-google-oauth-login.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: local Google OAuth login intent intake is drafted and awaiting review.
-- recommended_resume_gate: Behavior Spec / BDD / E2E for local-google-oauth-login after explicit user approval.
-- recommended_next_skill: behavior-spec.
+- current_stage: local Google OAuth login Behavior Spec is drafted and awaiting review.
+- recommended_resume_gate: Feature Technical Design for local-google-oauth-login after explicit user approval.
+- recommended_next_skill: feature-technical-design.
 
 ## Artifact Inventory
 
@@ -157,5 +158,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: review `.ai/intent/local-google-oauth-login.md`, then approve Behavior Spec / BDD / E2E for the local real Google OAuth slice.
+- Smallest next path: review `.ai/spec/local-google-oauth-login.md`, then approve Feature Technical Design for the local real Google OAuth slice.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
