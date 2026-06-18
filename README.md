@@ -240,7 +240,7 @@ dashboard 資料會從 Prisma 讀取：
 
 ```sh
 docker compose up -d
-corepack pnpm test:e2e:db
+corepack pnpm test:e2e
 ```
 
 首頁會從 request headers 讀取 Better Auth session。未登入時，主要按鈕會 POST 到 `/auth/google`，並透過 Better Auth 開始 Google OAuth flow。

@@ -202,6 +202,14 @@ export function confirmRecurringOccurrence(
   });
 
   if (!ledgerResult.ok) {
+    if (ledgerResult.reason === "permission_denied") {
+      return {
+        ok: false,
+        reason: "permission_denied",
+        authorizationReason: ledgerResult.authorizationReason,
+      };
+    }
+
     return { ok: false, reason: "ledger_record_creation_failed" };
   }
 

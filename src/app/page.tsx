@@ -4,13 +4,20 @@ import { CreateRecordToast } from "./create-record-toast";
 import { DashboardAccessScreen } from "./dashboard-access-screen";
 import { getVisibleDashboardNavigationItems } from "./dashboard-navigation";
 import {
-  createE2eHomeDashboardData,
   createHomeDashboardDataSource,
   type HomeDashboardData,
 } from "./home-dashboard-data-source";
 import { HomeDashboardLayout } from "./home-dashboard-layout";
 import { buildHomeAccessViewFromAccess } from "./home-access";
 import { readDashboardMonth } from "./month-selection";
+import { confirmRecurringReminderAction } from "./recurring-reminder-actions";
+import {
+  recurringReminderFeedbackValues,
+  type RecurringReminderFeedback,
+} from "./recurring-reminder-feedback";
+import {
+  RecurringReminderConfirmationPanel,
+} from "./recurring-reminder-confirmation-panel";
 import { markExpensesReimbursedAction } from "./reimbursement-actions";
 import { ReimbursementSettlementPanel } from "./reimbursement-settlement-panel";
 import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
@@ -32,6 +39,7 @@ const emptyDashboardData: HomeDashboardData = {
   categories: [],
   records: [],
   pendingOccurrences: [],
+  pendingRecurringReminders: [],
 };
 
 type HomePageProps = {
@@ -51,8 +59,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const reimbursementFeedback = readReimbursementFeedback(
     readSearchParam(resolvedSearchParams, "reimbursement"),
   );
+  const recurringFeedback = readRecurringReminderFeedback(
+    readSearchParam(resolvedSearchParams, "recurring"),
+  );
   const dashboardData = currentMember.ok
-    ? await getDashboardData(dashboardMonth, requestHeaders)
+    ? await getDashboardData(dashboardMonth)
     : emptyDashboardData;
   const homeView = buildHomeAccessViewFromAccess({
     access: currentMember,
@@ -62,13 +73,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     records: dashboardData.records,
     categories: dashboardData.categories,
     pendingOccurrences: dashboardData.pendingOccurrences,
+    pendingRecurringReminders: dashboardData.pendingRecurringReminders,
   });
 
   if (homeView.kind !== "dashboard") {
     return <DashboardAccessScreen view={homeView} />;
   }
 
-  const { accessHints, profile, reimbursementTable, report } = homeView;
+  const {
+    accessHints,
+    pendingRecurringReminders,
+    profile,
+    reimbursementTable,
+    report,
+  } = homeView;
   const visibleNavigationItems = getVisibleDashboardNavigationItems(
     accessHints,
     "/",
@@ -224,26 +242,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 </Card>
               </section>
 
-              <section aria-labelledby="pending-title">
-                <h3 id="pending-title" className="mb-3 text-subheading">
-                  待確認週期項目
-                </h3>
-                <Card>
-                  <CardContent>
-                  {report.pendingRecurringItems.map((occurrence) => (
-                    <div className="flex items-center justify-between gap-3" key={occurrence.id}>
-                      <div>
-                        <p className="text-body-strong">生活費提醒</p>
-                        <p className="text-caption text-muted-foreground">
-                          {occurrence.month} 尚未確認入帳
-                        </p>
-                      </div>
-                      <Badge>待確認</Badge>
-                    </div>
-                  ))}
-                  </CardContent>
-                </Card>
-              </section>
+              <RecurringReminderConfirmationPanel
+                confirmRecurringReminderAction={confirmRecurringReminderAction}
+                feedback={recurringFeedback}
+                month={dashboardMonth}
+                pendingReminders={pendingRecurringReminders}
+              />
             </aside>
           </div>
           {createResult === "success" ? <CreateRecordToast /> : null}
@@ -253,15 +257,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 async function getDashboardData(
   month: string,
-  requestHeaders: Headers,
 ): Promise<HomeDashboardData> {
-  if (
-    process.env.NODE_ENV !== "production" &&
-    requestHeaders.get("x-e2e-dashboard-fixture") === "1"
-  ) {
-    return createE2eHomeDashboardData(month);
-  }
-
   return createHomeDashboardDataSource(getPrismaClient()).getMonthlyDashboardData(
     month,
   );
@@ -345,6 +341,16 @@ function readReimbursementFeedback(
   }
 
   return undefined;
+}
+
+function readRecurringReminderFeedback(
+  recurringResult: string | undefined,
+): RecurringReminderFeedback | undefined {
+  if (!recurringResult) {
+    return undefined;
+  }
+
+  return recurringReminderFeedbackValues.find((value) => value === recurringResult);
 }
 
 function SummaryMetric({

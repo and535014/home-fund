@@ -25,6 +25,6 @@ Run these sequentially because project scripts each invoke `prisma generate`:
 1. `pnpm type-check`
 2. `pnpm lint`
 3. `pnpm test`
-4. Targeted DB E2E as needed, for example `pnpm test:e2e:db e2e-db/reimbursement-settlement.spec.ts`
+4. Targeted E2E as needed, for example `pnpm test:e2e -- e2e/reimbursement-settlement.spec.ts`
 
 <!-- DDD-WEBSITE-WORKFLOW:END -->

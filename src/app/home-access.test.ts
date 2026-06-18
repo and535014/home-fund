@@ -26,6 +26,14 @@ const householdMembers: HouseholdMemberAccount[] = [
     capabilities: [],
     status: "invited",
   },
+  {
+    id: "member-kai",
+    displayName: "Kai",
+    googleAccountEmail: "kai@example.com",
+    roles: ["general_member"],
+    capabilities: [],
+    status: "active",
+  },
 ];
 
 const categories: Category[] = [
@@ -65,6 +73,7 @@ const baseInput = {
   categories,
   records,
   pendingOccurrences: [],
+  pendingRecurringReminders: [],
 };
 
 describe("buildHomeAccessView", () => {
@@ -183,5 +192,101 @@ describe("buildHomeAccessViewFromAccess", () => {
 
     expect(view.profile.displayName).toBe("Lin");
     expect(view.report.totals.confirmedIncomeCents).toBe(120_000_00);
+  });
+
+  it("derives pending recurring reminder confirmation access from ledger creation permission", () => {
+    const view = buildHomeAccessViewFromAccess({
+      ...baseInput,
+      pendingRecurringReminders: [
+        {
+          id: "occurrence-living-kai",
+          recurringRuleId: "rule-living-kai",
+          month: "2026-06",
+          status: "pending",
+          type: "income",
+          name: "Kai 每月生活費提醒",
+          amountCents: 8_000_000,
+          expectedOn: "2026-06-10",
+          categoryId: "income-living",
+          categoryName: "生活費",
+          targetMemberId: "member-kai",
+        },
+      ],
+      access: {
+        ok: true,
+        member: {
+          id: "member-fin",
+          googleAccountLinked: true,
+          roles: ["finance_manager"],
+          capabilities: ["manage_categories"],
+        },
+        profile: {
+          id: "member-fin",
+          displayName: "Lin",
+          roles: ["finance_manager"],
+          capabilities: ["manage_categories"],
+        },
+        events: ["Household member access resolved"],
+      },
+    });
+
+    expect(view.kind).toBe("dashboard");
+
+    if (view.kind !== "dashboard") {
+      throw new Error("Expected dashboard view");
+    }
+
+    expect(view.pendingRecurringReminders).toEqual([
+      expect.objectContaining({
+        id: "occurrence-living-kai",
+        targetMemberName: "Kai",
+        canConfirm: true,
+      }),
+    ]);
+  });
+
+  it("does not allow a general member to confirm another member's reminder", () => {
+    const view = buildHomeAccessViewFromAccess({
+      ...baseInput,
+      pendingRecurringReminders: [
+        {
+          id: "occurrence-living-kai",
+          recurringRuleId: "rule-living-kai",
+          month: "2026-06",
+          status: "pending",
+          type: "income",
+          name: "Kai 每月生活費提醒",
+          amountCents: 8_000_000,
+          expectedOn: "2026-06-10",
+          categoryId: "income-living",
+          categoryName: "生活費",
+          targetMemberId: "member-kai",
+        },
+      ],
+      access: {
+        ok: true,
+        member: {
+          id: "member-fin",
+          googleAccountLinked: true,
+          roles: ["general_member"],
+          capabilities: [],
+        },
+        profile: {
+          id: "member-fin",
+          displayName: "Lin",
+          roles: ["general_member"],
+          capabilities: [],
+        },
+        events: ["Household member access resolved"],
+      },
+    });
+
+    expect(view.kind).toBe("dashboard");
+
+    if (view.kind !== "dashboard") {
+      throw new Error("Expected dashboard view");
+    }
+
+    expect(view.pendingRecurringReminders[0]?.canConfirm).toBe(false);
   });
 });

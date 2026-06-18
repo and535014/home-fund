@@ -27,6 +27,12 @@ const generalMember: AuthenticatedMember = {
   roles: ["general_member"],
 };
 
+const kaiMember: AuthenticatedMember = {
+  id: "member-kai",
+  googleAccountLinked: true,
+  roles: ["general_member"],
+};
+
 const categories = [
   { id: "income-living", type: "income" as const, status: "active" as const },
   { id: "expense-internet", type: "expense" as const, status: "active" as const },
@@ -201,6 +207,54 @@ describe("recurring rules", () => {
     }, reminderLivingRule, { categories })).toEqual({
       ok: false,
       reason: "occurrence_already_posted",
+    });
+  });
+
+  it("rejects reminder confirmation when the actor cannot create the resulting record", () => {
+    const pendingOccurrence: RecurringOccurrence = {
+      id: "occurrence-living-june",
+      recurringRuleId: "rule-living",
+      month: "2026-06",
+      status: "pending",
+    };
+    const kaiLivingRule: RecurringRule = {
+      ...reminderLivingRule,
+      sourceMemberId: "member-kai",
+      note: "Kai 每月生活費提醒",
+    };
+
+    expect(confirmRecurringOccurrence(generalMember, pendingOccurrence, kaiLivingRule, {
+      categories,
+      generateLedgerRecordId: () => "ledger-living-june",
+    })).toEqual({
+      ok: false,
+      reason: "permission_denied",
+      authorizationReason: "cannot_create_record_for_other_member",
+    });
+  });
+
+  it("uses the recurring rule note as the created ledger record name", () => {
+    const pendingOccurrence: RecurringOccurrence = {
+      id: "occurrence-living-june",
+      recurringRuleId: "rule-living",
+      month: "2026-06",
+      status: "pending",
+    };
+
+    expect(confirmRecurringOccurrence(kaiMember, pendingOccurrence, {
+      ...reminderLivingRule,
+      sourceMemberId: "member-kai",
+      note: "Kai 每月生活費提醒",
+    }, {
+      categories,
+      generateLedgerRecordId: () => "ledger-living-june",
+    })).toMatchObject({
+      ok: true,
+      ledgerRecord: {
+        id: "ledger-living-june",
+        name: "Kai 每月生活費提醒",
+        sourceMemberId: "member-kai",
+      },
     });
   });
 

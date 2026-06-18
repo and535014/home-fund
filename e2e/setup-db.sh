@@ -20,6 +20,9 @@ if ! docker compose exec -T postgres pg_isready -U postgres -d home_fund >/dev/n
   exit 1
 fi
 
+docker compose exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$e2e_db_name' AND pid <> pg_backend_pid();" \
+  >/dev/null
 docker compose exec -T postgres dropdb -U postgres --if-exists "$e2e_db_name"
 docker compose exec -T postgres createdb -U postgres "$e2e_db_name"
 

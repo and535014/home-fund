@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("keeps unauthenticated users on the Google sign-in gate", async ({
   page,

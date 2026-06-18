@@ -48,6 +48,20 @@ describe("createHomeDashboardDataSource", () => {
         month: "2026-06",
         status: "pending" as const,
         ledgerRecordId: null,
+        recurringRule: {
+          id: "rule-living-kai",
+          type: "income" as const,
+          amountCents: 8_000_000,
+          categoryId: "income-living",
+          sourceMemberId: "member-kai",
+          paymentSource: null,
+          payerMemberId: null,
+          dayOfMonth: 10,
+          note: "Kai 每月生活費提醒",
+          category: {
+            name: "生活費",
+          },
+        },
       },
     ]);
     const dataSource = createHomeDashboardDataSource({
@@ -98,6 +112,21 @@ describe("createHomeDashboardDataSource", () => {
           recurringRuleId: "rule-living-kai",
           month: "2026-06",
           status: "pending",
+        },
+      ],
+      pendingRecurringReminders: [
+        {
+          id: "occurrence-living-kai",
+          recurringRuleId: "rule-living-kai",
+          month: "2026-06",
+          status: "pending",
+          type: "income",
+          name: "Kai 每月生活費提醒",
+          amountCents: 8_000_000,
+          expectedOn: "2026-06-10",
+          categoryId: "income-living",
+          categoryName: "生活費",
+          targetMemberId: "member-kai",
         },
       ],
     });

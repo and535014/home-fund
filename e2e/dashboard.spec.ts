@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await page.setExtraHTTPHeaders({
@@ -13,7 +13,8 @@ test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await expect(page.getByText("六月生活費")).toBeVisible();
   await expect(page.getByText("補充用品代墊")).toBeVisible();
   await expect(page.getByText("2 筆待處理")).toBeVisible();
-  await expect(page.getByText("2026-06 尚未確認入帳")).toBeVisible();
+  await expect(page.getByText("Kai 每月生活費提醒")).toBeVisible();
+  await expect(page.getByText("尚未計入本月總額")).toBeVisible();
 });
 
 test("keeps fund-paid expenses out of reimbursement rows", async ({ page }) => {
@@ -27,7 +28,7 @@ test("keeps fund-paid expenses out of reimbursement rows", async ({ page }) => {
     'section[aria-labelledby="reimbursement-title"]',
   );
 
-  await expect(reimbursementRegion.getByText("Mei")).toBeVisible();
-  await expect(reimbursementRegion.getByText("Kai")).toBeVisible();
+  await expect(reimbursementRegion.getByText("Mei", { exact: true })).toBeVisible();
+  await expect(reimbursementRegion.getByText("Kai", { exact: true })).toBeVisible();
   await expect(reimbursementRegion.getByText("Lin")).toHaveCount(0);
 });

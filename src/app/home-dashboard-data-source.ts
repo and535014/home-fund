@@ -9,6 +9,21 @@ export type HomeDashboardData = {
   categories: Category[];
   records: LedgerRecord[];
   pendingOccurrences: RecurringOccurrence[];
+  pendingRecurringReminders: PendingRecurringReminderData[];
+};
+
+export type PendingRecurringReminderData = {
+  id: string;
+  recurringRuleId: string;
+  month: string;
+  status: "pending";
+  type: "income" | "expense";
+  name: string;
+  amountCents: number;
+  expectedOn: string;
+  categoryId: string;
+  categoryName: string;
+  targetMemberId: string;
 };
 
 type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0];
@@ -41,6 +56,20 @@ type PrismaRecurringOccurrenceRow = {
   month: string;
   status: RecurringOccurrence["status"] | "skipped";
   ledgerRecordId: string | null;
+  recurringRule: {
+    id: string;
+    type: "income" | "expense";
+    amountCents: number;
+    categoryId: string;
+    sourceMemberId: string | null;
+    paymentSource: "fund" | "member" | null;
+    payerMemberId: string | null;
+    dayOfMonth: number;
+    note: string | null;
+    category: {
+      name: string;
+    };
+  };
 };
 
 export type HomeDashboardPrismaClient = {
@@ -116,6 +145,24 @@ export type HomeDashboardPrismaClient = {
         month: true;
         status: true;
         ledgerRecordId: true;
+        recurringRule: {
+          select: {
+            id: true;
+            type: true;
+            amountCents: true;
+            categoryId: true;
+            sourceMemberId: true;
+            paymentSource: true;
+            payerMemberId: true;
+            dayOfMonth: true;
+            note: true;
+            category: {
+              select: {
+                name: true;
+              };
+            };
+          };
+        };
       };
       orderBy: {
         createdAt: "asc";
@@ -193,6 +240,24 @@ export function createHomeDashboardDataSource(
               month: true,
               status: true,
               ledgerRecordId: true,
+              recurringRule: {
+                select: {
+                  id: true,
+                  type: true,
+                  amountCents: true,
+                  categoryId: true,
+                  sourceMemberId: true,
+                  paymentSource: true,
+                  payerMemberId: true,
+                  dayOfMonth: true,
+                  note: true,
+                  category: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -207,82 +272,11 @@ export function createHomeDashboardDataSource(
         pendingOccurrences: pendingOccurrences.map(
           mapPrismaRecurringOccurrenceToRecurringOccurrence,
         ),
+        pendingRecurringReminders: pendingOccurrences.map(
+          mapPrismaRecurringOccurrenceToPendingReminder,
+        ),
       };
     },
-  };
-}
-
-export function createE2eHomeDashboardData(month: string): HomeDashboardData {
-  return {
-    householdMembers: [
-      {
-        id: "member-e2e-fin",
-        displayName: "Lin",
-        googleAccountEmail: "e2e-finance@example.com",
-        googleSubject: "google-e2e-fin",
-        roles: ["finance_manager"],
-        capabilities: ["manage_categories"],
-        status: "active",
-      },
-      {
-        id: "member-e2e-mei",
-        displayName: "Mei",
-        googleAccountEmail: "mei@example.com",
-        roles: ["general_member"],
-        capabilities: [],
-        status: "active",
-      },
-    ],
-    categories: [
-      { id: "income-rent", type: "income", name: "房租", status: "active" },
-      { id: "income-living", type: "income", name: "生活費", status: "active" },
-      { id: "expense-grocery", type: "expense", name: "日用品", status: "active" },
-      { id: "expense-internet", type: "expense", name: "網路費", status: "active" },
-    ],
-    records: [
-      {
-        id: "income-rent-e2e",
-        type: "income",
-        name: "六月房租",
-        amountCents: 120_000_00,
-        occurredOn: `${month}-05`,
-        categoryId: "income-rent",
-        createdByMemberId: "member-e2e-fin",
-        sourceMemberId: "member-e2e-fin",
-        reimbursementStatus: "not_applicable",
-      },
-      {
-        id: "expense-grocery-e2e",
-        type: "expense",
-        name: "日用品代墊",
-        amountCents: 6_420_00,
-        occurredOn: `${month}-09`,
-        categoryId: "expense-grocery",
-        createdByMemberId: "member-e2e-mei",
-        paymentSource: "member",
-        payerMemberId: "member-e2e-mei",
-        reimbursementStatus: "refundable",
-      },
-      {
-        id: "expense-internet-e2e",
-        type: "expense",
-        name: "網路費",
-        amountCents: 899_00,
-        occurredOn: `${month}-05`,
-        categoryId: "expense-internet",
-        createdByMemberId: "member-e2e-fin",
-        paymentSource: "fund",
-        reimbursementStatus: "not_refundable",
-      },
-    ],
-    pendingOccurrences: [
-      {
-        id: "occurrence-living-e2e",
-        recurringRuleId: "rule-living-e2e",
-        month,
-        status: "pending",
-      },
-    ],
   };
 }
 
@@ -340,6 +334,31 @@ function mapPrismaRecurringOccurrenceToRecurringOccurrence(
     ...(occurrence.ledgerRecordId
       ? { ledgerRecordId: occurrence.ledgerRecordId }
       : {}),
+  };
+}
+
+function mapPrismaRecurringOccurrenceToPendingReminder(
+  occurrence: PrismaRecurringOccurrenceRow,
+): PendingRecurringReminderData {
+  const rule = occurrence.recurringRule;
+
+  return {
+    id: occurrence.id,
+    recurringRuleId: occurrence.recurringRuleId,
+    month: occurrence.month,
+    status: "pending",
+    type: rule.type,
+    name: rule.note?.trim() || (rule.type === "income" ? "週期收入" : "週期支出"),
+    amountCents: rule.amountCents,
+    expectedOn: `${occurrence.month}-${String(rule.dayOfMonth).padStart(2, "0")}`,
+    categoryId: rule.categoryId,
+    categoryName: rule.category.name,
+    targetMemberId:
+      rule.type === "income"
+        ? rule.sourceMemberId ?? ""
+        : rule.paymentSource === "member"
+          ? rule.payerMemberId ?? ""
+          : "",
   };
 }
 

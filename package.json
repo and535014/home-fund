@@ -18,8 +18,7 @@
     "type-check": "prisma generate && tsc --noEmit",
     "test": "prisma generate && vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
-    "test:e2e:db": "sh e2e-db/setup-db.sh && playwright test --config playwright.db.config.ts"
+    "test:e2e": "sh e2e/setup-db.sh && sh e2e/run-playwright.sh"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.8.0",

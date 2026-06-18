@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test.describe.configure({ mode: "serial" });
 
@@ -67,7 +68,7 @@ test("creates a member-paid expense and adds reimbursement", async ({
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
   );
-  await expect(reimbursementRegion.getByText("Lin")).toBeVisible();
+  await expect(reimbursementRegion.getByText("Lin", { exact: true })).toBeVisible();
 });
 
 test("keeps the income dialog visible after a server-side validation error", async ({
