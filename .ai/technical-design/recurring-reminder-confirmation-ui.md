@@ -1,7 +1,7 @@
 ---
 id: td-recurring-reminder-confirmation-ui
 stage: technical-design
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -276,7 +276,7 @@ Empty state:
 | Unit | `src/app/home-access.test.ts` or access-hint mapper test | `canConfirm` derivation for finance manager vs general member. |
 | Integration | new `src/modules/recurring-schedule/recurring-confirmation-command.test.ts` | Transaction creates ledger + updates occurrence, stale update rolls back ledger creation, missing occurrence maps cleanly. |
 | Contract | `src/app/recurring-reminder-actions` test if action testing pattern exists; otherwise DB E2E | Form data + current member + redirect feedback mapping. |
-| E2E DB | new `e2e-db/recurring-reminder-confirmation.spec.ts` | Finance manager confirms seeded reminder and dashboard updates from DB. |
+| E2E DB | `e2e/recurring-reminder-confirmation.spec.ts` | Finance manager confirms seeded reminder and dashboard updates from DB. |
 | E2E DB | same spec | General member cannot confirm Kai reminder; action/UI denial leaves occurrence pending. |
 | E2E/mobile | same or smoke spec | Pending/empty state fits mobile width and dialog is accessible. |
 

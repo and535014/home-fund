@@ -81,7 +81,7 @@ reviewed_at: 2026-06-18
 
 ## Existing System Signals
 
-- entry points: `src/app/page.tsx`, `src/app/api/auth/[...all]/route.ts`, `src/app/auth/google/route.ts`, `src/app/records/new/page.tsx`, `e2e/home.spec.ts`.
+- entry points: `src/app/page.tsx`, `src/app/api/auth/[...all]/route.ts`, `src/app/auth/google/route.ts`, `src/app/records/new/page.tsx`, `e2e/dashboard.spec.ts`, `e2e/recurring-reminder-confirmation.spec.ts`.
 - modules or bounded context candidates: `identity-access`, `fund-ledger`, `categorization`, `recurring-schedule`, `reimbursement`, `reporting`.
 - data stores: PostgreSQL through Prisma; local Docker Compose database is documented for development.
 - integrations: Google OAuth through Better Auth, Prisma PostgreSQL adapter, local Playwright browser automation.
@@ -116,7 +116,8 @@ reviewed_at: 2026-06-18
 
 ## Next Step
 
-- recommended_resume_gate: Experience Prototype
-- recommended_next_skill: experience-design
-- required input: `.ai/stories/story-mvp-hardening-recurring-reminder-confirmation-ui.md`
-- reason: v2 migration preserved completed local_dev work and identified recurring reminder confirmation UI as the smallest remaining MVP hardening path. The story has open role-policy and interaction questions that should be resolved in experience design before behavior spec and technical design.
+- latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
+- recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
+- recommended_next_skill: story-slicing or post-release-tracking after target selection
+- required input: `.ai/release/home-family-fund-local-dev-readiness.md` plus the remaining story backlog under `.ai/stories/`.
+- reason: The recurring reminder confirmation UI is now implemented and verified for `local_dev`, and local_dev release readiness is drafted. The project should next review the current MVP locally, choose a production target, or pick the next product capability slice.

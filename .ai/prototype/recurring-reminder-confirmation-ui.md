@@ -1,7 +1,7 @@
 ---
 id: proto-recurring-reminder-confirmation-ui
 stage: prototype
-status: draft
+status: accepted
 delivery_profile: mvp
 release_target: local_dev
 workflow_version: ddd-website-lifecycle-v2

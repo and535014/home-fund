@@ -1,7 +1,7 @@
 ---
 id: impl-recurring-reminder-confirmation-ui
 stage: implementation
-status: draft
+status: complete
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -92,7 +92,7 @@ This implementation supports `local_dev` under the MVP profile. It completes the
 - Full DB E2E is stable but slower because each test resets the database to avoid cross-test mutation pollution.
 
 ## Review Gate
-- decision: ready_for_verification
+- decision: verified_and_committed
 - owner: verification-runner
 - reviewer_focus:
   - Confirm the dashboard interaction matches the accepted prototype.
@@ -106,4 +106,4 @@ This implementation supports `local_dev` under the MVP profile. It completes the
 - unresolved_blockers:
   - None for verification runner.
 - next_step:
-  - verification-runner
+  - release-readiness-or-next-slice-selection

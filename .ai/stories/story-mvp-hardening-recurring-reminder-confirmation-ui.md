@@ -1,7 +1,7 @@
 ---
 id: story-mvp-hardening-recurring-reminder-confirmation-ui
 stage: story
-status: draft
+status: complete
 delivery_profile: mvp
 release_target: local_dev
 inputs:
@@ -36,8 +36,8 @@ trace_links:
     - src/modules/fund-ledger/ledger-record-command.ts
     - src/app/page.tsx
     - src/app/home-dashboard-data-source.ts
-    - e2e/home.spec.ts
-reviewed_at:
+    - e2e/recurring-reminder-confirmation.spec.ts
+reviewed_at: 2026-06-18
 ---
 
 # MVP Hardening: Recurring Reminder Confirmation UI
@@ -127,13 +127,13 @@ P3. It is important for MVP recurring behavior but can follow DB-backed dashboar
 - `story-mvp-hardening-browser-create-record-flow`
 - Domain/policy decision already accepted: reminder items do not affect totals until confirmed.
 
-## Open Questions
-- Which roles can confirm recurring reminders in the UI: admins, finance managers, members tied to the source/payer, or any active member?
-- Should confirmation happen inline or through a confirmation dialog?
+## Resolved Questions
+- Confirmation permission follows the resulting ledger record creation permission: admins and finance managers can confirm for any member, while general members can confirm only their own resulting records.
+- Confirmation is inline on the dashboard and uses a confirmation dialog before persistence.
 
 ## Review Gate
 
-- decision: approve
+- decision: complete
 - reviewer_focus:
   - Confirm who is allowed to confirm pending reminders before experience design.
 - must_check:
@@ -142,6 +142,6 @@ P3. It is important for MVP recurring behavior but can follow DB-backed dashboar
 - acceptance_signals:
   - Browser flow proves pending-to-confirmed transition against DB-backed data.
 - unresolved_blockers:
-  - Confirmation role policy needs product confirmation before implementation.
+  - None for local_dev.
 - next_step:
-  - experience-design
+  - release-readiness-or-next-slice-selection

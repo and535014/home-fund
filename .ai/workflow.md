@@ -41,6 +41,12 @@ trace_links:
   - .ai/verification/home-family-fund-reimbursement-settlement-ui.md
   - .ai/reviews/verification/review-ver-home-family-fund-reimbursement-settlement-ui.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
+  - .ai/prototype/recurring-reminder-confirmation-ui.md
+  - .ai/spec/recurring-reminder-confirmation-ui.md
+  - .ai/technical-design/recurring-reminder-confirmation-ui.md
+  - .ai/implementation/recurring-reminder-confirmation-ui.md
+  - .ai/verification/recurring-reminder-confirmation-ui.md
+  - .ai/release/home-family-fund-local-dev-readiness.md
 reviewed_at: 2026-06-18
 ---
 
@@ -128,10 +134,10 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 
 - project_classification: existing_with_ai
 - active_change: home-family-fund MVP local_dev hardening.
-- latest_completed_slice: reimbursement settlement UI.
-- current_stage: v2 migration complete; reimbursement settlement UI is verified and workflow-reviewed for `local_dev`.
-- recommended_resume_gate: Experience Prototype for recurring reminder confirmation UI.
-- recommended_next_skill: experience-design
+- latest_completed_slice: recurring reminder confirmation UI.
+- current_stage: recurring reminder confirmation UI is implemented, verified, and committed for `local_dev` in `24213cd`; local_dev release readiness is drafted.
+- recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
+- recommended_next_skill: story-slicing or post-release-tracking after target selection
 
 ## Artifact Inventory
 
@@ -143,16 +149,16 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - experience-design: 13 artifacts including `.ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md`.
 - architecture: 6 artifacts, including `.ai/architecture/home-family-fund-reimbursement-settlement-ui.md`.
 - verification-design: 6 artifacts, including `.ai/verification-design/home-family-fund-reimbursement-settlement-ui.md`.
-- implementation: 29 implementation artifacts; latest completed slice is `home-family-fund-reimbursement-settlement-ui`.
-- verification: 29 verification artifacts; latest completed slice is `home-family-fund-reimbursement-settlement-ui` and is approved for `local_dev` with accepted risks.
+- implementation: 30 implementation artifacts; latest completed slice is `recurring-reminder-confirmation-ui`.
+- verification: 30 verification artifacts; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
 - reviews: workflow reviews exist for impact analysis and reimbursement settlement verification.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/` are present.
-- deploy/release: legacy `.ai/deploy/` exists but no deploy artifacts; v2 `.ai/release/` exists with no artifacts.
+- deploy/release: v2 local_dev release readiness exists at `.ai/release/home-family-fund-local-dev-readiness.md`; production deploy readiness is not assessed.
 - post-release/learning: legacy `.ai/post-release/` exists but no artifacts; v2 `.ai/learning/` exists with no artifacts.
 
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
-- Open questions: recurring reminder confirmation role policy, production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
+- Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and the next product slice are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery. Continue with recurring reminder confirmation UI at Experience Prototype / `experience-design`, then Behavior Spec, Feature Technical Design, Implementation, and Verification.
+- Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining story backlog.

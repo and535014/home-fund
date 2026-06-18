@@ -1,7 +1,7 @@
 ---
 id: spec-recurring-reminder-confirmation-ui
 stage: spec
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
