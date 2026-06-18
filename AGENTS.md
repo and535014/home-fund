@@ -1,41 +1,63 @@
 # Repository Agent Notes
 
 <!-- DDD-WEBSITE-WORKFLOW:START -->
-## DDD Website Workflow
+## DDD Website Harness Workflow
 
-- workflow_version: ddd-website-lifecycle-v2
-- delivery_profile: mvp
-- release_target: local_dev
-- workflow_source: `.ai/workflow.md`
-- project_context: `.ai/project-context.md`
-- migration_report: `.ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md`
-- policy: Legacy `.ai` artifacts have been moved into v2 directories with `git mv`; create new workflow artifacts only in v2 directories.
+Use `.ai/` artifacts as the source of truth for product intent, domain behavior, foundation decisions, production-stack interactive prototype, behavior spec, technical design, TDD implementation, verification, target-aware release, learning, and artifact compression. This repository is governed by the DDD Website Harness Workflow for all non-trivial changes.
+
+### Lifecycle
+
+Intent Intake -> Domain Discovery -> Project Foundation Architecture -> Project Foundation Implementation / Init -> Experience Prototype -> Behavior Spec / BDD / E2E -> Feature Technical Design -> TDD Implementation -> Verification -> Target-Aware Release -> Learning Loop -> Artifact Compression.
 
 ### Workflow Enforcement
 
-- All future product, UX, architecture, implementation, verification, release, and learning changes must follow `.ai/workflow.md`.
-- Start at the smallest applicable lifecycle gate for the requested change; do not skip required upstream gates when the change affects user behavior, domain rules, architecture, tests, release readiness, or learning signals.
-- Create new workflow artifacts only in v2 directories: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/`.
-- Do not create new source-of-truth artifacts in legacy directories such as `.ai/idea/`, `.ai/ddd/`, `.ai/stories/`, `.ai/experience-design/`, `.ai/architecture/`, `.ai/verification-design/`, `.ai/deploy/`, or `.ai/post-release/`.
-- After completing a lifecycle gate or backfill gate, stop and wait for explicit user approval before proceeding to the next gate.
-- Do not automatically implement, scaffold, prototype, test, release, archive, or prune ahead of the approved gate.
-- Preserve user-authored content outside this marked `DDD-WEBSITE-WORKFLOW` section.
+- All non-trivial product, design, frontend, backend, test, release, migration, or artifact-cleanup changes must use this lifecycle.
+- Do not skip directly to coding, scaffolding, prototype work, tests, release, or prune cleanup unless the current lifecycle gate explicitly allows it.
+- Every lifecycle gate must end with a `Review Gate` decision and a recommended next gate.
+- After completing any gate, stop and wait for explicit user approval before starting the next gate. Do not continue automatically.
+- Do not start implementation just because a plan exists; implementation starts only after Behavior Spec / BDD / E2E and Feature Technical Design are approved or explicitly accepted as risk.
+- If the user asks for work that belongs to a later gate, complete only the missing current gate and ask for confirmation before moving forward.
 
-### Current Resume Point
+### Entry and Upgrade
 
-- latest_completed_slice: recurring reminder confirmation UI
-- current_stage: recurring reminder confirmation UI is implemented, verified, and committed for `local_dev` in `24213cd`; local_dev release readiness is drafted.
-- recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
-- recommended_next_skill: story-slicing or post-release-tracking after target selection
-- required_input: `.ai/release/home-family-fund-local-dev-readiness.md` plus the remaining story backlog under `.ai/spec/`.
+- Start with `.ai/workflow.md` and `.ai/project-context.md`.
+- Use `ddd-workflow-init` for new or adopted projects.
+- Use `ddd-workflow-update` when an existing `.ai/` workflow must migrate to `ddd-website-lifecycle-v2`.
+- Use the smallest lifecycle path that captures the missing decision, proof, or release gate. Do not restart completed work unless the user asks.
 
-### Local Quality Gates
+### Domain Rules
 
-Run these sequentially because project scripts each invoke `prisma generate`:
+- Maintain durable project/domain knowledge in `.ai/domain/project.md` or `.ai/domain/<bounded-context>.md`.
+- Do not create one domain model artifact per feature, requirement, story, or request.
+- Put per-intent domain deltas, change impact, affected flows, risks, and downstream implications in `.ai/domain-impact/<intent-id>.md`.
+- Treat domain-impact artifacts as change-level evidence that can be summarized by Artifact Compression and later removed by explicit manual Artifact Prune.
+- Create a separate bounded-context domain file only when the language, ownership, lifecycle, policies, invariants, or state transitions are meaningfully distinct.
 
-1. `pnpm type-check`
-2. `pnpm lint`
-3. `pnpm test`
-4. Targeted E2E as needed, for example `pnpm test:e2e -- e2e/recurring-reminder-confirmation.spec.ts`
+### Foundation Rules
 
+- New projects, migrations, rewrites, unknown stacks, or missing frontend/test foundations require Project Foundation Architecture.
+- After Project Foundation Architecture, run Project Foundation Implementation / Init before production-stack prototype.
+- Foundation init must establish scaffold, app shell, routing baseline, lint/format/test/e2e config, selected component library, foundation components/tokens, prototype host, and runnable dev/build/test commands.
+- Existing projects normally reuse observed foundation instead of reselecting React/Vue/etc., unless the change is a migration or rewrite.
+
+### Prototype and Behavior Rules
+
+- User-facing website work requires an interactive production-stack prototype unless explicitly skipped with accepted risk.
+- Prototype artifacts must include path, component paths, frontend stack, component library, run command, review URL, states covered, mock/fixture data, responsive baseline, accessibility/focus baseline, and known gaps.
+- Standalone HTML files, static mockups, screenshots, Figma-only designs, and throwaway pages that do not use the selected project stack are not valid Experience Prototype outputs.
+- Behavior Spec / BDD / E2E must be complete before Feature Technical Design.
+- Implementation must be TDD: write or enable the test first, implement the minimum behavior, then refactor.
+
+### Release Rules
+
+- Release is target-aware: `local_dev`, `internal_demo`, `preview`, `staging`, or `production`.
+- Passing preview/staging readiness does not imply production readiness.
+- Production readiness must address secrets/config, migrations, auth/permissions, rollback, observability, monitoring, smoke checks, and learning signals where relevant.
+
+### Migration Rules
+
+- Move legacy artifacts into v2 directories during workflow migration; use git history as the old-path record.
+- New v2 artifacts must be created in v2 directories only; do not add new files to legacy `.ai/idea/`, `.ai/change/`, `.ai/ddd/`, `.ai/stories/`, `.ai/experience-design/`, `.ai/architecture/`, `.ai/verification-design/`, `.ai/deploy/`, or `.ai/post-release/`.
+- Classify old artifacts as `complete`, `usable_with_gaps`, `needs_backfill`, `obsolete`, or `not_applicable`.
+- Backfill only the minimum missing gate needed to continue safely.
 <!-- DDD-WEBSITE-WORKFLOW:END -->

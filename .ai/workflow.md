@@ -10,7 +10,9 @@ outputs:
   - .ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md
 trace_links:
   - .ai/intent/home-family-fund.md
+  - .ai/intent/admin-only-category-management.md
   - .ai/domain/home-family-fund.md
+  - .ai/domain-impact/admin-only-category-management.md
   - .ai/foundation-architecture/home-family-fund.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
@@ -62,6 +64,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 
 - `.ai/intent/` - v2 intent intake and active change framing.
 - `.ai/domain/` - v2 domain discovery artifacts.
+- `.ai/domain-impact/` - per-intent domain deltas and downstream implications.
 - `.ai/foundation-architecture/` - repo-wide foundation architecture.
 - `.ai/foundation-implementation/` - scaffold/dev/test baseline evidence.
 - `.ai/prototype/` - interactive or reviewable experience prototypes.
@@ -115,16 +118,17 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: home-family-fund MVP local_dev hardening.
+- active_change: admin-only category management.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: recurring reminder confirmation UI is implemented, verified, and committed for `local_dev` in `24213cd`; local_dev release readiness is drafted.
-- recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
-- recommended_next_skill: story-slicing or post-release-tracking after target selection
+- current_stage: admin-only category management intent and domain impact are drafted; durable domain model now records admin-only category sidebar, route, and mutation policies.
+- recommended_resume_gate: Experience Prototype for admin-only category management.
+- recommended_next_skill: experience-design
 
 ## Artifact Inventory
 
 - idea: 1 artifact, `.ai/intent/home-family-fund.md`.
-- ddd: 1 artifact, `.ai/domain/home-family-fund.md`.
+- ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
+- domain-impact: 1 active change artifact, `.ai/domain-impact/admin-only-category-management.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
@@ -134,7 +138,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - implementation: completed implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui`.
 - verification: completed verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/` are present.
+- v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
 - deploy/release: v2 local_dev release readiness exists at `.ai/release/home-family-fund-local-dev-readiness.md`; production deploy readiness is not assessed.
 - release/learning: v2 `.ai/release/` has local_dev readiness; v2 `.ai/learning/` exists with no artifacts.
 - archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration, including optional manual prune candidates.
@@ -143,7 +147,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
-- Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and the next product slice are not yet selected.
+- Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and category management prototype decisions are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining spec backlog.
+- Smallest next backfill path: do not restart discovery. Continue admin-only category management at Experience Prototype, then Behavior Spec / BDD / E2E, Feature Technical Design, implementation, verification, and local_dev release refresh.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.

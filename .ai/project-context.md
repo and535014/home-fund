@@ -64,6 +64,7 @@ reviewed_at: 2026-06-18
 - v2_artifact_dirs:
   - .ai/intent
   - .ai/domain
+  - .ai/domain-impact
   - .ai/foundation-architecture
   - .ai/foundation-implementation
   - .ai/prototype
@@ -74,6 +75,7 @@ reviewed_at: 2026-06-18
   - .ai/release
   - .ai/learning
   - .ai/workflow-migration
+  - .ai/archive
 - size_budget:
   - reviewer_brief: 1 page
   - standard_artifact: 1-3 pages
@@ -117,7 +119,8 @@ reviewed_at: 2026-06-18
 ## Next Step
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
-- recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
-- recommended_next_skill: story-slicing or post-release-tracking after target selection
-- required input: `.ai/release/home-family-fund-local-dev-readiness.md` plus the remaining story backlog under `.ai/spec/`.
-- reason: The recurring reminder confirmation UI is now implemented and verified for `local_dev`, and local_dev release readiness is drafted. The project should next review the current MVP locally, choose a production target, or pick the next product capability slice.
+- active_change: admin-only category management
+- recommended_resume_gate: Experience Prototype
+- recommended_next_skill: experience-design
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, and `.ai/domain-impact/admin-only-category-management.md`.
+- reason: The admin-only category management intent and domain impact are drafted. The next risk-reducing step is to make admin and non-admin category navigation/page states concrete before BDD/E2E and technical design.
