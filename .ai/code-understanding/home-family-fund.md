@@ -15,8 +15,8 @@ outputs:
   - domain_language_gap
 trace_links:
   ddd_artifacts:
-    - .ai/ddd/home-family-fund.md
-    - .ai/idea/home-family-fund.md
+    - .ai/domain/home-family-fund.md
+    - .ai/intent/home-family-fund.md
     - .ai/project-context.md
   source_files:
     - package.json
@@ -39,7 +39,7 @@ reviewed_at: 2026-06-07
 # Code Understanding for Home Family Fund
 
 ## Delivery Profile
-This analysis inherits `delivery_profile: mvp` and `release_target: local_dev` from `.ai/project-context.md`, `.ai/idea/home-family-fund.md`, and `.ai/ddd/home-family-fund.md`. The current code map focuses on local development behavior, not production readiness, external OAuth smoke, backup/restore, or observability.
+This analysis inherits `delivery_profile: mvp` and `release_target: local_dev` from `.ai/project-context.md`, `.ai/intent/home-family-fund.md`, and `.ai/domain/home-family-fund.md`. The current code map focuses on local development behavior, not production readiness, external OAuth smoke, backup/restore, or observability.
 
 ## Repository State
 Observed fact: this is an existing system, not an empty or scaffold-only repo. Evidence includes a Next.js application in `src/app/`, domain modules in `src/modules/`, auth and Prisma infrastructure in `src/auth/` and `src/db/`, a PostgreSQL Prisma schema in `prisma/schema.prisma`, Vitest unit tests beside modules, and Playwright E2E coverage in `e2e/home.spec.ts`.
@@ -121,7 +121,7 @@ Observed fact: E2E currently can bypass real Better Auth and database-backed das
 ## Unknowns and Risks
 - Real Google OAuth redirect/callback behavior has not been manually or browser-automated in current evidence.
 - DB-backed E2E for dashboard reads, record creation, and reimbursement mutation is not present; E2E dashboard coverage uses fixture data.
-- Production deployment target, environment variable management, connection pooling, migrations, observability, and rollback are not documented in `.ai/deploy/`.
+- Production deployment target, environment variable management, connection pooling, migrations, observability, and rollback are not documented in `.ai/release/`.
 - Multi-household behavior is not implemented as a first-class runtime concern even though the schema includes `householdId`.
 - Category management, recurring rule management, member management, ledger corrections, and reimbursement settlement have domain coverage but limited or no complete UI mutation workflows observed in the inspected app routes.
 - Graphify output is absent; manual inspection is sufficient for this artifact, but Graphify could accelerate future repo-wide dependency queries.

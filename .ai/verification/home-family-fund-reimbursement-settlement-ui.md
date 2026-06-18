@@ -20,7 +20,7 @@ trace_links:
   implementation:
     - .ai/implementation/home-family-fund-reimbursement-settlement-ui.md
   verification_design:
-    - .ai/verification-design/home-family-fund-reimbursement-settlement-ui.md
+    - .ai/spec/home-family-fund-reimbursement-settlement-ui.md
   domain_rules:
     - Only finance managers perform reimbursement.
     - Selected refundable expenses can be marked reimbursed once.
@@ -67,7 +67,7 @@ This verification result supports `local_dev` under the `mvp` delivery profile. 
 ## Domain Rule Check
 | Rule / Language / Boundary | Source Artifact | Implementation Evidence | Result |
 |---|---|---|---|
-| Only finance managers perform reimbursement. | `.ai/ddd/home-family-fund.md`, `.ai/verification-design/home-family-fund-reimbursement-settlement-ui.md` | UI uses `canPerformReimbursement`; server action resolves current member; domain command calls `authorize(actor, { type: "perform_reimbursement" })`; E2E shows general member has no settlement controls. | Pass |
+| Only finance managers perform reimbursement. | `.ai/domain/home-family-fund.md`, `.ai/spec/home-family-fund-reimbursement-settlement-ui.md` | UI uses `canPerformReimbursement`; server action resolves current member; domain command calls `authorize(actor, { type: "perform_reimbursement" })`; E2E shows general member has no settlement controls. | Pass |
 | Selected refundable expenses can be marked reimbursed once. | DDD Reimbursement policy and `Expenses reimbursed` event | Persistence wrapper loads selected expense records and calls `markExpensesReimbursed`; domain rejects missing, not-refundable, and already-reimbursed ids before writes. | Pass with accepted DB race risk |
 | Settlement creates traceable reimbursement batch/items. | Architecture ADR-2 | Persistence wrapper creates `ReimbursementBatch` and nested `ReimbursementBatchItem` rows in the same transaction as status updates. | Pass by code review |
 | Reimbursed expenses are excluded from refundable totals. | DDD Reporting/Reimbursement read model rule | E2E settles Mei's `$6,420` expense, then verifies pending count drops from 2 to 1 and Mei/$6,420 disappear while Kai/$1,880 remains. | Pass |

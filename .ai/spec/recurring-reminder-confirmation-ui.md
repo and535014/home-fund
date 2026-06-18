@@ -20,8 +20,8 @@ trace_links:
   prototype:
     - .ai/prototype/recurring-reminder-confirmation-ui.md
   stories:
-    - .ai/stories/story-mvp-hardening-recurring-reminder-confirmation-ui.md
-    - .ai/stories/story-recurring-rules-and-confirmation.md
+    - .ai/spec/story-mvp-hardening-recurring-reminder-confirmation-ui.md
+    - .ai/spec/story-recurring-rules-and-confirmation.md
   domain_rules:
     - Reminder-mode recurring occurrences do not create ledger records until confirmed.
     - Confirming a pending occurrence creates one ledger record and marks that occurrence posted.

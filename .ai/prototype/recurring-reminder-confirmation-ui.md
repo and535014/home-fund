@@ -19,8 +19,8 @@ outputs:
   - handoff_to_behavior_spec
 trace_links:
   stories:
-    - .ai/stories/story-mvp-hardening-recurring-reminder-confirmation-ui.md
-    - .ai/stories/story-recurring-rules-and-confirmation.md
+    - .ai/spec/story-mvp-hardening-recurring-reminder-confirmation-ui.md
+    - .ai/spec/story-recurring-rules-and-confirmation.md
   domain_events:
     - Recurring reminder created
     - Recurring reminder confirmed
@@ -59,7 +59,7 @@ reviewed_at: 2026-06-18
 - business_outcome: The pending reminder becomes a real ledger record, enters monthly totals, and disappears from the pending list.
 - release_target: local_dev
 - delivery_profile: mvp
-- web_foundation: `.ai/experience-design/web-foundation.md`
+- web_foundation: `.ai/prototype/web-foundation.md`
 
 ## Product / Policy Decision Draft
 

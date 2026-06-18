@@ -8,35 +8,35 @@ inputs: []
 outputs:
   - .ai/project-context.md
 trace_links:
-  - .ai/idea/home-family-fund.md
-  - .ai/ddd/home-family-fund.md
-  - .ai/architecture/home-family-fund.md
+  - .ai/intent/home-family-fund.md
+  - .ai/domain/home-family-fund.md
+  - .ai/foundation-architecture/home-family-fund.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
-  - .ai/verification-design/home-family-fund-mvp.md
+  - .ai/spec/home-family-fund-mvp.md
   - .ai/implementation/home-family-fund-e2e-foundation.md
   - .ai/verification/home-family-fund-e2e-foundation.md
-  - .ai/architecture/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/verification-design/home-family-fund-db-backed-dashboard-e2e.md
+  - .ai/technical-design/home-family-fund-db-backed-dashboard-e2e.md
+  - .ai/spec/home-family-fund-db-backed-dashboard-e2e.md
   - .ai/implementation/home-family-fund-db-backed-dashboard-e2e.md
   - .ai/verification/home-family-fund-db-backed-dashboard-e2e.md
-  - .ai/architecture/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/verification-design/home-family-fund-controlled-auth-session-e2e.md
+  - .ai/technical-design/home-family-fund-controlled-auth-session-e2e.md
+  - .ai/spec/home-family-fund-controlled-auth-session-e2e.md
   - .ai/implementation/home-family-fund-controlled-auth-session-e2e.md
   - .ai/verification/home-family-fund-controlled-auth-session-e2e.md
-  - .ai/experience-design/story-mvp-hardening-browser-create-record-flow.md
-  - .ai/architecture/home-family-fund-browser-create-record-flow.md
-  - .ai/verification-design/home-family-fund-browser-create-record-flow.md
+  - .ai/prototype/story-mvp-hardening-browser-create-record-flow.md
+  - .ai/technical-design/home-family-fund-browser-create-record-flow.md
+  - .ai/spec/home-family-fund-browser-create-record-flow.md
   - .ai/implementation/home-family-fund-browser-create-record-flow.md
   - .ai/verification/home-family-fund-browser-create-record-flow.md
-  - .ai/experience-design/story-mvp-hardening-permission-matrix-browser-checks.md
-  - .ai/architecture/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/verification-design/home-family-fund-permission-matrix-browser-checks.md
+  - .ai/prototype/story-mvp-hardening-permission-matrix-browser-checks.md
+  - .ai/technical-design/home-family-fund-permission-matrix-browser-checks.md
+  - .ai/spec/home-family-fund-permission-matrix-browser-checks.md
   - .ai/implementation/home-family-fund-permission-matrix-browser-checks.md
   - .ai/verification/home-family-fund-permission-matrix-browser-checks.md
-  - .ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md
-  - .ai/architecture/home-family-fund-reimbursement-settlement-ui.md
-  - .ai/verification-design/home-family-fund-reimbursement-settlement-ui.md
+  - .ai/prototype/story-mvp-hardening-reimbursement-settlement-ui.md
+  - .ai/technical-design/home-family-fund-reimbursement-settlement-ui.md
+  - .ai/spec/home-family-fund-reimbursement-settlement-ui.md
   - .ai/implementation/home-family-fund-reimbursement-settlement-ui.md
   - .ai/verification/home-family-fund-reimbursement-settlement-ui.md
   - .ai/reviews/verification/review-ver-home-family-fund-reimbursement-settlement-ui.md
@@ -56,7 +56,7 @@ reviewed_at: 2026-06-18
 
 - workflow_version: ddd-website-lifecycle-v2
 - migration_report: `.ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md`
-- migration_policy: Legacy artifacts are preserved in place. New v2 directories exist for future artifacts and backfills. Do not delete, rename, or bulk rewrite completed legacy artifacts only to fit v2 naming.
+- migration_policy: Legacy artifacts have been moved into v2 directories with `git mv`. New workflow artifacts should be created only in v2 directories.
 
 ## Workflow Order
 
@@ -97,23 +97,34 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - `.ai/prototype/` - interactive or reviewable experience prototypes.
 - `.ai/spec/` - behavior specs, BDD, E2E plans.
 - `.ai/technical-design/` - feature-level technical designs and ADR updates.
-- `.ai/implementation/` - implementation logs; legacy and v2 logs both live here.
-- `.ai/verification/` - verification reports; legacy and v2 reports both live here.
+- `.ai/implementation/` - implementation logs.
+- `.ai/verification/` - verification reports.
 - `.ai/release/` - target-aware release readiness.
 - `.ai/learning/` - post-release learning loop.
 - `.ai/workflow-migration/` - workflow migration reports.
 
+### Historical Inputs Now Migrated
+
+- old `.ai/idea/` -> `.ai/intent/`
+- old `.ai/ddd/` -> `.ai/domain/`
+- old `.ai/stories/` and `.ai/verification-design/` -> `.ai/spec/`
+- old `.ai/experience-design/` -> `.ai/prototype/`
+- old `.ai/architecture/home-family-fund.md` -> `.ai/foundation-architecture/home-family-fund.md`
+- old `.ai/architecture/*feature*.md` -> `.ai/technical-design/`
+- old `.ai/deploy/` -> `.ai/release/`
+- old `.ai/post-release/` -> `.ai/learning/`
+
 ### Conditional
 
-- `.ai/idea/` - new idea or unclear product/change intent.
-- `.ai/ddd/` - non-trivial domain behavior, unclear language, policies, aggregates, or bounded contexts.
+- `.ai/intent/` - new idea or unclear product/change intent.
+- `.ai/domain/` - non-trivial domain behavior, unclear language, policies, aggregates, or bounded contexts.
 - `.ai/code-understanding/` - existing repo, non-trivial codebase, or change depends on current implementation.
 - `.ai/impact-analysis/` - cross-module, data, integration, deploy, or high-risk impact.
-- `.ai/experience-design/` - user-facing web UX, forms, flows, states, accessibility, or tracking draft.
-- `.ai/experience-design/web-foundation.md` - first user-facing web story or repeated page/layout/component patterns need app-level UI consistency.
-- `.ai/architecture/` - boundary, contract, data ownership, integration, or quality-attribute decisions.
-- `.ai/deploy/` - release target, environment, migration, rollback, secrets, observability, or operations concern.
-- `.ai/post-release/` - production-facing release learning, product analytics, feedback, monitoring, or follow-up decision criteria.
+- `.ai/prototype/` - user-facing web UX, forms, flows, states, accessibility, or tracking draft.
+- `.ai/prototype/web-foundation.md` - first user-facing web story or repeated page/layout/component patterns need app-level UI consistency.
+- `.ai/technical-design/` - boundary, contract, data ownership, integration, or quality-attribute decisions.
+- `.ai/release/` - release target, environment, migration, rollback, secrets, observability, or operations concern.
+- `.ai/learning/` - production-facing release learning, product analytics, feedback, monitoring, or follow-up decision criteria.
 
 ### Optional / On Demand
 
@@ -141,24 +152,24 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 
 ## Artifact Inventory
 
-- idea: 1 artifact, `.ai/idea/home-family-fund.md`.
-- ddd: 1 artifact, `.ai/ddd/home-family-fund.md`.
+- idea: 1 artifact, `.ai/intent/home-family-fund.md`.
+- ddd: 1 artifact, `.ai/domain/home-family-fund.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts: 9 original capability stories and 6 MVP hardening completion stories.
-- experience-design: 13 artifacts including `.ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md`.
-- architecture: 6 artifacts, including `.ai/architecture/home-family-fund-reimbursement-settlement-ui.md`.
-- verification-design: 6 artifacts, including `.ai/verification-design/home-family-fund-reimbursement-settlement-ui.md`.
+- experience-design: 13 artifacts including `.ai/prototype/story-mvp-hardening-reimbursement-settlement-ui.md`.
+- architecture: 6 artifacts, including `.ai/technical-design/home-family-fund-reimbursement-settlement-ui.md`.
+- verification-design: 6 artifacts, including `.ai/spec/home-family-fund-reimbursement-settlement-ui.md`.
 - implementation: 30 implementation artifacts; latest completed slice is `recurring-reminder-confirmation-ui`.
 - verification: 30 verification artifacts; latest completed slice is `recurring-reminder-confirmation-ui` and is approved for `local_dev` with accepted risks.
 - reviews: workflow reviews exist for impact analysis and reimbursement settlement verification.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/release/`, `.ai/learning/`, and `.ai/workflow-migration/` are present.
 - deploy/release: v2 local_dev release readiness exists at `.ai/release/home-family-fund-local-dev-readiness.md`; production deploy readiness is not assessed.
-- post-release/learning: legacy `.ai/post-release/` exists but no artifacts; v2 `.ai/learning/` exists with no artifacts.
+- release/learning: v2 `.ai/release/` has local_dev readiness; v2 `.ai/learning/` exists with no artifacts.
 
 ## Notes
 
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, feedback channels, and the next product slice are not yet selected.
 - Deferred cleanup: release readiness and learning artifacts are absent; production deployment slicing remains blocked until target environment is selected.
-- Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining story backlog.
+- Smallest next backfill path: do not restart discovery. Review the current local_dev MVP, choose a production deployment target, or select the next MVP product slice from the remaining spec backlog.

@@ -16,7 +16,7 @@ trace_links:
   implementation:
     - .ai/implementation/home-family-fund-browser-create-record-flow.md
   verification_design:
-    - .ai/verification-design/home-family-fund-browser-create-record-flow.md
+    - .ai/spec/home-family-fund-browser-create-record-flow.md
   domain_rules:
     - Income records increase monthly income.
     - Fund-paid expenses increase monthly expenses but do not enter reimbursement.

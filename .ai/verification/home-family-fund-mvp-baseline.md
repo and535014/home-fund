@@ -15,7 +15,7 @@ trace_links:
   implementation:
     - .ai/implementation/home-family-fund-mvp-baseline.md
   verification_design:
-    - .ai/verification-design/home-family-fund-mvp.md
+    - .ai/spec/home-family-fund-mvp.md
   domain_rules:
     - Google identity must map to an app member before household data is available.
     - Authorization is enforced for commands, not only UI controls.

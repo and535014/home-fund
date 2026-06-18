@@ -13,11 +13,11 @@ trace_links:
     - .ai/verification/home-family-fund-reimbursement-settlement-ui.md
   upstream_artifacts:
     - .ai/implementation/home-family-fund-reimbursement-settlement-ui.md
-    - .ai/verification-design/home-family-fund-reimbursement-settlement-ui.md
-    - .ai/stories/story-mvp-hardening-reimbursement-settlement-ui.md
-    - .ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md
-    - .ai/architecture/home-family-fund-reimbursement-settlement-ui.md
-    - .ai/ddd/home-family-fund.md
+    - .ai/spec/home-family-fund-reimbursement-settlement-ui.md
+    - .ai/spec/story-mvp-hardening-reimbursement-settlement-ui.md
+    - .ai/prototype/story-mvp-hardening-reimbursement-settlement-ui.md
+    - .ai/technical-design/home-family-fund-reimbursement-settlement-ui.md
+    - .ai/domain/home-family-fund.md
 reviewed_at: 2026-06-18
 ---
 

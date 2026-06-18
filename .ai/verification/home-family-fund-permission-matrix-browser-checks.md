@@ -16,7 +16,7 @@ trace_links:
   implementation:
     - .ai/implementation/home-family-fund-permission-matrix-browser-checks.md
   verification_design:
-    - .ai/verification-design/home-family-fund-permission-matrix-browser-checks.md
+    - .ai/spec/home-family-fund-permission-matrix-browser-checks.md
   domain_rules:
     - Authorization is command-level.
     - General members act only on self-owned records.

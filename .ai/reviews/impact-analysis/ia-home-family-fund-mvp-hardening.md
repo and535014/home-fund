@@ -13,8 +13,8 @@ trace_links:
   target_artifact: .ai/impact-analysis/home-family-fund-mvp-hardening.md
   upstream_artifacts:
     - .ai/code-understanding/home-family-fund.md
-    - .ai/ddd/home-family-fund.md
-    - .ai/verification-design/home-family-fund-mvp.md
+    - .ai/domain/home-family-fund.md
+    - .ai/spec/home-family-fund-mvp.md
 reviewed_at: 2026-06-07
 ---
 

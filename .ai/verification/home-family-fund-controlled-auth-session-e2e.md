@@ -15,7 +15,7 @@ trace_links:
   implementation:
     - .ai/implementation/home-family-fund-controlled-auth-session-e2e.md
   verification_design:
-    - .ai/verification-design/home-family-fund-controlled-auth-session-e2e.md
+    - .ai/spec/home-family-fund-controlled-auth-session-e2e.md
   domain_rules:
     - Google sign-in is required before app access.
     - Google identity must map to an app member.

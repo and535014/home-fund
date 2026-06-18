@@ -69,7 +69,7 @@ This implementation supports `local_dev` for the MVP profile. It uses controlled
 
 ## Web Architecture Alignment
 
-- architecture_artifact: `.ai/architecture/home-family-fund-permission-matrix-browser-checks.md`
+- architecture_artifact: `.ai/technical-design/home-family-fund-permission-matrix-browser-checks.md`
 - route_or_layout_changes: none
 - page_or_feature_module_changes: none
 - shared_component_changes: none

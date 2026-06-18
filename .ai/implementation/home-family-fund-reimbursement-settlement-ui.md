@@ -76,7 +76,7 @@ This implementation supports `local_dev` under the MVP profile. It proves the br
 
 ## Web Architecture Alignment
 
-- architecture_artifact: .ai/architecture/home-family-fund-reimbursement-settlement-ui.md
+- architecture_artifact: .ai/technical-design/home-family-fund-reimbursement-settlement-ui.md
 - route_or_layout_changes: Existing homepage dashboard remains the settlement entry point; no new route was added.
 - page_or_feature_module_changes: Added app-local panel/action files for the dashboard reimbursement workflow.
 - shared_component_changes: Reused existing Button, Card, Dialog, Alert, and Item primitives; no new shared UI layer was added.

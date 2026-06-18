@@ -27,7 +27,7 @@ reviewed_at: 2026-06-18
 - business outcome: provide a Traditional Chinese dark-theme household fund dashboard with role-aware access and traceable financial workflows.
 - repository state: Next.js app with Prisma/PostgreSQL schema, Better Auth Google sign-in integration, domain modules, UI components, unit tests, and Playwright E2E foundation.
 - selected stack: Next.js, React, TypeScript, Prisma, PostgreSQL, Better Auth, Vitest, Playwright, Tailwind CSS, shadcn-style UI components.
-- deployment signals: Docker Compose for local PostgreSQL, README references Vercel/Neon as future deployment targets, no deploy readiness artifact yet.
+- deployment signals: Docker Compose for local PostgreSQL, README references Vercel/Neon as future deployment targets, and local_dev readiness is drafted in `.ai/release/home-family-fund-local-dev-readiness.md`.
 
 ## Harness Defaults
 
@@ -43,19 +43,19 @@ reviewed_at: 2026-06-18
 - required_artifacts:
   - .ai/project-context.md
   - .ai/workflow.md
-  - story
-  - verification-design
+  - spec
   - implementation
   - verification
 - conditional_artifacts:
-  - idea
-  - ddd
+  - intent
+  - domain
   - code-understanding
   - impact-analysis
-  - experience-design
-  - architecture
-  - deploy
-  - post-release
+  - prototype
+  - foundation-architecture
+  - technical-design
+  - release
+  - learning
 - optional_artifacts:
   - workflow-review
   - static-html-review
@@ -87,7 +87,7 @@ reviewed_at: 2026-06-18
 - integrations: Google OAuth through Better Auth, Prisma PostgreSQL adapter, local Playwright browser automation.
 - test commands: `corepack pnpm test`, `corepack pnpm type-check`, `corepack pnpm lint`, `pnpm test:e2e`.
 - build commands: `corepack pnpm build`.
-- deploy commands: `corepack pnpm db:deploy` exists; production deployment workflow is not yet documented in `.ai/deploy/`.
+- deploy commands: `corepack pnpm db:deploy` exists; production deployment workflow is not yet documented in `.ai/release/`.
 
 ## Code Understanding Tools
 
@@ -119,5 +119,5 @@ reviewed_at: 2026-06-18
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - recommended_resume_gate: User local_dev review, production release intake, or next MVP slice selection.
 - recommended_next_skill: story-slicing or post-release-tracking after target selection
-- required input: `.ai/release/home-family-fund-local-dev-readiness.md` plus the remaining story backlog under `.ai/stories/`.
+- required input: `.ai/release/home-family-fund-local-dev-readiness.md` plus the remaining story backlog under `.ai/spec/`.
 - reason: The recurring reminder confirmation UI is now implemented and verified for `local_dev`, and local_dev release readiness is drafted. The project should next review the current MVP locally, choose a production target, or pick the next product capability slice.

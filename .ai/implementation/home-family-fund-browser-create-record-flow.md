@@ -17,11 +17,11 @@ outputs:
   - src/components/ui/dialog.tsx
 trace_links:
   stories:
-    - .ai/stories/story-mvp-hardening-browser-create-record-flow.md
+    - .ai/spec/story-mvp-hardening-browser-create-record-flow.md
   verification_design:
-    - .ai/verification-design/home-family-fund-browser-create-record-flow.md
+    - .ai/spec/home-family-fund-browser-create-record-flow.md
   architecture:
-    - .ai/architecture/home-family-fund-browser-create-record-flow.md
+    - .ai/technical-design/home-family-fund-browser-create-record-flow.md
 reviewed_at: 2026-06-16
 ---
 
