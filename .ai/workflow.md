@@ -21,6 +21,7 @@ trace_links:
   - .ai/verification/admin-only-category-management.md
   - .ai/learning/admin-only-category-management.md
   - .ai/archive/archive-admin-only-category-management-2026-06-19.md
+  - .ai/intent/local-google-oauth-login.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -125,17 +126,17 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none.
+- active_change: local-google-oauth-login.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin-only category management is compressed and ready for local_dev review.
-- recommended_resume_gate: User local_dev review, optional artifact-prune, production release intake, or next Intent Intake.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise site-change-intake or idea-intake for the next change.
+- current_stage: local Google OAuth login intent intake is drafted and awaiting review.
+- recommended_resume_gate: Behavior Spec / BDD / E2E for local-google-oauth-login after explicit user approval.
+- recommended_next_skill: behavior-spec.
 
 ## Artifact Inventory
 
 - idea: 1 artifact, `.ai/intent/home-family-fund.md`.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; no active domain-impact artifact.
+- domain-impact: completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; no active domain-impact artifact is required for local-google-oauth-login unless later behavior changes member authorization policy.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
@@ -156,5 +157,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: perform user local_dev review, explicitly request `artifact-prune` if pruning completed admin-only category management artifacts is desired, choose a production release target, or start the next change with Intent Intake.
+- Smallest next path: review `.ai/intent/local-google-oauth-login.md`, then approve Behavior Spec / BDD / E2E for the local real Google OAuth slice.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
