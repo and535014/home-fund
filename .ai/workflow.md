@@ -34,6 +34,9 @@ trace_links:
   - .ai/verification-design/home-family-fund-permission-matrix-browser-checks.md
   - .ai/implementation/home-family-fund-permission-matrix-browser-checks.md
   - .ai/verification/home-family-fund-permission-matrix-browser-checks.md
+  - .ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md
+  - .ai/architecture/home-family-fund-reimbursement-settlement-ui.md
+  - .ai/verification-design/home-family-fund-reimbursement-settlement-ui.md
 reviewed_at: 2026-06-07
 ---
 
@@ -100,9 +103,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: home-family-fund MVP local_dev implementation; latest slice is permission matrix browser checks.
-- current_stage: verification passed for permission matrix browser checks.
-- recommended_next_skill: story-slicing
+- active_change: home-family-fund MVP local_dev implementation; latest slice is reimbursement settlement UI.
+- current_stage: verification design approved for reimbursement settlement UI.
+- recommended_next_skill: implementation-cycle
 
 ## Artifact Inventory
 
@@ -111,9 +114,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts: 9 original capability stories and 6 MVP hardening completion stories.
-- experience-design: 12 artifacts including `.ai/experience-design/story-mvp-hardening-permission-matrix-browser-checks.md`.
-- architecture: 5 artifacts, including `.ai/architecture/home-family-fund-permission-matrix-browser-checks.md`.
-- verification-design: 5 artifacts, including `.ai/verification-design/home-family-fund-permission-matrix-browser-checks.md`.
+- experience-design: 13 artifacts including `.ai/experience-design/story-mvp-hardening-reimbursement-settlement-ui.md`.
+- architecture: 6 artifacts, including `.ai/architecture/home-family-fund-reimbursement-settlement-ui.md`.
+- verification-design: 6 artifacts, including `.ai/verification-design/home-family-fund-reimbursement-settlement-ui.md`.
 - implementation: 28 implementation artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks`.
 - verification: 28 verification artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks` and is approved for `local_dev`.
 - deploy: directory created, no artifacts yet.
