@@ -7,12 +7,20 @@ import { HomeDashboardLayout } from "./home-dashboard-layout";
 type DashboardRouteFrameProps = {
   children?: ReactNode;
   context: DashboardPageContext;
+  headerActions?: ReactNode;
+  headerDescription?: string;
+  mobileFooterActions?: ReactNode;
+  showCreateRecordActions?: boolean;
   title: string;
 };
 
 export function DashboardRouteFrame({
   children,
   context,
+  headerActions,
+  headerDescription,
+  mobileFooterActions,
+  showCreateRecordActions = true,
   title,
 }: DashboardRouteFrameProps) {
   if (context.kind === "blocked") {
@@ -50,7 +58,11 @@ export function DashboardRouteFrame({
       }
       currentMonth={context.month}
       displayName={context.homeView.profile.displayName}
+      headerActions={headerActions}
+      headerDescription={headerDescription}
+      mobileFooterActions={mobileFooterActions}
       navigationItems={context.navigationItems}
+      showCreateRecordActions={showCreateRecordActions}
       title={title}
     >
       {children}

@@ -120,7 +120,7 @@ reviewed_at: 2026-06-18
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - active_change: admin-only category management
-- recommended_resume_gate: Experience Prototype
-- recommended_next_skill: experience-design
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, and `.ai/domain-impact/admin-only-category-management.md`.
-- reason: The admin-only category management intent and domain impact are drafted. The next risk-reducing step is to make admin and non-admin category navigation/page states concrete before BDD/E2E and technical design.
+- recommended_resume_gate: Behavior Spec / BDD / E2E
+- recommended_next_skill: verification-design
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, and `.ai/prototype/admin-only-category-management.md`.
+- reason: The admin-only category management Experience Prototype is drafted as a production-stack route. The next risk-reducing step is to turn admin/non-admin sidebar, direct-route denial, and category lifecycle states into acceptance criteria and E2E design.

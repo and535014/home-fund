@@ -36,7 +36,11 @@ export type HomeDashboardLayoutProps = {
   createRecordDialogContent?: ReactNode;
   currentMonth: string;
   displayName: string;
+  headerActions?: ReactNode;
+  headerDescription?: string;
+  mobileFooterActions?: ReactNode;
   navigationItems: DashboardNavigationItem[];
+  showCreateRecordActions?: boolean;
   showMonthSwitcher?: boolean;
   subtitle?: string;
   title?: string;
@@ -50,12 +54,19 @@ export function HomeDashboardLayout({
   createRecordDialogContent,
   currentMonth,
   displayName,
+  headerActions,
+  headerDescription,
+  mobileFooterActions,
   navigationItems,
+  showCreateRecordActions = true,
   showMonthSwitcher = true,
   subtitle = "2026 年 6 月",
   title = "家庭資金總覽",
 }: HomeDashboardLayoutProps) {
-  const canShowCreateActions = canCreateOwnRecords;
+  const canShowCreateActions = canCreateOwnRecords && showCreateRecordActions;
+  const contentTopPadding = headerDescription
+    ? "pt-44 sm:pt-36"
+    : "pt-32 sm:pt-28";
 
   return (
     <SidebarProvider className="min-h-screen bg-background text-foreground">
@@ -73,11 +84,17 @@ export function HomeDashboardLayout({
               <h2 className="mt-1 text-heading text-foreground">
                 {title}
               </h2>
+              {headerDescription ? (
+                <p className="mt-1 max-w-2xl text-caption text-muted-foreground">
+                  {headerDescription}
+                </p>
+              ) : null}
             </div>
             <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               {showMonthSwitcher ? (
                 <MonthSwitcher currentMonth={currentMonth} />
               ) : null}
+              {headerActions}
               {canShowCreateActions ? (
                 <Button asChild className="hidden md:inline-flex" variant="secondary">
                   <a href={createIncomeHref}>
@@ -98,30 +115,33 @@ export function HomeDashboardLayout({
           </div>
         </header>
 
-        <div className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-5 pt-32 sm:px-6 sm:pt-28 lg:px-8">
+        <div className={`mx-auto min-h-screen w-full max-w-7xl px-4 pb-5 ${contentTopPadding} sm:px-6 lg:px-8`}>
           {children}
         </div>
 
+        {canShowCreateActions || mobileFooterActions ? (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-12px_30px_rgba(0,0,0,0.28)] backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-md items-center gap-2">
-            {canShowCreateActions ? (
+                {mobileFooterActions}
+                {canShowCreateActions ? (
                 <Button asChild className="h-12 min-w-0 flex-1 px-3" size="lg" variant="secondary">
                   <a href={createIncomeHref}>
                     <TrendingUp aria-hidden="true" size={18} />
                     <span className="truncate">收入</span>
                   </a>
                 </Button>
-            ) : null}
-            {canShowCreateActions ? (
+                ) : null}
+                {canShowCreateActions ? (
                 <Button asChild className="h-12 min-w-0 flex-1 px-3" size="lg">
                   <a href={createExpenseHref}>
                     <TrendingDown aria-hidden="true" size={18} />
                     <span className="truncate">支出</span>
                   </a>
                 </Button>
-            ) : null}
+                ) : null}
           </div>
         </div>
+        ) : null}
       </SidebarInset>
       {createRecordDialogContent}
     </SidebarProvider>
