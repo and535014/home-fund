@@ -120,7 +120,7 @@ reviewed_at: 2026-06-18
 
 - latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
 - active_change: admin-only category management
-- recommended_resume_gate: Target-Aware Release
-- recommended_next_skill: target-aware-release
-- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, and `.ai/verification/admin-only-category-management.md`.
-- reason: The admin-only category management Verification is complete and supports `local_dev`. The next risk-reducing step is refreshing target-aware local_dev release readiness for the new category management capability.
+- recommended_resume_gate: Learning Loop
+- recommended_next_skill: learning-loop
+- required input: `.ai/intent/admin-only-category-management.md`, `.ai/domain/home-family-fund.md`, `.ai/domain-impact/admin-only-category-management.md`, `.ai/prototype/admin-only-category-management.md`, `.ai/spec/admin-only-category-management.md`, `.ai/technical-design/admin-only-category-management.md`, `.ai/implementation/admin-only-category-management.md`, `.ai/verification/admin-only-category-management.md`, and `.ai/release/home-family-fund-local-dev-readiness.md`.
+- reason: The admin-only category management Target-Aware Release refresh is complete for `local_dev`. The next lifecycle step is defining or explicitly skipping learning signals before artifact compression.
