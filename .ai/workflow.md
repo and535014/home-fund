@@ -32,6 +32,8 @@ trace_links:
   - .ai/experience-design/story-mvp-hardening-permission-matrix-browser-checks.md
   - .ai/architecture/home-family-fund-permission-matrix-browser-checks.md
   - .ai/verification-design/home-family-fund-permission-matrix-browser-checks.md
+  - .ai/implementation/home-family-fund-permission-matrix-browser-checks.md
+  - .ai/verification/home-family-fund-permission-matrix-browser-checks.md
 reviewed_at: 2026-06-07
 ---
 
@@ -99,8 +101,8 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 
 - project_classification: existing_with_ai
 - active_change: home-family-fund MVP local_dev implementation; latest slice is permission matrix browser checks.
-- current_stage: verification design approved for permission matrix browser checks.
-- recommended_next_skill: implementation-cycle
+- current_stage: verification passed for permission matrix browser checks.
+- recommended_next_skill: story-slicing
 
 ## Artifact Inventory
 
@@ -112,8 +114,8 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - experience-design: 12 artifacts including `.ai/experience-design/story-mvp-hardening-permission-matrix-browser-checks.md`.
 - architecture: 5 artifacts, including `.ai/architecture/home-family-fund-permission-matrix-browser-checks.md`.
 - verification-design: 5 artifacts, including `.ai/verification-design/home-family-fund-permission-matrix-browser-checks.md`.
-- implementation: 27 implementation artifacts; latest observed slice is `home-family-fund-browser-create-record-flow`.
-- verification: 27 verification artifacts; latest observed slice is `home-family-fund-browser-create-record-flow` and is approved for `local_dev`.
+- implementation: 28 implementation artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks`.
+- verification: 28 verification artifacts; latest observed slice is `home-family-fund-permission-matrix-browser-checks` and is approved for `local_dev`.
 - deploy: directory created, no artifacts yet.
 - post-release: directory created, no artifacts yet.
 - reviews: directory created, no review artifacts yet.

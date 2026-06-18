@@ -24,7 +24,7 @@ VALUES
     'household-demo',
     'Mei',
     'mei@example.com',
-    NULL,
+    'google-e2e-general',
     'active',
     CURRENT_TIMESTAMP
   ),
@@ -104,6 +104,15 @@ VALUES
     CURRENT_TIMESTAMP
   ),
   (
+    'user-e2e-general',
+    'General E2E User',
+    'mei@example.com',
+    true,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
     'user-e2e-disabled',
     'Disabled E2E User',
     'e2e-disabled@example.com',
@@ -155,6 +164,21 @@ VALUES
     'google-e2e-unlinked',
     'google',
     'user-e2e-unlinked',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'account-e2e-general-google',
+    'google-e2e-general',
+    'google',
+    'user-e2e-general',
     NULL,
     NULL,
     NULL,
