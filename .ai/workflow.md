@@ -35,6 +35,7 @@ trace_links:
   - .ai/intent/remove-standalone-create-record-entry.md
   - .ai/prototype/remove-standalone-create-record-entry.md
   - .ai/spec/remove-standalone-create-record-entry.md
+  - .ai/technical-design/remove-standalone-create-record-entry.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -141,9 +142,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: remove-standalone-create-record-entry.
 - latest_completed_slice: admin Google OAuth and member invitations.
-- current_stage: remove standalone create-record entry is at Behavior Spec review in `.ai/spec/remove-standalone-create-record-entry.md`.
-- recommended_resume_gate: Feature Technical Design after explicit approval of the behavior spec.
-- recommended_next_skill: feature-technical-design after approval; artifact-prune only if explicitly requested.
+- current_stage: remove standalone create-record entry is at Feature Technical Design review in `.ai/technical-design/remove-standalone-create-record-entry.md`.
+- recommended_resume_gate: TDD Implementation after explicit approval of the technical design.
+- recommended_next_skill: tdd-implementation after approval; artifact-prune only if explicitly requested.
 
 ## Artifact Inventory
 
@@ -154,7 +155,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
 - experience-design/prototype: active remove standalone create-record entry prototype is drafted at `.ai/prototype/remove-standalone-create-record-entry.md`; completed admin-only category management prototype is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
-- architecture/technical-design: completed admin Google OAuth and member invitations design is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management design is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- architecture/technical-design: active remove standalone create-record entry design is drafted at `.ai/technical-design/remove-standalone-create-record-entry.md`; completed admin Google OAuth and member invitations design is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management design is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - behavior specs: active remove standalone create-record entry spec is drafted at `.ai/spec/remove-standalone-create-record-entry.md`; completed admin Google OAuth and member invitations spec is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management spec is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; remaining story specs stay active for future slice selection.
 - implementation: completed admin Google OAuth and member invitations implementation is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - verification: completed admin Google OAuth and member invitations verification is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md` and supports `local_dev`; completed admin-only category management verification is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` and supports `local_dev`; completed prior verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.

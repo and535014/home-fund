@@ -181,7 +181,7 @@ And the URL does not contain `create` or `result`
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approve
 - reviewer_focus:
   - Confirm successful create closes the modal and shows success feedback.
   - Confirm query-based modal opening is intentionally removed, not preserved as a compatibility path.
