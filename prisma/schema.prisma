@@ -111,8 +111,8 @@ model Member {
 model MemberInvitation {
   id                 String                 @id @default(cuid())
   householdId        String
-  memberId           String
-  googleAccountEmail String
+  memberId           String?
+  googleAccountEmail String?
   tokenHash          String                 @unique
   previewToken       String?
   status             MemberInvitationStatus @default(pending)
@@ -123,7 +123,7 @@ model MemberInvitation {
   updatedAt          DateTime               @updatedAt
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
-  member    Member    @relation("MemberInvitationTarget", fields: [memberId], references: [id], onDelete: Cascade)
+  member    Member?   @relation("MemberInvitationTarget", fields: [memberId], references: [id], onDelete: SetNull)
   createdBy Member    @relation("MemberInvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([householdId, status, expiresAt])

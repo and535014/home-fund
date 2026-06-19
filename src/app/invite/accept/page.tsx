@@ -40,7 +40,7 @@ export default async function InviteAcceptPage({
         </CardHeader>
         <CardContent>
           <p className="text-body text-muted-foreground">
-            請使用收到邀請的 Google 帳號登入，登入後會繼續完成加入流程。
+            使用 Google 登入即可接受邀請。
           </p>
           {tokenError ? (
             <Alert className="mt-4 text-body" role="alert" variant="destructive">
@@ -99,7 +99,8 @@ function inviteAuthErrorMessage(error: string): string {
     expired_invite: "這個邀請連結已過期，請向管理者索取新的邀請連結。",
     invalid_invite: "這個邀請連結無效，請向管理者索取新的邀請連結。",
     revoked_invite: "這個邀請連結已撤銷，請向管理者索取新的邀請連結。",
-    wrong_google_account: "請使用收到邀請的 Google 帳號登入。",
+    google_account_already_member: "這個 Google 帳號已經是成員，請直接登入。",
+    missing_google_account: "Google 登入沒有提供 email，請換一個 Google 帳號或重新嘗試。",
   };
 
   return messages[error] ?? "Google 登入沒有完成，請確認帳號或重新嘗試。";

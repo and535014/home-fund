@@ -1,31 +1,26 @@
-import { loadMemberManagementContext } from "@/app/member-management-context";
-import type { AppSearchParams } from "@/app/route-search-params";
+import { loadMemberManagementMembers } from "@/app/member-management-members";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import {
   InviteMemberHeaderButton,
-  MemberManagementPanel,
-} from "./member-management-panel";
+  MemberInviteDialog,
+} from "./member-invite-dialog";
+import { MemberList } from "./member-list";
 
-type MembersPageProps = {
-  searchParams?: AppSearchParams;
-};
-
-export default async function MembersPage({ searchParams }: MembersPageProps) {
-  const context = await loadMemberManagementContext({
-    searchParams,
-  });
+export default async function MembersPage() {
+  const members = await loadMemberManagementMembers();
 
   return (
     <PageLayout
       header={
         <PageHeader
           actions={<InviteMemberHeaderButton />}
-          description="邀請家庭成員、管理全站顯示名稱，並檢視 Google 頭像來源。"
+          description="邀請家庭成員加入，並管理成員顯示名稱。"
           title="成員"
         />
       }
     >
-      <MemberManagementPanel members={context.members} />
+      <MemberList members={members} />
+      <MemberInviteDialog />
     </PageLayout>
   );
 }

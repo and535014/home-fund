@@ -6,7 +6,6 @@ import {
   validateInvitationToken,
   type MemberInvitationRecord,
 } from "./member-invitations";
-import type { HouseholdMemberAccount } from "./member-management";
 
 const now = new Date("2026-06-19T10:00:00.000Z");
 
@@ -22,29 +21,9 @@ const generalMember: AuthenticatedMember = {
   roles: ["general_member"],
 };
 
-const members: HouseholdMemberAccount[] = [
-  {
-    id: "member-admin",
-    displayName: "Admin",
-    googleAccountEmail: "admin@example.com",
-    roles: ["admin"],
-    capabilities: [],
-    status: "active",
-  },
-  {
-    id: "member-invited",
-    displayName: "kai",
-    googleAccountEmail: "kai@example.com",
-    roles: ["general_member"],
-    capabilities: [],
-    status: "invited",
-  },
-];
-
 const pendingInvitation: MemberInvitationRecord = {
   id: "invite-kai",
-  memberId: "member-invited",
-  googleAccountEmail: "kai@example.com",
+  householdId: "household-demo",
   tokenHash: "hash-kai",
   previewToken: "raw-kai",
   status: "pending",
@@ -52,67 +31,15 @@ const pendingInvitation: MemberInvitationRecord = {
 };
 
 describe("createMemberInvitation", () => {
-  it("allows admins to create a pending invitation for a new email", () => {
-    expect(createMemberInvitation(admin, {
-      googleEmail: " LIN@example.com ",
-    }, {
-      members,
-      invitations: [pendingInvitation],
-      now,
-    })).toEqual({
+  it("allows admins to create an account-agnostic pending invitation", () => {
+    expect(createMemberInvitation(admin)).toEqual({
       ok: true,
-      kind: "created",
-      email: "lin@example.com",
       events: ["Member invitation created"],
     });
   });
 
-  it("returns an existing pending invitation instead of creating a duplicate", () => {
-    expect(createMemberInvitation(admin, {
-      googleEmail: "KAI@example.com",
-    }, {
-      members,
-      invitations: [pendingInvitation],
-      now,
-    })).toEqual({
-      ok: true,
-      kind: "existing",
-      email: "kai@example.com",
-      invitation: pendingInvitation,
-      events: ["Existing invitation returned"],
-    });
-  });
-
-  it("rejects invalid email, active members, and non-admin actors", () => {
-    expect(createMemberInvitation(admin, {
-      googleEmail: "not-an-email",
-    }, {
-      members,
-      invitations: [],
-      now,
-    })).toEqual({
-      ok: false,
-      reason: "invalid_email",
-    });
-
-    expect(createMemberInvitation(admin, {
-      googleEmail: "admin@example.com",
-    }, {
-      members,
-      invitations: [],
-      now,
-    })).toEqual({
-      ok: false,
-      reason: "member_already_active",
-    });
-
-    expect(createMemberInvitation(generalMember, {
-      googleEmail: "lin@example.com",
-    }, {
-      members,
-      invitations: [],
-      now,
-    })).toEqual({
+  it("rejects non-admin actors", () => {
+    expect(createMemberInvitation(generalMember)).toEqual({
       ok: false,
       reason: "permission_denied",
     });
@@ -161,23 +88,22 @@ describe("validateInvitationToken", () => {
 });
 
 describe("acceptInvitation", () => {
-  it("accepts the invitation for the intended Google email", () => {
+  it("accepts the invitation for the Google email used during sign-in", () => {
     expect(acceptInvitation({
       invitation: pendingInvitation,
-      googleEmail: " KAI@example.com ",
+      googleEmail: " any-account@example.com ",
     }, now)).toEqual({
       ok: true,
       events: ["Member invitation accepted"],
     });
   });
 
-  it("rejects the wrong Google account", () => {
+  it("rejects Google sign-in without an email", () => {
     expect(acceptInvitation({
       invitation: pendingInvitation,
-      googleEmail: "mei@example.com",
     }, now)).toEqual({
       ok: false,
-      reason: "wrong_google_account",
+      reason: "missing_google_account",
     });
   });
 });

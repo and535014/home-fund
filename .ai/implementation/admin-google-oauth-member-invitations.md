@@ -35,7 +35,9 @@ outputs:
   - src/app/(app)/recurring/page.tsx
   - src/app/(app)/reimbursements/page.tsx
   - src/app/(app)/(admin)/members/page.tsx
-  - src/app/(app)/(admin)/members/member-management-panel.tsx
+  - src/app/(app)/(admin)/members/member-invite-dialog.tsx
+  - src/app/(app)/(admin)/members/member-invite-link.tsx
+  - src/app/(app)/(admin)/members/member-list.tsx
   - src/app/action-state.ts
   - src/app/member-actions.ts
   - src/app/category-actions.ts
@@ -100,7 +102,7 @@ reviewed_at: 2026-06-19
   - Google email and subject are persisted to the matched member when they differ.
 - Threaded `avatarUrl` through `HouseholdMemberAccount`, `HouseholdAccessProfile`, `AuthenticatedLayout`, the sidebar footer account display, and dashboard/member read models.
 - Replaced the member page's prototype adapter with a formal `MemberManagementMember` read model built in `loadMemberManagementContext`.
-- Renamed `member-management-prototype.tsx` to `member-management-panel.tsx` and removed `PrototypeMember`/`MemberManagementPrototype` naming from production code.
+- Renamed `member-management-prototype.tsx` into the production member-management client module and removed `PrototypeMember`/`MemberManagementPrototype` naming from production code.
 - Removed page-local `buildMembersFromContext`, fake Dicebear avatar generation, and the extra Google-name field from the member page.
 - Kept the member page behavior from the prototype: header invite action, modal invite form, copyable invite links with tooltip/icon button, and display-name edit dialog.
 - Added `updateMemberDisplayNameAction` as the server action for member display-name updates.
@@ -109,11 +111,11 @@ reviewed_at: 2026-06-19
 - Kept avatar immutable from the admin UI; the display-name action only writes the `displayName` column.
 - Added `MemberInvitation` persistence with token hash, local/dev preview token, invited email, status, expiry, creator, and target member relations.
 - Added invitation domain and command modules for admin-only invite creation, duplicate pending invite reuse, token validation, wrong-account rejection, and invitation acceptance.
-- Wired admin invite creation to a server action that creates an invited member with `general_member`, stores a pending invitation, redirects back with the generated link, and lets the modal show the link without a success toast.
+- Wired admin invite creation to a server action that stores an expiring pending invitation link without creating a member until the invite is accepted.
 - Replaced row re-copy links with persisted pending invitation links from the member-management read model.
 - Changed `/invite/accept` to validate real invitation tokens before enabling Google sign-in.
 - Changed `/auth/google` to preserve `inviteToken` through Better Auth by routing invited sign-in through `/invite/accept/callback`.
-- Added `/invite/accept/callback` to resolve the Google session, verify the token/email, activate the invited member, persist Google subject/name/avatar defaults, mark the invitation accepted, and redirect to `/`.
+- Added `/invite/accept/callback` to resolve the Google session, verify the token/email, create the member from Google subject/name/avatar defaults, mark the invitation accepted, and redirect to `/`.
 - Added deterministic seed invitation data for e2e and local development.
 - Added `src/app/action-state.ts` as the shared server-action response contract for `useActionState` forms: `status`, `message`, optional `code`, `fieldErrors`, and optional typed `data`.
 - Converted member invite and display-name server actions from redirect/query feedback to typed `ActionState` returns.
@@ -124,6 +126,12 @@ reviewed_at: 2026-06-19
 - Updated reimbursement and recurring E2E expectations so action feedback is asserted in-page and no longer encoded in URL query state.
 - Simplified same-page action ownership so member, category, reimbursement, and recurring panels import their own server actions instead of receiving action props from page components.
 - Removed the remaining local-preview/fallback write paths from member and category management panels now that those panels are production-backed by server actions.
+- Removed the broad `MemberManagementPanel` abstraction and split the member page client surface into concrete `MemberList`, `MemberInviteDialog`, invite-link copy, and display-name dialog modules.
+- Changed member invitations to be account-agnostic: admins generate a link without entering a Google email, and the Google account used during invite acceptance becomes the member account.
+- Added migrations making `MemberInvitation.googleAccountEmail` nullable and allowing pending invitations to exist without a `memberId` until acceptance.
+- Added acceptance protection so an invitation cannot activate a Google account that already belongs to another active member.
+- Changed pending invitation behavior so generated links are one-time reveal links in the modal: they are automatically copied, expire after 7 days, do not create a visible member before acceptance, cannot be re-copied from the member list, and are not manually revoked.
+- Split local seed data from E2E fixtures. `db:seed` now keeps the real local Google OAuth flow minimal with only the configured admin, household, and starter categories, while `db:seed:e2e` owns seeded test members, invite tokens, records, Better Auth test users, and recurring fixtures.
 
 ## Tests First Evidence
 
@@ -155,9 +163,16 @@ reviewed_at: 2026-06-19
 - `corepack pnpm type-check` passed after adding `MemberInvitation`, invite actions, token validation, and callback wiring.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
+- `corepack pnpm test src/modules/identity-access/member-invitations.test.ts src/modules/identity-access/member-invitation-command.test.ts` passed: 10 tests.
+- `corepack pnpm type-check` passed after converting invitations to account-agnostic links.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
 - `corepack pnpm type-check` passed after introducing the shared `ActionState` contract and converting member, category, reimbursement, and recurring reminder forms.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
+- `corepack pnpm type-check` passed after splitting the member management client components.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
 - `corepack pnpm type-check` passed after moving same-page server action imports into their owning panels.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
@@ -178,7 +193,14 @@ reviewed_at: 2026-06-19
 - `src/app/monthly-workspace-context.ts`
 - `src/app/category-management-context.ts`
 - `src/app/member-management-context.ts`
-- `src/app/(app)/(admin)/members/member-management-panel.tsx`
+- `src/app/(app)/(admin)/members/member-invite-dialog.tsx`
+- `src/app/(app)/(admin)/members/member-invite-link.tsx`
+- `src/app/(app)/(admin)/members/member-list.tsx`
+- `src/modules/identity-access/member-invitations.ts`
+- `src/modules/identity-access/member-invitations.test.ts`
+- `src/modules/identity-access/member-invitation-command.ts`
+- `src/modules/identity-access/member-invitation-command.test.ts`
+- `prisma/migrations/20260619213000_make_member_invitations_account_agnostic/migration.sql`
 - `src/app/member-actions.ts`
 - `src/modules/identity-access/member-management-command.ts`
 - `src/modules/identity-access/member-management-command.test.ts`
@@ -196,7 +218,7 @@ reviewed_at: 2026-06-19
 - `src/app/dashboard-page-context.ts` removed
 - `src/auth/server-current-member-cache.ts`
 - `src/app/(app)/(admin)/members/page.tsx`
-- `src/app/(app)/(admin)/members/member-management-prototype.tsx` renamed to `member-management-panel.tsx`
+- `src/app/(app)/(admin)/members/member-management-prototype.tsx` renamed into the production member-management client module
 - `src/app/action-state.ts`
 - `src/app/member-actions.ts`
 - `src/app/category-actions.ts`
@@ -236,7 +258,7 @@ reviewed_at: 2026-06-19
 
 ## Accepted Gaps
 
-- Local/dev keeps `MemberInvitation.previewToken` so admins can re-copy links. Production release must replace raw-token re-copy with email delivery or a one-time reveal policy.
+- Local/dev keeps `MemberInvitation.previewToken` only to reveal and auto-copy the newly generated link in the modal. Pending links are no longer listed for re-copy; production release should revisit whether raw token storage is acceptable or should be replaced with delivery-only invites.
 - Real Google OAuth invitation acceptance should still get a manual local smoke with a real invited Google account before release readiness.
 - The record-create flow still uses URL state because the same query currently controls modal routing (`create=income|expense`) and submit feedback. It should be separated into a later slice before converting that form to `useActionState`.
 

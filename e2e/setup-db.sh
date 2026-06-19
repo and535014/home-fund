@@ -38,3 +38,4 @@ docker compose exec -T postgres createdb -U postgres "$e2e_db_name"
 
 DATABASE_URL="$e2e_database_url" corepack pnpm db:deploy
 DATABASE_URL="$e2e_database_url" SEED_GOOGLE_ACCOUNT_EMAIL="$seed_email" corepack pnpm db:seed
+DATABASE_URL="$e2e_database_url" SEED_GOOGLE_ACCOUNT_EMAIL="$seed_email" corepack pnpm db:seed:e2e

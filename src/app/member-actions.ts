@@ -11,16 +11,12 @@ import { getPrismaClient } from "@/db/prisma";
 import { createMemberInvitationInDatabase } from "@/modules/identity-access/member-invitation-command";
 import { updateMemberDisplayNameInDatabase } from "@/modules/identity-access/member-management-command";
 
-export type InviteMemberActionField = "googleEmail";
+export type InviteMemberActionField = never;
 export type InviteMemberActionCode =
-  | "invalid_email"
-  | "member_already_active"
   | "permission_denied"
   | "unknown_error";
 export type InviteMemberActionResult = {
-  email: string;
   invitationLink: string;
-  memberId: string;
 };
 export type InviteMemberActionState = ActionState<
   InviteMemberActionResult,
@@ -44,11 +40,10 @@ export async function createMemberInvitationAction(
   _previousState: InviteMemberActionState,
   formData: FormData,
 ): Promise<InviteMemberActionState> {
-  const googleEmail = readFormValue(formData, "googleEmail") ?? "";
+  void formData;
   const session = await requireServerActionAccess({ type: "manage_members" });
   const result = await createMemberInvitationInDatabase(
     session.access.member,
-    { googleEmail },
     {
       baseUrl: readBaseUrl(),
       prisma: getPrismaClient(),
@@ -61,9 +56,7 @@ export async function createMemberInvitationAction(
 
   revalidateMemberPaths();
   return actionSuccess("邀請連結已建立", {
-    email: result.email,
     invitationLink: result.invitationLink,
-    memberId: result.memberId,
   });
 }
 
@@ -115,17 +108,12 @@ function inviteMemberError(
   code: InviteMemberActionCode,
 ): InviteMemberActionState {
   const messages: Record<InviteMemberActionCode, string> = {
-    invalid_email: "請輸入有效的 Google email。",
-    member_already_active: "這個 Google email 已經是啟用成員。",
     permission_denied: "你沒有權限管理成員。",
     unknown_error: "成員邀請無法建立。",
   };
 
   return actionError(messages[code], {
     code,
-    ...(code === "invalid_email"
-      ? { fieldErrors: { googleEmail: [messages[code]] } }
-      : {}),
   });
 }
 

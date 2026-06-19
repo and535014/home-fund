@@ -1,37 +1,26 @@
 import { authorize, type AuthenticatedMember } from "./authorization";
-import type { HouseholdMemberAccount } from "./member-management";
 
 export type MemberInvitationStatus = "pending" | "accepted" | "revoked";
 
 export type MemberInvitationRecord = {
   id: string;
-  memberId: string;
-  googleAccountEmail: string;
+  householdId: string;
+  memberId?: string;
+  googleAccountEmail?: string;
   tokenHash: string;
   previewToken?: string;
   status: MemberInvitationStatus;
   expiresAt: Date;
 };
 
-export type CreateMemberInvitationCommand = {
-  googleEmail: string;
-};
-
 export type CreateMemberInvitationResult =
   | {
       ok: true;
-      kind: "created" | "existing";
-      email: string;
-      member?: HouseholdMemberAccount;
-      invitation?: MemberInvitationRecord;
-      events: ["Member invitation created"] | ["Existing invitation returned"];
+      events: ["Member invitation created"];
     }
   | {
       ok: false;
-      reason:
-        | "permission_denied"
-        | "invalid_email"
-        | "member_already_active";
+      reason: "permission_denied";
     };
 
 export type ValidateInvitationTokenResult =
@@ -62,7 +51,7 @@ export type AcceptInvitationResult =
   | {
       ok: false;
       reason:
-        | "wrong_google_account"
+        | "missing_google_account"
         | "missing_token"
         | "invalid_invite"
         | "expired_invite"
@@ -72,12 +61,6 @@ export type AcceptInvitationResult =
 
 export function createMemberInvitation(
   actor: AuthenticatedMember,
-  command: CreateMemberInvitationCommand,
-  context: {
-    members: HouseholdMemberAccount[];
-    invitations: MemberInvitationRecord[];
-    now: Date;
-  },
 ): CreateMemberInvitationResult {
   const authorization = authorize(actor, { type: "manage_members" });
 
@@ -85,42 +68,8 @@ export function createMemberInvitation(
     return { ok: false, reason: "permission_denied" };
   }
 
-  const email = normalizeEmail(command.googleEmail);
-
-  if (!email || !isValidEmail(email)) {
-    return { ok: false, reason: "invalid_email" };
-  }
-
-  const existingMember = context.members.find(
-    (member) => member.googleAccountEmail?.toLowerCase() === email,
-  );
-
-  if (existingMember?.status === "active") {
-    return { ok: false, reason: "member_already_active" };
-  }
-
-  const existingInvitation = context.invitations.find(
-    (invitation) =>
-      invitation.googleAccountEmail.toLowerCase() === email &&
-      invitation.status === "pending" &&
-      invitation.expiresAt > context.now,
-  );
-
-  if (existingInvitation) {
-    return {
-      ok: true,
-      kind: "existing",
-      email,
-      invitation: existingInvitation,
-      events: ["Existing invitation returned"],
-    };
-  }
-
   return {
     ok: true,
-    kind: "created",
-    email,
-    member: existingMember,
     events: ["Member invitation created"],
   };
 }
@@ -165,8 +114,8 @@ export function acceptInvitation(
 
   const googleEmail = normalizeEmail(input.googleEmail);
 
-  if (!googleEmail || googleEmail !== input.invitation.googleAccountEmail.toLowerCase()) {
-    return { ok: false, reason: "wrong_google_account" };
+  if (!googleEmail) {
+    return { ok: false, reason: "missing_google_account" };
   }
 
   return {
@@ -183,8 +132,4 @@ export function normalizeEmail(email: string | undefined): string | undefined {
   const normalized = email?.trim().toLowerCase();
 
   return normalized || undefined;
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email);
 }

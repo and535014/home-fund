@@ -4,6 +4,7 @@ import {
   acceptInvitation,
   createMemberInvitation,
   fallbackDisplayNameFromEmail,
+  normalizeEmail,
   validateInvitationToken,
   type MemberInvitationRecord,
 } from "./member-invitations";
@@ -15,8 +16,9 @@ type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0] & 
 
 type PrismaInvitationRow = {
   id: string;
-  memberId: string;
-  googleAccountEmail: string;
+  householdId: string;
+  memberId: string | null;
+  googleAccountEmail: string | null;
   tokenHash: string;
   previewToken: string | null;
   status: MemberInvitationRecord["status"];
@@ -53,8 +55,10 @@ export type MemberInvitationCommandPrismaClient = {
       data: {
         householdId: string;
         displayName: string;
-        googleAccountEmail: string;
-        status: "invited";
+        avatarUrl?: string;
+        googleAccountEmail?: string;
+        googleSubject?: string;
+        status: "active";
         roles: {
           create: Array<{
             role: "general_member";
@@ -65,18 +69,6 @@ export type MemberInvitationCommandPrismaClient = {
         id: true;
       };
     }): Promise<{ id: string }>;
-    update(args: {
-      where: {
-        id: string;
-      };
-      data: {
-        displayName?: string;
-        avatarUrl?: string;
-        googleAccountEmail?: string;
-        googleSubject?: string;
-        status?: "active";
-      };
-    }): Promise<unknown>;
   };
   memberInvitation: {
     findMany(args: {
@@ -85,7 +77,6 @@ export type MemberInvitationCommandPrismaClient = {
     findFirst(args: {
       where: {
         tokenHash?: string;
-        memberId?: string;
         status?: "pending";
       };
       select: InvitationSelect;
@@ -96,8 +87,7 @@ export type MemberInvitationCommandPrismaClient = {
     create(args: {
       data: {
         householdId: string;
-        memberId: string;
-        googleAccountEmail: string;
+        googleAccountEmail?: string;
         tokenHash: string;
         previewToken: string;
         status: "pending";
@@ -113,6 +103,7 @@ export type MemberInvitationCommandPrismaClient = {
       data: {
         status: "accepted";
         acceptedAt: Date;
+        memberId: string;
       };
     }): Promise<unknown>;
   };
@@ -120,6 +111,7 @@ export type MemberInvitationCommandPrismaClient = {
 
 type InvitationSelect = {
   id: true;
+  householdId: true;
   memberId: true;
   googleAccountEmail: true;
   tokenHash: true;
@@ -138,17 +130,11 @@ export type CreateMemberInvitationInDatabaseContext = {
 export type CreateMemberInvitationInDatabaseResult =
   | {
       ok: true;
-      email: string;
       invitationLink: string;
-      memberId: string;
     }
   | {
       ok: false;
-      reason:
-        | "permission_denied"
-        | "invalid_email"
-        | "member_already_active"
-        | "unknown_error";
+      reason: "permission_denied" | "unknown_error";
     };
 
 export type AcceptMemberInvitationInDatabaseInput = {
@@ -161,39 +147,14 @@ export type AcceptMemberInvitationInDatabaseInput = {
 
 export async function createMemberInvitationInDatabase(
   actor: AuthenticatedMember,
-  command: {
-    googleEmail: string;
-  },
   context: CreateMemberInvitationInDatabaseContext,
 ): Promise<CreateMemberInvitationInDatabaseResult> {
   const now = context.now?.() ?? new Date();
   const memberRows = await listMemberRows(context.prisma);
-  const members = memberRows.map(mapPrismaMemberToHouseholdMember);
-  const invitations = await listInvitations(context.prisma);
-  const decision = createMemberInvitation(actor, command, {
-    members,
-    invitations,
-    now,
-  });
+  const decision = createMemberInvitation(actor);
 
   if (!decision.ok) {
     return decision;
-  }
-
-  if (decision.kind === "existing") {
-    const invitation = decision.invitation;
-    const token = invitation?.previewToken;
-
-    if (!invitation || !token) {
-      return { ok: false, reason: "unknown_error" };
-    }
-
-    return {
-      ok: true,
-      email: decision.email,
-      invitationLink: buildInvitationLink(token, context.baseUrl),
-      memberId: invitation.memberId,
-    };
   }
 
   const actorRow = memberRows.find((member) => member.id === actor.id);
@@ -202,35 +163,10 @@ export async function createMemberInvitationInDatabase(
     return { ok: false, reason: "permission_denied" };
   }
 
-  const existingInvitedMember = memberRows.find(
-    (member) =>
-      member.googleAccountEmail?.toLowerCase() === decision.email &&
-      member.status === "invited",
-  );
-  const memberId = existingInvitedMember?.id ?? (await context.prisma.member.create({
-    data: {
-      householdId: actorRow.householdId,
-      displayName: fallbackDisplayNameFromEmail(decision.email),
-      googleAccountEmail: decision.email,
-      status: "invited",
-      roles: {
-        create: [
-          {
-            role: "general_member",
-          },
-        ],
-      },
-    },
-    select: {
-      id: true,
-    },
-  })).id;
   const token = context.generateToken?.() ?? randomBytes(32).toString("base64url");
   const invitation = await context.prisma.memberInvitation.create({
     data: {
       householdId: actorRow.householdId,
-      memberId,
-      googleAccountEmail: decision.email,
       tokenHash: hashInvitationToken(token),
       previewToken: token,
       status: "pending",
@@ -242,9 +178,7 @@ export async function createMemberInvitationInDatabase(
 
   return {
     ok: true,
-    email: decision.email,
     invitationLink: buildInvitationLink(invitation.previewToken ?? token, context.baseUrl),
-    memberId,
   };
 }
 
@@ -286,20 +220,44 @@ export async function acceptMemberInvitationInDatabase(
     return decision;
   }
 
-  await context.prisma.member.update({
-    where: {
-      id: tokenState.invitation.memberId,
-    },
+  const googleEmail = normalizeEmail(input.googleEmail);
+
+  if (!googleEmail) {
+    return { ok: false, reason: "missing_google_account" };
+  }
+
+  const memberRows = await listMemberRows(context.prisma);
+  const existingLinkedMember = memberRows.find((member) => {
+    const hasSameEmail = member.googleAccountEmail?.toLowerCase() === googleEmail;
+    const hasSameSubject = member.googleSubject === input.googleSubject;
+
+    return member.status === "active" && (hasSameEmail || hasSameSubject);
+  });
+
+  if (existingLinkedMember) {
+    return { ok: false, reason: "google_account_already_member" };
+  }
+
+  const memberId = (await context.prisma.member.create({
     data: {
-      ...(input.googleDisplayName
-        ? { displayName: input.googleDisplayName }
-        : {}),
+      householdId: tokenState.invitation.householdId,
+      displayName: input.googleDisplayName ?? fallbackDisplayNameFromEmail(googleEmail),
       ...(input.googleAvatarUrl ? { avatarUrl: input.googleAvatarUrl } : {}),
-      googleAccountEmail: tokenState.invitation.googleAccountEmail,
+      googleAccountEmail: googleEmail,
       googleSubject: input.googleSubject,
       status: "active",
+      roles: {
+        create: [
+          {
+            role: "general_member",
+          },
+        ],
+      },
     },
-  });
+    select: {
+      id: true,
+    },
+  })).id;
   await context.prisma.memberInvitation.update({
     where: {
       id: tokenState.invitation.id,
@@ -307,6 +265,7 @@ export async function acceptMemberInvitationInDatabase(
     data: {
       status: "accepted",
       acceptedAt: now,
+      memberId,
     },
   });
 
@@ -356,16 +315,6 @@ async function listMemberRows(
   });
 }
 
-async function listInvitations(
-  prisma: MemberInvitationCommandPrismaClient,
-): Promise<MemberInvitationRecord[]> {
-  const invitations = await prisma.memberInvitation.findMany({
-    select: invitationSelect,
-  });
-
-  return invitations.map(mapInvitationRow);
-}
-
 async function findInvitationByToken(
   prisma: MemberInvitationCommandPrismaClient,
   token: string,
@@ -383,8 +332,9 @@ async function findInvitationByToken(
 function mapInvitationRow(row: PrismaInvitationRow): MemberInvitationRecord {
   return {
     id: row.id,
-    memberId: row.memberId,
-    googleAccountEmail: row.googleAccountEmail,
+    householdId: row.householdId,
+    ...(row.memberId ? { memberId: row.memberId } : {}),
+    ...(row.googleAccountEmail ? { googleAccountEmail: row.googleAccountEmail } : {}),
     tokenHash: row.tokenHash,
     ...(row.previewToken ? { previewToken: row.previewToken } : {}),
     status: row.status,
@@ -400,6 +350,7 @@ function addDays(date: Date, days: number): Date {
 
 const invitationSelect = {
   id: true,
+  householdId: true,
   memberId: true,
   googleAccountEmail: true,
   tokenHash: true,

@@ -56,28 +56,30 @@ test("admin member preview uses shared page layout without record actions", asyn
   expect(thirdBox?.x ?? 0).toBeGreaterThan(secondBox?.x ?? 0);
 });
 
-test("admin creates and re-copies a persisted invitation link", async ({
+test("admin creates an expiring invitation link and copies it automatically", async ({
   page,
 }) => {
-  await page.context().grantPermissions(["clipboard-write"]);
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await signInAsAdmin(page);
   await page.goto("/members");
 
   await page.getByRole("button", { name: "邀請成員" }).click();
-  await page.getByLabel("Google email").fill("new-invite@example.com");
   await page.getByRole("button", { name: "建立邀請連結" }).click();
 
   const dialog = page.getByRole("dialog", { name: "邀請連結已建立" });
   await expect(dialog).toBeVisible();
   const inviteLink = dialog.getByRole("textbox", { name: "邀請連結" });
   await expect(inviteLink).toHaveValue(/\/invite\/accept\?token=/u);
-  await expect(page.getByText("new-invite", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("此連結 7 天內有效")).toBeVisible();
+  await expect(page.getByText("邀請連結已複製").first()).toBeVisible();
+  await expect(page.getByText("待接受邀請", { exact: true })).toHaveCount(0);
+
+  const copiedLink = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copiedLink).toContain("/invite/accept?token=");
 
   await page.getByRole("button", { name: "完成" }).click();
-  await page
-    .getByRole("button", { name: "複製 new-invite 的邀請連結" })
-    .click();
-  await expect(page.getByText("邀請連結已複製").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /複製 .* 的邀請連結/u })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /撤銷 .* 的邀請/u })).toHaveCount(0);
 });
 
 test("admin display-name changes persist after reload", async ({ page }) => {
