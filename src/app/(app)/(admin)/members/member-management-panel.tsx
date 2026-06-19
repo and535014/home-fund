@@ -14,7 +14,11 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { initialActionState, type FormAction } from "@/app/action-state";
+import { initialActionState } from "@/app/action-state";
+import {
+  createMemberInvitationAction,
+  updateMemberDisplayNameAction,
+} from "@/app/member-actions";
 import type {
   InviteMemberActionCode,
   InviteMemberActionField,
@@ -58,17 +62,7 @@ import {
 import type { MemberManagementMember } from "@/app/member-management-context";
 
 type MemberManagementPanelProps = {
-  createInvitationAction?: FormAction<
-    InviteMemberActionResult,
-    InviteMemberActionField,
-    InviteMemberActionCode
-  >;
   members: MemberManagementMember[];
-  updateDisplayNameAction?: FormAction<
-    { memberId: string; displayName: string },
-    UpdateMemberDisplayNameActionField,
-    UpdateMemberDisplayNameActionCode
-  >;
 };
 
 const statusLabels: Record<MemberManagementMember["status"], string> = {
@@ -106,14 +100,10 @@ export function InviteMemberHeaderButton({
   );
 }
 
-export function MemberManagementPanel({
-  createInvitationAction,
-  members,
-  updateDisplayNameAction,
-}: MemberManagementPanelProps) {
+export function MemberManagementPanel({ members }: MemberManagementPanelProps) {
   const router = useRouter();
   const [inviteActionState, inviteFormAction] = useActionState(
-    createInvitationAction ?? fallbackCreateInvitationAction,
+    createMemberInvitationAction,
     initialActionState<
       InviteMemberActionResult,
       InviteMemberActionField,
@@ -121,33 +111,29 @@ export function MemberManagementPanel({
     >(),
   );
   const [displayNameActionState, displayNameFormAction] = useActionState(
-    updateDisplayNameAction ?? fallbackUpdateDisplayNameAction,
+    updateMemberDisplayNameAction,
     initialActionState<
       { memberId: string; displayName: string },
       UpdateMemberDisplayNameActionField,
       UpdateMemberDisplayNameActionCode
     >(),
   );
-  const [editableMembers, setEditableMembers] = useState(members);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState("");
-  const [invitedEmail, setInvitedEmail] = useState("");
   const [dismissedInviteLink, setDismissedInviteLink] = useState<string | null>(
     null,
   );
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
-  const isServerBacked = Boolean(createInvitationAction && updateDisplayNameAction);
-  const displayedMembers = isServerBacked ? members : editableMembers;
+  const displayedMembers = members;
   const editingMember = displayedMembers.find((member) => member.id === editingMemberId);
   const activeInviteResult = inviteActionState.status === "success" &&
     inviteActionState.data &&
     dismissedInviteLink !== inviteActionState.data.invitationLink
     ? inviteActionState.data
     : undefined;
-  const shownInviteLink = activeInviteResult?.invitationLink ?? inviteLink;
-  const shownInvitedEmail = activeInviteResult?.email ?? invitedEmail;
+  const shownInviteLink = activeInviteResult?.invitationLink;
+  const shownInvitedEmail = activeInviteResult?.email;
   const isInviteOpen = isInviteDialogOpen || Boolean(activeInviteResult);
 
   useEffect(() => {
@@ -209,33 +195,10 @@ export function MemberManagementPanel({
       return;
     }
 
-    if (createInvitationAction) {
-      setDismissedInviteLink(null);
-      return;
-    }
-
-    event.preventDefault();
-    const nextInviteLink = toAbsoluteInviteLink(
-      `/invite/accept?token=${encodeURIComponent(`preview-${Date.now()}-${normalizedEmail}`)}`,
-    );
-
-    setEditableMembers((currentMembers) => [
-      {
-        id: `member-preview-${Date.now()}`,
-        displayName: normalizedEmail,
-        email: normalizedEmail,
-        invitationLink: nextInviteLink,
-        roles: ["general_member"],
-        status: "invited",
-      },
-      ...currentMembers,
-    ]);
-    setInviteEmail("");
-    setInvitedEmail(normalizedEmail);
-    setInviteLink(nextInviteLink);
+    setDismissedInviteLink(null);
   }
 
-  async function copyInviteLink(link = inviteLink) {
+  async function copyInviteLink(link: string) {
     if (!link) {
       return;
     }
@@ -254,8 +217,6 @@ export function MemberManagementPanel({
     }
 
     setInviteEmail("");
-    setInviteLink("");
-    setInvitedEmail("");
   }
 
   function startEditDisplayName(member: MemberManagementMember) {
@@ -277,23 +238,7 @@ export function MemberManagementPanel({
       return;
     }
 
-    if (updateDisplayNameAction) {
-      setEditingMemberId(null);
-      return;
-    }
-
-    event.preventDefault();
-    setEditableMembers((currentMembers) =>
-      currentMembers.map((member) =>
-        member.id === editingMember.id
-          ? { ...member, displayName: nextName }
-          : member,
-      ),
-    );
     setEditingMemberId(null);
-    toast.success("顯示名稱已更新", {
-      description: `${nextName} 會成為所有人看到的名稱。`,
-    });
   }
 
   return (
@@ -302,70 +247,75 @@ export function MemberManagementPanel({
         aria-label="成員清單"
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {displayedMembers.map((member) => (
-          <Item key={member.id} variant="outline">
-            <ItemMedia className="size-12 rounded-full" variant="image">
-              <Avatar
-                aria-label={`${member.displayName} 的 Google 頭像`}
-                className="size-12 ring-2 ring-border"
-              >
-                <AvatarImage
-                  alt={`${member.displayName} 的 Google 頭像`}
-                  referrerPolicy="no-referrer"
-                  src={member.avatarUrl ?? undefined}
-                />
-                <AvatarFallback>
-                  {memberInitials(member.displayName)}
-                </AvatarFallback>
-              </Avatar>
-            </ItemMedia>
-            <ItemContent className="min-w-0 gap-2">
-              <ItemTitle className="w-full flex-wrap">
-                <span className="min-w-0 truncate">{member.displayName}</span>
-                {member.roles.map((role) => (
-                  <Badge key={role} variant="outline">
-                    {roleLabels[role]}
-                  </Badge>
-                ))}
-              </ItemTitle>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <StatusBadge status={member.status} />
-              </div>
-            </ItemContent>
-            <ItemActions className="ml-auto">
-              {member.status === "invited" && member.invitationLink ? (
+        {displayedMembers.map((member) => {
+          const invitationLink =
+            member.status === "invited" ? member.invitationLink : undefined;
+
+          return (
+            <Item key={member.id} variant="outline">
+              <ItemMedia className="size-12 rounded-full" variant="image">
+                <Avatar
+                  aria-label={`${member.displayName} 的 Google 頭像`}
+                  className="size-12 ring-2 ring-border"
+                >
+                  <AvatarImage
+                    alt={`${member.displayName} 的 Google 頭像`}
+                    referrerPolicy="no-referrer"
+                    src={member.avatarUrl ?? undefined}
+                  />
+                  <AvatarFallback>
+                    {memberInitials(member.displayName)}
+                  </AvatarFallback>
+                </Avatar>
+              </ItemMedia>
+              <ItemContent className="min-w-0 gap-2">
+                <ItemTitle className="w-full flex-wrap">
+                  <span className="min-w-0 truncate">{member.displayName}</span>
+                  {member.roles.map((role) => (
+                    <Badge key={role} variant="outline">
+                      {roleLabels[role]}
+                    </Badge>
+                  ))}
+                </ItemTitle>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <StatusBadge status={member.status} />
+                </div>
+              </ItemContent>
+              <ItemActions className="ml-auto">
+                {invitationLink ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        aria-label={`複製 ${member.displayName} 的邀請連結`}
+                        onClick={() => copyInviteLink(invitationLink)}
+                        size="icon"
+                        type="button"
+                        variant="secondary"
+                      >
+                        <Copy aria-hidden="true" size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>複製邀請連結</TooltipContent>
+                  </Tooltip>
+                ) : null}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      aria-label={`複製 ${member.displayName} 的邀請連結`}
-                      onClick={() => copyInviteLink(member.invitationLink)}
+                      aria-label={`修改 ${member.displayName} 的顯示名稱`}
+                      onClick={() => startEditDisplayName(member)}
                       size="icon"
                       type="button"
                       variant="secondary"
                     >
-                      <Copy aria-hidden="true" size={16} />
+                      <Edit3 aria-hidden="true" size={16} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>複製邀請連結</TooltipContent>
+                  <TooltipContent>修改顯示名稱</TooltipContent>
                 </Tooltip>
-              ) : null}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={`修改 ${member.displayName} 的顯示名稱`}
-                    onClick={() => startEditDisplayName(member)}
-                    size="icon"
-                    type="button"
-                    variant="secondary"
-                  >
-                    <Edit3 aria-hidden="true" size={16} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>修改顯示名稱</TooltipContent>
-              </Tooltip>
-            </ItemActions>
-          </Item>
-        ))}
+              </ItemActions>
+            </Item>
+          );
+        })}
       </section>
 
       <Dialog
@@ -553,20 +503,4 @@ function isLikelyEmail(email: string): boolean {
 
 function toAbsoluteInviteLink(link: string): string {
   return new URL(link, window.location.origin).toString();
-}
-
-async function fallbackCreateInvitationAction() {
-  return initialActionState<
-    InviteMemberActionResult,
-    InviteMemberActionField,
-    InviteMemberActionCode
-  >();
-}
-
-async function fallbackUpdateDisplayNameAction() {
-  return initialActionState<
-    { memberId: string; displayName: string },
-    UpdateMemberDisplayNameActionField,
-    UpdateMemberDisplayNameActionCode
-  >();
 }

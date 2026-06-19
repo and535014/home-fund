@@ -3,7 +3,6 @@
 import {
   Archive,
   Edit3,
-  Loader2,
   Tags,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
@@ -13,8 +12,12 @@ import { toast } from "sonner";
 import {
   initialActionState,
   type ActionState,
-  type FormAction,
 } from "@/app/action-state";
+import {
+  archiveCategoryAction,
+  createCategoryAction,
+  renameCategoryAction,
+} from "@/app/category-actions";
 import type {
   ArchiveCategoryActionField,
   CategoryActionCode,
@@ -63,22 +66,7 @@ type EditableCategory = Category & {
 };
 
 type CategoryManagementPanelProps = {
-  archiveAction?: FormAction<
-    { categoryId: string },
-    ArchiveCategoryActionField,
-    CategoryActionCode
-  >;
   categories: EditableCategory[];
-  createAction?: FormAction<
-    { categoryId: string; name: string; type: CategoryType },
-    CreateCategoryActionField,
-    CategoryActionCode
-  >;
-  renameAction?: FormAction<
-    { categoryId: string; name: string },
-    RenameCategoryActionField,
-    CategoryActionCode
-  >;
 };
 
 const OPEN_CATEGORY_CREATE_EVENT = "home-fund:open-category-create";
@@ -105,15 +93,10 @@ export function AddCategoryHeaderButton({
   );
 }
 
-export function CategoryManagementPanel({
-  archiveAction,
-  categories,
-  createAction,
-  renameAction,
-}: CategoryManagementPanelProps) {
+export function CategoryManagementPanel({ categories }: CategoryManagementPanelProps) {
   const router = useRouter();
   const [createActionState, createFormAction] = useActionState(
-    createAction ?? fallbackCreateCategoryAction,
+    createCategoryAction,
     initialActionState<
       { categoryId: string; name: string; type: CategoryType },
       CreateCategoryActionField,
@@ -121,7 +104,7 @@ export function CategoryManagementPanel({
     >(),
   );
   const [renameActionState, renameFormAction] = useActionState(
-    renameAction ?? fallbackRenameCategoryAction,
+    renameCategoryAction,
     initialActionState<
       { categoryId: string; name: string },
       RenameCategoryActionField,
@@ -129,23 +112,20 @@ export function CategoryManagementPanel({
     >(),
   );
   const [archiveActionState, archiveFormAction] = useActionState(
-    archiveAction ?? fallbackArchiveCategoryAction,
+    archiveCategoryAction,
     initialActionState<
       { categoryId: string },
       ArchiveCategoryActionField,
       CategoryActionCode
     >(),
   );
-  const [editableCategories, setEditableCategories] = useState(categories);
   const [newType, setNewType] = useState<CategoryType>("expense");
   const [newName, setNewName] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [archivingId, setArchivingId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const isServerBacked = Boolean(createAction && renameAction && archiveAction);
-  const displayedCategories = isServerBacked ? categories : editableCategories;
+  const displayedCategories = categories;
 
   const activeCategories = displayedCategories.filter(
     (category) => category.status === "active",
@@ -217,33 +197,8 @@ export function CategoryManagementPanel({
       return;
     }
 
-    if (isServerBacked) {
-      setNewName("");
-      setIsCreateDialogOpen(false);
-      return;
-    }
-
-    event.preventDefault();
-    setIsSubmitting(true);
-    window.setTimeout(() => {
-      setEditableCategories((currentCategories) => [
-        ...currentCategories,
-        {
-          id: `${newType}-${Date.now()}`,
-          type: newType,
-          name: normalizedName,
-          status: "active",
-          recordCount: 0,
-        },
-      ]);
-      setNewName("");
-      setIsCreateDialogOpen(false);
-      setIsSubmitting(false);
-      toast.success("分類已新增", {
-        description: "已加入啟用分類。",
-        id: `create-category-${newType}-${normalizedName}`,
-      });
-    }, 360);
+    setNewName("");
+    setIsCreateDialogOpen(false);
   }
 
   function startRename(category: EditableCategory) {
@@ -275,53 +230,16 @@ export function CategoryManagementPanel({
       return;
     }
 
-    if (isServerBacked) {
-      setEditingId(null);
-      return;
-    }
-
-    event.preventDefault();
-    setEditableCategories((currentCategories) =>
-      currentCategories.map((candidate) =>
-        candidate.id === category.id
-          ? { ...candidate, name: normalizedName }
-          : candidate,
-      ),
-    );
     setEditingId(null);
-    toast.success("分類已更新", {
-      description: "已更新分類名稱。",
-      id: `rename-category-${category.id}`,
-    });
   }
 
   function startArchive(category: EditableCategory) {
     setArchivingId(category.id);
   }
 
-  function confirmArchiveCategory(
-    event: FormEvent<HTMLFormElement>,
-    category: EditableCategory,
-  ) {
-    if (isServerBacked) {
-      setArchivingId(null);
-      return;
-    }
-
-    event.preventDefault();
-    setEditableCategories((currentCategories) =>
-      currentCategories.map((candidate) =>
-        candidate.id === category.id
-          ? { ...candidate, status: "archived" }
-          : candidate,
-      ),
-    );
+  function confirmArchiveCategory() {
     setEditingId(null);
     setArchivingId(null);
-    toast.success("分類已封存", {
-      description: "既有紀錄仍會保留原分類。",
-      id: `archive-category-${category.id}`,
-    });
   }
 
   return (
@@ -365,7 +283,6 @@ export function CategoryManagementPanel({
           <CategoryForm
             action={createFormAction}
             fieldError={createActionState.fieldErrors?.name?.[0]}
-            isSubmitting={isSubmitting}
             name={newName}
             onNameChange={setNewName}
             onSubmit={submitCreateCategory}
@@ -395,7 +312,6 @@ export function CategoryManagementPanel({
               action={renameFormAction}
               categoryId={editingCategory.id}
               fieldError={renameActionState.fieldErrors?.name?.[0]}
-              isSubmitting={false}
               name={editingName}
               onNameChange={setEditingName}
               onSubmit={(event) => submitRenameCategory(event, editingCategory)}
@@ -440,9 +356,7 @@ export function CategoryManagementPanel({
                 </Button>
                 <form
                   action={archiveFormAction}
-                  onSubmit={(event) =>
-                    confirmArchiveCategory(event, archivingCategory)
-                  }
+                  onSubmit={confirmArchiveCategory}
                 >
                   <div className="grid gap-2">
                     <input name="categoryId" type="hidden" value={archivingCategory.id} />
@@ -554,7 +468,6 @@ function CategoryForm({
   action,
   categoryId,
   fieldError,
-  isSubmitting,
   name,
   onNameChange,
   onSubmit,
@@ -566,7 +479,6 @@ function CategoryForm({
   action?: ComponentProps<"form">["action"];
   categoryId?: string;
   fieldError?: string;
-  isSubmitting: boolean;
   name: string;
   onNameChange: (name: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -611,12 +523,8 @@ function CategoryForm({
           </FieldDescription>
         </Field>
       </FieldGroup>
-      <Button disabled={isSubmitting} type="submit">
-        {isSubmitting ? (
-          <Loader2 aria-hidden="true" className="animate-spin" />
-        ) : (
-          <Tags aria-hidden="true" />
-        )}
+      <Button type="submit">
+        <Tags aria-hidden="true" />
         {submitLabel}
       </Button>
     </form>
@@ -813,28 +721,4 @@ function hasDuplicateActiveName(
       category.status === "active" &&
       category.name === name,
   );
-}
-
-async function fallbackCreateCategoryAction() {
-  return initialActionState<
-    { categoryId: string; name: string; type: CategoryType },
-    CreateCategoryActionField,
-    CategoryActionCode
-  >();
-}
-
-async function fallbackRenameCategoryAction() {
-  return initialActionState<
-    { categoryId: string; name: string },
-    RenameCategoryActionField,
-    CategoryActionCode
-  >();
-}
-
-async function fallbackArchiveCategoryAction() {
-  return initialActionState<
-    { categoryId: string },
-    ArchiveCategoryActionField,
-    CategoryActionCode
-  >();
 }

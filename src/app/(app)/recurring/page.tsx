@@ -8,7 +8,6 @@ import {
   RecordCreateHeaderActions,
   RecordCreateMobileActionBar,
 } from "@/app/record-create-actions";
-import { confirmRecurringReminderAction } from "@/app/recurring-reminder-actions";
 import { RecurringReminderConfirmationPanel } from "@/app/recurring-reminder-confirmation-panel";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -63,7 +62,6 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.6fr)]">
         <RecurringReminderConfirmationPanel
-          confirmRecurringReminderAction={confirmRecurringReminderAction}
           month={month}
           pendingReminders={homeView.pendingRecurringReminders}
         />

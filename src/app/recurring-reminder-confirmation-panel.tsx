@@ -3,7 +3,8 @@
 import { CalendarCheck } from "lucide-react";
 import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { initialActionState, type FormAction } from "@/app/action-state";
+import { initialActionState } from "@/app/action-state";
+import { confirmRecurringReminderAction } from "@/app/recurring-reminder-actions";
 import type {
   RecurringReminderActionCode,
   RecurringReminderActionField,
@@ -30,17 +31,11 @@ import {
 import type { PendingRecurringReminder } from "./home-access";
 
 type RecurringReminderConfirmationPanelProps = {
-  confirmRecurringReminderAction: FormAction<
-    { month: string; occurrenceId: string },
-    RecurringReminderActionField,
-    RecurringReminderActionCode
-  >;
   month: string;
   pendingReminders: PendingRecurringReminder[];
 };
 
 export function RecurringReminderConfirmationPanel({
-  confirmRecurringReminderAction,
   month,
   pendingReminders,
 }: RecurringReminderConfirmationPanelProps) {

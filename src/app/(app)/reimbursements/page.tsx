@@ -8,7 +8,6 @@ import {
   RecordCreateHeaderActions,
   RecordCreateMobileActionBar,
 } from "@/app/record-create-actions";
-import { markExpensesReimbursedAction } from "@/app/reimbursement-actions";
 import { ReimbursementSettlementPanel } from "@/app/reimbursement-settlement-panel";
 
 type ReimbursementsPageProps = {
@@ -72,7 +71,6 @@ export default async function ReimbursementsPage({
           canPerformReimbursement={
             homeView.accessHints.actions.canPerformReimbursement
           }
-          markExpensesReimbursedAction={markExpensesReimbursedAction}
           month={month}
           reimbursementTable={reimbursementTable}
         />

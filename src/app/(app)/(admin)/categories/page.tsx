@@ -1,8 +1,3 @@
-import {
-  archiveCategoryAction,
-  createCategoryAction,
-  renameCategoryAction,
-} from "@/app/category-actions";
 import { loadCategoryManagementContext } from "@/app/category-management-context";
 import type { AppSearchParams } from "@/app/route-search-params";
 import {
@@ -44,12 +39,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
         />
       }
     >
-      <CategoryManagementPanel
-        archiveAction={archiveCategoryAction}
-        categories={context.categories}
-        createAction={createCategoryAction}
-        renameAction={renameCategoryAction}
-      />
+      <CategoryManagementPanel categories={context.categories} />
     </PageLayout>
   );
 }

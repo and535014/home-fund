@@ -3,7 +3,8 @@
 import { HandCoins } from "lucide-react";
 import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { initialActionState, type FormAction } from "@/app/action-state";
+import { initialActionState } from "@/app/action-state";
+import { markExpensesReimbursedAction } from "@/app/reimbursement-actions";
 import type {
   ReimbursementActionCode,
   ReimbursementActionField,
@@ -33,18 +34,12 @@ import type {
 
 type ReimbursementSettlementPanelProps = {
   canPerformReimbursement: boolean;
-  markExpensesReimbursedAction: FormAction<
-    { month: string; selectedExpenseIds: string[] },
-    ReimbursementActionField,
-    ReimbursementActionCode
-  >;
   month: string;
   reimbursementTable: MonthlyReimbursementTable;
 };
 
 export function ReimbursementSettlementPanel({
   canPerformReimbursement,
-  markExpensesReimbursedAction,
   month,
   reimbursementTable,
 }: ReimbursementSettlementPanelProps) {

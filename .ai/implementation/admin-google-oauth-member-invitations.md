@@ -122,6 +122,8 @@ reviewed_at: 2026-06-19
 - Removed category-management URL result parsing; category management now uses one `useActionState` flow per form and keeps feedback local to the panel.
 - Converted reimbursement settlement and recurring reminder confirmation from redirect/query feedback to `useActionState` while preserving inline alert feedback and refreshing server data after success.
 - Updated reimbursement and recurring E2E expectations so action feedback is asserted in-page and no longer encoded in URL query state.
+- Simplified same-page action ownership so member, category, reimbursement, and recurring panels import their own server actions instead of receiving action props from page components.
+- Removed the remaining local-preview/fallback write paths from member and category management panels now that those panels are production-backed by server actions.
 
 ## Tests First Evidence
 
@@ -154,6 +156,9 @@ reviewed_at: 2026-06-19
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
 - `corepack pnpm type-check` passed after introducing the shared `ActionState` contract and converting member, category, reimbursement, and recurring reminder forms.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
+- `corepack pnpm type-check` passed after moving same-page server action imports into their owning panels.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
 
