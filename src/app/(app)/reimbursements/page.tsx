@@ -3,11 +3,6 @@ import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { SummaryMetric, formatAmount } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
-import {
-  RecordCreateDialogHost,
-  RecordCreateHeaderActions,
-  RecordCreateMobileActionBar,
-} from "@/app/record-create-actions";
 import { ReimbursementSettlementPanel } from "@/app/reimbursement-settlement-panel";
 
 type ReimbursementsPageProps = {
@@ -31,19 +26,12 @@ export default async function ReimbursementsPage({
 
   return (
     <PageLayout
-      footer={<RecordCreateMobileActionBar context={context} />}
       header={
         <PageHeader
-          actions={
-            <>
-              <MonthSwitcher currentMonth={month} />
-              <RecordCreateHeaderActions context={context} />
-            </>
-          }
+          actions={<MonthSwitcher currentMonth={month} />}
           title="退款"
         />
       }
-      overlays={<RecordCreateDialogHost context={context} />}
     >
       <section
         aria-label="退款摘要"

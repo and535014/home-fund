@@ -55,7 +55,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <RecordCreateHeaderActions context={context} />
             </>
           }
-          title="家庭資金總覽"
+          title="總覽"
         />
       }
       overlays={<RecordCreateDialogHost context={context} />}
@@ -114,21 +114,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
         <section aria-labelledby="recent-records-title" className="min-w-0">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h3 id="recent-records-title" className="text-subheading">
-                最近紀錄
-              </h3>
-              <p className="text-caption text-muted-foreground">
-                顯示本月最近 {recentRecords.length} 筆，完整清單移至紀錄頁
-              </p>
-            </div>
-            <Button asChild size="sm" variant="secondary">
-              <a href={`/records?month=${encodeURIComponent(month)}`}>
-                紀錄頁
-                <ArrowRight aria-hidden="true" size={16} />
-              </a>
-            </Button>
+          <div className="mb-3">
+            <h3 id="recent-records-title" className="text-subheading">
+              最近紀錄
+            </h3>
+            <p className="text-caption text-muted-foreground">
+              顯示本月最近 {recentRecords.length} 筆收入與支出。
+            </p>
           </div>
           <RecordsTable categoryNames={categoryNames} records={recentRecords} />
         </section>

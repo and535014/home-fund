@@ -11,16 +11,10 @@ export function getVisibleDashboardNavigationItems(
 ): AppNavigationItem[] {
   const items = [
     {
-      label: "月報",
+      label: "總覽",
       href: "/",
       icon: APP_NAVIGATION_ICONS.circleDollarSign,
       visible: accessHints.navigation.canOpenReports,
-    },
-    {
-      label: "紀錄",
-      href: "/records",
-      icon: APP_NAVIGATION_ICONS.receiptText,
-      visible: accessHints.navigation.canOpenRecords,
     },
     {
       label: "退款",

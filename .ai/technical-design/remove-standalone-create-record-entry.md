@@ -43,17 +43,19 @@ reviewed_at: 2026-06-20
 ## Route Boundary
 
 - Delete `src/app/(app)/records/new/page.tsx`.
+- Delete `src/app/(app)/records/page.tsx`.
 - Do not add a replacement redirect route.
 - Direct `/records/new` should fall through to the framework default not-found behavior.
+- Direct `/records` should fall through to the framework default not-found behavior.
 - Do not add compatibility behavior for `?create=income`, `?create=expense`, `?result=...`, or `?create=success`; these query params should no longer open create-record UI.
 - Existing route search params for `month` remain supported.
 
 ## Navigation Boundary
 
-- Update `src/app/dashboard-navigation.ts` to remove the `新增` navigation item from the item list entirely.
+- Update `src/app/dashboard-navigation.ts` to remove the `新增` and `紀錄` navigation items from the item list entirely.
 - Do not keep a hidden or role-filtered create navigation object.
 - Existing access hints still control the other navigation entries.
-- Unit coverage should assert no returned navigation item has label `新增` or href containing `create=`.
+- Unit coverage should assert no returned navigation item has label `新增`, label `紀錄`, href `/records`, or href containing `create=`.
 
 ## Component Boundary
 
@@ -67,7 +69,8 @@ reviewed_at: 2026-06-20
   - modal close handling
   - success handling
 - Use this owner to render desktop header buttons, mobile footer buttons, and the dialog host so they share the same modal state.
-- Page-level records toolbar buttons should use the same owner or the same trigger component rather than constructing hrefs.
+- Do not keep records-page toolbar buttons because `/records` is removed. Retained pages should use the same owner or trigger component rather than constructing hrefs.
+- Do not render `RecordCreateHeaderActions`, `RecordCreateMobileActionBar`, or `RecordCreateDialogHost` on `/reimbursements` or `/recurring`; homepage is the only create-record entry surface.
 
 ### Trigger Buttons
 
@@ -126,7 +129,7 @@ export type CreateLedgerRecordActionState = ActionState<
 - Change `createLedgerRecordAction(previousState, formData)` to return `CreateLedgerRecordActionState`.
 - On parse validation failure, return `actionError(...)` with the mapped message/code and field error.
 - On domain authorization or command failure, return `actionError(...)` with the mapped message/code and relevant field error.
-- On success, `revalidatePath("/")`, `revalidatePath("/records")`, `revalidatePath("/reimbursements")`, and `revalidatePath("/recurring")` because current create actions are available across these monthly work surfaces.
+- On success, `revalidatePath("/")`, `revalidatePath("/reimbursements")`, and `revalidatePath("/recurring")`; homepage is the only create-entry route, but downstream reimbursement/recurring read models still depend on new ledger records.
 - Return `actionSuccess("紀錄已新增。", { month, recordId })`.
 - Do not call `redirect(...)` from normal create-record action results.
 
@@ -173,7 +176,8 @@ export type CreateLedgerRecordActionState = ActionState<
 2. E2E update: opening create income from `/` by clicking `新增收入` opens dialog and URL has no `create` or `result`.
 3. E2E update: validation error stays in modal and URL stays clean.
 4. E2E update: successful create closes modal, shows record, and URL stays clean.
-5. E2E new: `/records/new` shows not-found and no dialog.
+5. E2E new: `/records` and `/records/new` show not-found and no dialog.
+6. E2E new: `/reimbursements` and `/recurring` do not show create-record buttons.
 
 ### Existing Tests To Rewrite
 
@@ -182,6 +186,7 @@ export type CreateLedgerRecordActionState = ActionState<
   - open modals through page-local buttons
   - assert dialog closes on success
   - assert no `create` / `result` params after error or success
+  - stop using `/records` as a create-record review route
 - `e2e/permission-matrix.spec.ts`
   - open modals through buttons before manipulating hidden/select fields
   - assert permission errors are inline and URL stays clean
@@ -194,8 +199,9 @@ export type CreateLedgerRecordActionState = ActionState<
 ## Implementation Order
 
 1. Update tests to express new behavior and observe failures.
-2. Remove sidebar `新增` item.
-3. Delete `src/app/(app)/records/new/page.tsx`.
+2. Remove sidebar `新增` and `紀錄` items.
+3. Delete `src/app/(app)/records/page.tsx` and `src/app/(app)/records/new/page.tsx`.
+4. Remove create-record header/footer/overlay wiring from reimbursements and recurring pages.
 4. Convert create-record server action to `ActionState`.
 5. Convert record-entry form to `useActionState`.
 6. Refactor record-create triggers/dialog host to client state.

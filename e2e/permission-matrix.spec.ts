@@ -11,7 +11,7 @@ test("lets a linked active general member browse the dashboard", async ({
   await page.goto("/?month=2026-06");
 
   await expect(page.getByRole("heading", {
-    name: "家庭資金總覽",
+    name: "總覽",
   })).toBeVisible();
   await expect(page.getByText("六月生活費")).toBeVisible();
 });

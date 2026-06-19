@@ -25,7 +25,7 @@ test("creates an income record through the browser", async ({ page }) => {
   await dialog.getByRole("button", { name: "新增收入" }).click();
 
   await expect(page.getByRole("heading", {
-    name: "家庭資金總覽",
+    name: "總覽",
   })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("E2E 新增收入")).toBeVisible();
@@ -107,7 +107,7 @@ test("keeps the income dialog visible after a server-side validation error", asy
 });
 
 test("closes an open create dialog after browser reload", async ({ page }) => {
-  await page.goto("/records?month=2026-06");
+  await page.goto("/?month=2026-06");
   await page.getByRole("button", { name: "新增支出" }).first().click();
 
   await expect(page.getByRole("dialog").getByRole("heading", {
@@ -124,10 +124,31 @@ test("closes an open create dialog after browser reload", async ({ page }) => {
 test("does not expose the removed standalone create-record route", async ({
   page,
 }) => {
+  await page.goto("/records");
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+
   await page.goto("/records/new");
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+});
+
+test("keeps create-record actions on the homepage only", async ({ page }) => {
+  await page.goto("/?month=2026-06");
+  await expect(page.getByRole("button", { name: "新增收入" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "新增支出" }).first()).toBeVisible();
+
+  await page.goto("/reimbursements?month=2026-06");
+  await expect(page.getByRole("button", { name: "新增收入" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "新增支出" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "退款", exact: true })).toBeVisible();
+
+  await page.goto("/recurring?month=2026-06");
+  await expect(page.getByRole("button", { name: "新增收入" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "新增支出" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "週期", exact: true })).toBeVisible();
 });
 
 async function selectFieldOption(page: Page, label: string, option: string) {

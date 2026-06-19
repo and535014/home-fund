@@ -43,24 +43,26 @@ reviewed_at: 2026-06-20
 
 ## Final Acceptance Criteria
 
-1. The authenticated sidebar never shows a `新增` navigation item for any role or permission set.
-2. Members who can create records still see page-local `新增收入` and `新增支出` controls on the existing create-enabled app surfaces.
-3. Clicking a page-local create control opens the matching create-record modal without changing the browser URL.
-4. The create modal open state is not encoded in search params; refreshing the page closes the modal.
-5. Direct visits to `/records/new` use the default app not-found behavior because the route is removed.
-6. Create-record form submission uses action state, not redirect/query feedback, for pending, validation, permission, and success results.
-7. Validation and permission errors keep the modal open, preserve the attempted form context where practical, and render an inline alert inside the modal.
-8. Successful record creation closes the modal, refreshes affected page data, shows success feedback, and leaves the URL without `create`, `result`, or `create=success`.
-9. Record creation domain authorization does not change: general members cannot create records for others; finance managers/admins retain existing allowed cross-member creation behavior.
-10. Desktop and mobile create controls use the same behavior: no URL mutation on open, modal closes on refresh, success closes modal.
+1. The authenticated sidebar never shows a `新增` or `紀錄` navigation item for any role or permission set.
+2. Members who can create records still see page-local `新增收入` and `新增支出` controls on the homepage.
+3. Reimbursements and recurring pages do not show `新增收入` or `新增支出`.
+4. Clicking a homepage create control opens the matching create-record modal without changing the browser URL.
+5. The create modal open state is not encoded in search params; refreshing the page closes the modal.
+6. Direct visits to `/records` and `/records/new` use the default app not-found behavior because both routes are removed.
+7. Create-record form submission uses action state, not redirect/query feedback, for pending, validation, permission, and success results.
+8. Validation and permission errors keep the modal open, preserve the attempted form context where practical, and render an inline alert inside the modal.
+9. Successful record creation closes the modal, refreshes affected page data, shows success feedback, and leaves the URL without `create`, `result`, or `create=success`.
+10. Record creation domain authorization does not change: general members cannot create records for others; finance managers/admins retain existing allowed cross-member creation behavior.
+11. Desktop and mobile homepage create controls use the same behavior: no URL mutation on open, modal closes on refresh, success closes modal.
 
 ## BDD Scenarios
 
-### Scenario 1: Sidebar Has No Standalone Create Entry
+### Scenario 1: Sidebar Has No Standalone Records Or Create Entry
 
 Given an authenticated member can create records  
 When the member opens the app shell  
 Then the sidebar navigation does not contain `新增`  
+And the sidebar navigation does not contain `紀錄`  
 And the rest of the visible navigation follows existing role permissions
 
 ### Scenario 2: Open Income Modal From Page Action
@@ -71,13 +73,21 @@ When the member activates `新增收入` in the page action area
 Then the `新增收入` dialog opens  
 And the current URL does not contain `create` or `result`
 
-### Scenario 3: Open Expense Modal From Records Page
+### Scenario 3: Open Expense Modal From Homepage
 
 Given an authenticated member can create records  
-And the member opens `/records` with `month=2026-06`  
+And the member opens `/` with `month=2026-06`  
 When the member activates `新增支出`  
 Then the `新增支出` dialog opens  
 And the current URL does not contain `create` or `result`
+
+### Scenario 3a: Reimbursements And Recurring Do Not Create Records
+
+Given an authenticated member can create records  
+When the member opens `/reimbursements` or `/recurring` with `month=2026-06`  
+Then `新增收入` is not visible  
+And `新增支出` is not visible  
+And the page-specific reimbursement or recurring workflow remains visible
 
 ### Scenario 4: Refresh Closes Open Modal
 
@@ -103,9 +113,9 @@ And the new record appears in the current page data
 And success feedback is visible  
 And the URL does not contain `create`, `result`, or `create=success`
 
-### Scenario 7: Direct Standalone Create Route Is Gone
+### Scenario 7: Direct Standalone Records Routes Are Gone
 
-Given any visitor opens `/records/new`  
+Given any visitor opens `/records` or `/records/new`  
 When the app resolves the route  
 Then the app shows the default not-found page  
 And no create-record dialog is opened
@@ -123,31 +133,35 @@ And the URL does not contain `create` or `result`
 
 | Scenario | Route | Fixture | Viewport | Selectors / Assertions |
 |---|---|---|---|---|
-| Sidebar removed | `/` | `x-e2e-auth-user-id: user-e2e-linked` | desktop | `getByRole("navigation")` or sidebar region has no link/button named `新增`; existing links like `月報` and `紀錄` remain. |
+| Sidebar removed | `/` | `x-e2e-auth-user-id: user-e2e-linked` | desktop | `getByRole("navigation")` or sidebar region has no link/button named `新增` or `紀錄`; retained homepage link is named `總覽`. |
 | Open income modal | `/?month=2026-06` | linked finance manager | desktop | Click page action `新增收入`; assert dialog heading `新增收入`; assert URL lacks `create` and `result`. |
-| Open expense modal | `/records?month=2026-06` | linked finance manager | desktop | Click `新增支出`; assert dialog heading `新增支出`; assert URL lacks `create` and `result`. |
-| Refresh closes modal | `/records?month=2026-06` | linked finance manager | desktop | Open dialog, reload, assert `getByRole("dialog")` count is 0; URL still includes month only. |
-| Validation error | `/records?month=2026-06` | linked finance manager | desktop | Open income dialog, fill fields except category, submit, assert alert text and URL lacks `create`/`result`. |
-| Success closes modal | `/records?month=2026-06` | linked finance manager | desktop | Open income dialog, fill valid data, submit, assert dialog hidden, record visible, success toast or status visible, URL lacks `create`/`result`. |
-| Route removed | `/records/new` | any controlled auth or unauthenticated state | desktop | Assert default not-found heading/text; assert no create dialog. |
-| Mobile open modal | `/records?month=2026-06` | linked finance manager | mobile | Use mobile viewport, click footer income or expense action, assert dialog opens and URL remains unchanged. |
+| Open expense modal | `/?month=2026-06` | linked finance manager | desktop | Click `新增支出`; assert dialog heading `新增支出`; assert URL lacks `create` and `result`. |
+| Reimbursements no create | `/reimbursements?month=2026-06` | linked finance manager | desktop | Assert no `新增收入` or `新增支出`; reimbursement controls remain visible. |
+| Recurring no create | `/recurring?month=2026-06` | linked finance manager | desktop | Assert no `新增收入` or `新增支出`; recurring confirmation controls remain visible. |
+| Refresh closes modal | `/?month=2026-06` | linked finance manager | desktop | Open dialog, reload, assert `getByRole("dialog")` count is 0; URL still includes month only. |
+| Validation error | `/?month=2026-06` | linked finance manager | desktop | Open income dialog, fill fields except category, submit, assert alert text and URL lacks `create`/`result`. |
+| Success closes modal | `/?month=2026-06` | linked finance manager | desktop | Open income dialog, fill valid data, submit, assert dialog hidden, record visible, success toast or status visible, URL lacks `create`/`result`. |
+| Routes removed | `/records`, `/records/new` | any controlled auth or unauthenticated state | desktop | Assert default not-found heading/text; assert no create dialog. |
+| Mobile open modal | `/?month=2026-06` | linked finance manager | mobile | Use mobile viewport, click footer income or expense action, assert dialog opens and URL remains unchanged. |
 | Permission denied | `/?month=2026-06` | `user-e2e-general` | desktop | Manipulate hidden/select state as current permission-matrix test does; submit; assert permission alert, record absent, URL lacks `create`/`result`. |
 
 ## Test Plan
 
 ### Unit / Component
 
-- Update navigation unit coverage around `getVisibleDashboardNavigationItems` so `新增` is not returned for admin, finance manager, general member, or create-disabled access hints.
+- Update navigation unit coverage around `getVisibleDashboardNavigationItems` so `新增` and `紀錄` are not returned for admin, finance manager, general member, or create-disabled access hints.
 - Add or update component tests for the shared record-create action component to prove trigger buttons call client open state without rendering anchor hrefs containing `create=`.
 - Add action-state unit coverage for the create-record action result shape after Technical Design finalizes the contract.
 
 ### E2E
 
 - Update `e2e/create-record.spec.ts` to open dialogs by clicking page-local controls instead of visiting URLs with `create=income` or `create=expense`.
+- Update create-record E2E so it no longer uses `/records` as the primary review route.
 - Update validation assertions to expect no query-param feedback.
 - Update success assertions to expect the modal closed and URL clean.
 - Update `e2e/permission-matrix.spec.ts` to open dialogs through page-local controls before manipulating form fields.
-- Add `/records/new` not-found coverage.
+- Add `/records` and `/records/new` not-found coverage.
+- Add reimbursement and recurring page coverage that create-record actions are absent.
 - Add one mobile viewport check for the footer action bar opening the modal without URL mutation.
 
 ### Manual / Visual
@@ -171,13 +185,13 @@ And the URL does not contain `create` or `result`
 - Decide how success closes the modal while still showing feedback and refreshing server-rendered data.
 - Decide how to share one modal state owner across desktop header actions, page toolbar actions, and mobile action bar.
 - Decide whether query parsing for `create`/`result` is removed entirely or kept temporarily for backward compatibility without opening the modal.
-- Decide the route deletion mechanics for `src/app/(app)/records/new/page.tsx` and expected not-found behavior under the authenticated route group.
+- Decide the route deletion mechanics for `src/app/(app)/records/page.tsx` and `src/app/(app)/records/new/page.tsx`, plus expected not-found behavior under the authenticated route group.
 
 ## Accepted Risks
 
 - Existing tests that deep-link into the create modal will fail until implementation rewrites them to click page-local triggers.
 - Existing URLs with `?create=income` or `?create=expense` will no longer open the modal. This is intentional because the requested behavior says create is not URL state.
-- Removing `/records/new` may show the global not-found UI rather than an authenticated-frame not-found. This is acceptable for this slice unless Technical Design identifies a Next.js route-group issue.
+- Removing `/records` and `/records/new` may show the global not-found UI rather than an authenticated-frame not-found. This is acceptable for this slice unless Technical Design identifies a Next.js route-group issue.
 
 ## Review Gate
 

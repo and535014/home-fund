@@ -13,7 +13,7 @@ test("keeps unauthenticated users on the Google sign-in gate", async ({
     name: "使用 Google 登入",
   })).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "家庭資金總覽",
+    name: "總覽",
   })).toHaveCount(0);
 });
 
@@ -27,7 +27,7 @@ test("resolves a linked active Google user through controlled auth", async ({
   await page.goto("/?month=2026-06");
 
   await expect(page.getByRole("heading", {
-    name: "家庭資金總覽",
+    name: "總覽",
   })).toBeVisible();
   await expect(page.getByText("六月生活費")).toBeVisible();
 });

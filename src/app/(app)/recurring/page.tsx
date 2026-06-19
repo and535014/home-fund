@@ -3,11 +3,6 @@ import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { SummaryMetric } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
-import {
-  RecordCreateDialogHost,
-  RecordCreateHeaderActions,
-  RecordCreateMobileActionBar,
-} from "@/app/record-create-actions";
 import { RecurringReminderConfirmationPanel } from "@/app/recurring-reminder-confirmation-panel";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -25,19 +20,12 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
 
   return (
     <PageLayout
-      footer={<RecordCreateMobileActionBar context={context} />}
       header={
         <PageHeader
-          actions={
-            <>
-              <MonthSwitcher currentMonth={month} />
-              <RecordCreateHeaderActions context={context} />
-            </>
-          }
+          actions={<MonthSwitcher currentMonth={month} />}
           title="週期"
         />
       }
-      overlays={<RecordCreateDialogHost context={context} />}
     >
       <section
         aria-label="週期摘要"

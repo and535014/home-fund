@@ -28,7 +28,7 @@ test("non-admin members cannot discover or browse category management", async ({
 
   await page.goto("/categories");
   await expect(page).toHaveURL(/\/$/u);
-  await expect(page.getByRole("heading", { name: "家庭資金總覽" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toHaveCount(0);
 
   await signInAsGeneralMember(page);
@@ -37,7 +37,7 @@ test("non-admin members cannot discover or browse category management", async ({
 
   await page.goto("/categories");
   await expect(page).toHaveURL(/\/$/u);
-  await expect(page.getByRole("heading", { name: "家庭資金總覽" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
 });
 
 test("admin creates a category without using URL state to open the modal", async ({

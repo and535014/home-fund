@@ -104,7 +104,7 @@ test("non-admin members are redirected away from member management", async ({ pa
   await page.goto("/members");
 
   await expect(page).toHaveURL(/\/$/u);
-  await expect(page.getByRole("heading", { name: "家庭資金總覽" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
   await expect(page.getByRole("button", { name: "邀請成員" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /修改 .* 的顯示名稱/u })).toHaveCount(0);
 });

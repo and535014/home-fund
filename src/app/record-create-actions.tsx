@@ -73,28 +73,6 @@ export function RecordCreateMobileActionBar({ context }: RecordCreateProps) {
   );
 }
 
-export function RecordCreateInlineActions() {
-  return (
-    <div className="flex gap-2">
-      <Button
-        onClick={() => openRecordCreateDialog("income")}
-        size="sm"
-        type="button"
-        variant="secondary"
-      >
-        新增收入
-      </Button>
-      <Button
-        onClick={() => openRecordCreateDialog("expense")}
-        size="sm"
-        type="button"
-      >
-        新增支出
-      </Button>
-    </div>
-  );
-}
-
 export function RecordCreateDialogHost({ context }: RecordCreateProps) {
   const router = useRouter();
   const [mode, setMode] = useState<RecordCreateMode | null>(null);

@@ -143,7 +143,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: remove-standalone-create-record-entry.
 - latest_completed_slice: admin Google OAuth and member invitations.
-- current_stage: remove standalone create-record entry is at TDD Implementation review in `.ai/implementation/remove-standalone-create-record-entry.md`.
+- current_stage: remove standalone create-record entry TDD Implementation is complete in `.ai/implementation/remove-standalone-create-record-entry.md`.
 - recommended_resume_gate: Verification after explicit approval of the implementation.
 - recommended_next_skill: verification after approval; artifact-prune only if explicitly requested.
 
