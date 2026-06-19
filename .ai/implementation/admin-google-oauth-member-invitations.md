@@ -100,23 +100,22 @@ reviewed_at: 2026-06-19
   - Google `image` updates `Member.avatarUrl`.
   - Google `name` becomes the app display name only when the member still has a blank or seed `Admin` display name.
   - Google email and subject are persisted to the matched member when they differ.
-- Threaded `avatarUrl` through `HouseholdMemberAccount`, `HouseholdAccessProfile`, `AuthenticatedLayout`, the sidebar footer account display, and dashboard/member read models.
-- Replaced the member page's prototype adapter with a formal `MemberManagementMember` read model built in `loadMemberManagementContext`.
-- Renamed `member-management-prototype.tsx` into the production member-management client module and removed `PrototypeMember`/`MemberManagementPrototype` naming from production code.
+- Threaded `avatarUrl` through `HouseholdMemberAccount`, `HouseholdAccessProfile`, `AuthenticatedLayout`, the sidebar footer account display, and dashboard/member list read models.
+- Replaced the member page's broad context loader with `loadMemberManagementMembers`, which returns only the active member list needed by `/members`.
+- Removed prototype/member-panel naming from production code and split the member page into focused invite dialog, invite-link copy, and member-list client modules.
 - Removed page-local `buildMembersFromContext`, fake Dicebear avatar generation, and the extra Google-name field from the member page.
-- Kept the member page behavior from the prototype: header invite action, modal invite form, copyable invite links with tooltip/icon button, and display-name edit dialog.
+- Kept the member page flow: header invite action, modal invite form, one-time invite link reveal with auto-copy and icon copy fallback, and display-name edit dialog.
 - Added `updateMemberDisplayNameAction` as the server action for member display-name updates.
 - Added `updateMemberDisplayNameInDatabase` to run the existing member-management domain command and persist only `Member.displayName`.
 - Wired the member edit dialog to submit through the server action, revalidate `/`, `/members`, and the return path, then show result feedback on reload.
 - Kept avatar immutable from the admin UI; the display-name action only writes the `displayName` column.
-- Added `MemberInvitation` persistence with token hash, local/dev preview token, invited email, status, expiry, creator, and target member relations.
-- Added invitation domain and command modules for admin-only invite creation, duplicate pending invite reuse, token validation, wrong-account rejection, and invitation acceptance.
+- Added `MemberInvitation` persistence with token hash, local/dev preview token, status, expiry, creator, and optional target member relation after acceptance.
+- Added invitation domain and command modules for admin-only invite creation, token validation, expiration handling, duplicate active-account rejection, and invitation acceptance.
 - Wired admin invite creation to a server action that stores an expiring pending invitation link without creating a member until the invite is accepted.
-- Replaced row re-copy links with persisted pending invitation links from the member-management read model.
 - Changed `/invite/accept` to validate real invitation tokens before enabling Google sign-in.
 - Changed `/auth/google` to preserve `inviteToken` through Better Auth by routing invited sign-in through `/invite/accept/callback`.
 - Added `/invite/accept/callback` to resolve the Google session, verify the token/email, create the member from Google subject/name/avatar defaults, mark the invitation accepted, and redirect to `/`.
-- Added deterministic seed invitation data for e2e and local development.
+- Added deterministic seed invitation data for e2e while keeping local development seed focused on the real admin flow.
 - Added `src/app/action-state.ts` as the shared server-action response contract for `useActionState` forms: `status`, `message`, optional `code`, `fieldErrors`, and optional typed `data`.
 - Converted member invite and display-name server actions from redirect/query feedback to typed `ActionState` returns.
 - Removed member-management URL feedback parsing and made the member panel own its `useActionState` feedback, invitation link reveal, copy behavior, and refresh behavior.
@@ -141,7 +140,7 @@ reviewed_at: 2026-06-19
 - Added focused Playwright coverage for the accepted Behavior Spec routes and fixed the non-admin denied state to expose a real heading.
 - Added failing/auth-focused coverage for session identity Google name/image mapping, current-member Google profile synchronization, and persistence through `createCurrentMemberDataSource`.
 - Added command-level coverage for persisted member display-name updates, invalid blank names, and non-admin rejection before wiring the UI to the server action.
-- Added invitation domain/command coverage for admin creation, duplicate pending invitation reuse, token states, wrong-account rejection, and accepted invitation persistence.
+- Added invitation domain/command coverage for admin creation, token states, expired links, duplicate active-account rejection, member creation on acceptance, and accepted invitation persistence.
 
 ## Verification Run During Implementation
 
@@ -218,7 +217,10 @@ reviewed_at: 2026-06-19
 - `src/app/dashboard-page-context.ts` removed
 - `src/auth/server-current-member-cache.ts`
 - `src/app/(app)/(admin)/members/page.tsx`
-- `src/app/(app)/(admin)/members/member-management-prototype.tsx` renamed into the production member-management client module
+- `src/app/(app)/(admin)/members/member-invite-dialog.tsx`
+- `src/app/(app)/(admin)/members/member-invite-link.tsx`
+- `src/app/(app)/(admin)/members/member-list.tsx`
+- `src/app/member-management-members.ts`
 - `src/app/action-state.ts`
 - `src/app/member-actions.ts`
 - `src/app/category-actions.ts`
