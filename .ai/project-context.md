@@ -14,7 +14,7 @@ trace_links:
   - playwright.config.ts
   - vitest.config.ts
   - docker-compose.yml
-reviewed_at: 2026-06-18
+reviewed_at: 2026-06-20
 ---
 
 # Project Context
@@ -118,9 +118,9 @@ reviewed_at: 2026-06-18
 
 ## Next Step
 
-- latest_completed_slice: recurring reminder confirmation UI, committed in `24213cd`.
-- active_change: none
-- recommended_resume_gate: User local_dev review, optional artifact-prune, production release intake, or next Intent Intake
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise site-change-intake or idea-intake for the next change
-- required input: `.ai/archive/archive-admin-only-category-management-2026-06-19.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
-- reason: The admin-only category management lifecycle is complete and compressed. Future work should start from the archive summary and maintained project/domain/release artifacts rather than restarting completed gates.
+- latest_completed_slice: admin-only category management, compressed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- active_change: admin-google-oauth-member-invitations
+- recommended_resume_gate: Verification for `admin-google-oauth-member-invitations`
+- recommended_next_skill: verification
+- required input: `.ai/implementation/admin-google-oauth-member-invitations.md`, `.ai/spec/admin-google-oauth-member-invitations.md`, `.ai/technical-design/admin-google-oauth-member-invitations.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
+- reason: TDD Implementation for admin Google OAuth and member invitations is ready for Verification after passing type-check, lint, focused unit/component tests, focused E2E, and build. Verification should include manual local real-Google invitation smoke where possible or record accepted risk if skipped.

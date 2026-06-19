@@ -1,7 +1,7 @@
 ---
 id: implementation-admin-google-oauth-member-invitations
 stage: implementation
-status: in_progress
+status: ready_for_verification
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -58,7 +58,7 @@ outputs:
 trace_links:
   spec: .ai/spec/admin-google-oauth-member-invitations.md
   technical_design: .ai/technical-design/admin-google-oauth-member-invitations.md
-reviewed_at: 2026-06-19
+reviewed_at: 2026-06-20
 ---
 
 # Admin Google OAuth And Member Invitations Implementation
@@ -66,10 +66,11 @@ reviewed_at: 2026-06-19
 ## Decision
 
 - gate: TDD Implementation
-- decision: in_progress
+- decision: ready_for_verification
 - release_target: local_dev
-- completed_slice: persisted member invitation creation and accept callback
-- next_slice: local real-Google invitation smoke verification and release hardening
+- completed_slice: persisted member invitation creation and accept callback, shared action-state refactor, and residual prototype route cleanup
+- next_gate: Verification
+- next_skill: verification
 
 ## Implemented Scope
 
@@ -131,6 +132,7 @@ reviewed_at: 2026-06-19
 - Added acceptance protection so an invitation cannot activate a Google account that already belongs to another active member.
 - Changed pending invitation behavior so generated links are one-time reveal links in the modal: they are automatically copied, expire after 7 days, do not create a visible member before acceptance, cannot be re-copied from the member list, and are not manually revoked.
 - Split local seed data from E2E fixtures. `db:seed` now keeps the real local Google OAuth flow minimal with only the configured admin, household, and starter categories, while `db:seed:e2e` owns seeded test members, invite tokens, records, Better Auth test users, and recurring fixtures.
+- Removed the completed recurring reminder confirmation prototype route from `src/app/prototypes/` so it no longer remains in the production route tree after implementation.
 
 ## Tests First Evidence
 
@@ -175,6 +177,14 @@ reviewed_at: 2026-06-19
 - `corepack pnpm type-check` passed after moving same-page server action imports into their owning panels.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
+- `corepack pnpm type-check` passed on 2026-06-20.
+- `corepack pnpm lint` passed on 2026-06-20.
+- `corepack pnpm test src/modules/identity-access/member-invitations.test.ts src/modules/identity-access/member-invitation-command.test.ts src/modules/identity-access/member-management-command.test.ts src/auth/session-identity.test.ts src/auth/current-member.test.ts src/auth/current-member-data-source.test.ts` passed on 2026-06-20: 25 tests.
+- `corepack pnpm vitest run src/components/layout/shared-layout.test.tsx` passed on 2026-06-20: 2 tests.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed on 2026-06-20: 17 tests.
+- `corepack pnpm build` initially failed on 2026-06-20 because the completed `/prototypes/recurring-reminder-confirmation` review route still existed in the production route tree and prerendered a client `useSearchParams()` consumer without Suspense; after removing that residual prototype route, `corepack pnpm build` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed on 2026-06-20 after removing the residual prototype route: 6 tests.
+- `.env.local` contains the required local smoke prerequisites (`DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `SEED_GOOGLE_ACCOUNT_EMAIL`), checked without printing secret values.
 
 ## Files Changed
 
@@ -261,12 +271,12 @@ reviewed_at: 2026-06-19
 ## Accepted Gaps
 
 - Local/dev keeps `MemberInvitation.previewToken` only to reveal and auto-copy the newly generated link in the modal. Pending links are no longer listed for re-copy; production release should revisit whether raw token storage is acceptable or should be replaced with delivery-only invites.
-- Real Google OAuth invitation acceptance should still get a manual local smoke with a real invited Google account before release readiness.
+- Real Google OAuth invitation acceptance still needs a manual local smoke with a real invited Google account during Verification because completing the Google login consent flow requires external account interaction.
 - The record-create flow still uses URL state because the same query currently controls modal routing (`create=income|expense`) and submit feedback. It should be separated into a later slice before converting that form to `useActionState`.
 
 ## Review Gate
 
-- decision: proceed
+- decision: proceed_to_verification
 - reviewer_focus:
   - Confirm `AuthenticatedLayout` naming and sidebar/page responsibility split match product architecture expectations.
   - Confirm `/members` no longer depends on record-create layout props.
@@ -275,6 +285,6 @@ reviewed_at: 2026-06-19
   - Component tests, type-check, lint, focused member E2E, and category regression E2E pass.
   - No production OAuth secrets are required for automated E2E.
 - unresolved_blockers:
-  - None for continuing TDD Implementation.
+  - None for entering Verification.
 - next_step:
-  - Continue TDD Implementation with persisted invitation/domain behavior or Google OAuth callback wiring.
+  - Start Verification for `admin-google-oauth-member-invitations`, including manual local real-Google invitation smoke or an explicit accepted-risk note if that smoke is skipped.
