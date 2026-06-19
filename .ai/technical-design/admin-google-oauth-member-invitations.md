@@ -34,8 +34,10 @@ trace_links:
     - src/modules/identity-access/authorization.ts
   ui:
     - src/app/members/member-management-prototype.tsx
-    - src/app/dashboard-route-frame.tsx
-    - src/app/home-dashboard-layout.tsx
+    - src/components/layout/authenticated-layout.tsx
+    - src/components/layout/page-layout.tsx
+    - src/app/record-create-actions.tsx
+    - src/app/unauthenticated/page.tsx
     - src/components/ui/avatar.tsx
   data_model:
     - prisma/schema.prisma
@@ -132,9 +134,16 @@ Out of scope:
 ### ADR-8: Split Generic App/Page Layout From Record-Creation Convenience
 
 - Status: accepted
-- Decision: Extract the reusable authenticated app chrome from `HomeDashboardLayout` into `AuthenticatedLayout`, and extract page anatomy into `PageLayout` plus `PageHeader` / `PageContent` / `PageFooter`. Replace the misleading generic use of `DashboardRouteFrame` with an `AppRouteFrame` adapter, and keep record-creation actions plus `CreateRecordDialog` wiring in a separate record-action adapter instead of the shared layout. Mobile bottom actions become `MobileActionBar`, a shared app UI primitive, not page-local markup.
+- Decision: Extract the reusable authenticated app chrome from `HomeDashboardLayout` into `AuthenticatedLayout`, and extract page anatomy into `PageLayout` plus `PageHeader` / `PageContent` / `PageFooter`. Do not add another generic route frame; authenticated page routes handle app-access redirects explicitly, then compose `AuthenticatedLayout` and `PageLayout` directly. Keep record-creation actions plus `CreateRecordDialog` wiring in a separate record-action adapter instead of the shared layout. Mobile bottom actions become `MobileActionBar`, a shared app UI primitive, not page-local markup.
 - Rationale: `HomeDashboardLayout` currently mixes a general dashboard page frame with home/ledger-specific create-record actions. Member management and category management already have to pass `showCreateRecordActions={false}`, custom header actions, mobile footer actions, and sidebar footer actions. That is a shallow interface: callers must understand unrelated record-creation behavior to render non-ledger pages.
 - Consequences: TDD Implementation must include a small layout refactor before wiring persisted member management. The refactor should preserve current visual behavior while creating a deeper module interface for authenticated app pages without spreading dashboard naming.
+
+### ADR-9: Centralize App And Admin Route Access
+
+- Status: accepted
+- Decision: Add a server-only access layer (`src/auth/app-access.ts`) and route groups for protected pages. `(app)/layout.tsx` requires an authenticated active household member and renders `AuthenticatedLayout`; `(app)/(admin)/layout.tsx` requires admin route access. Pages no longer render blocked or permission-denied states for app/admin access. Server actions still call the centralized guard or domain commands before mutating data.
+- Rationale: Page-local `if blocked` and `if !admin` branches spread route authorization across pages and make the UI responsible for access control. App Router layouts are useful for route experience, but mutation/data security must remain in server-only guards and domain commands.
+- Consequences: Unauthenticated app access redirects to `/login`; invalid linked Google sessions sign out through `/unauthenticated/logout?...`; non-admin access to admin routes redirects to `/`. Category and member pages are rendered only after route access succeeds.
 
 ## Data Model
 
@@ -202,11 +211,9 @@ Keep existing `MemberStatus.disabled` in the schema for legacy/security handling
 | Auth start | `src/auth/google-sign-in.ts`, `src/app/auth/google/route.ts` | Accept optional callback URL/invite token and preserve invite context. |
 | Invite callback | `src/app/invite/accept/callback/route.ts` or `src/app/auth/invite/callback/route.ts` | Resolve session, validate token, activate/link member, redirect to `/` or back to invite page on error. |
 | Logout | `src/app/auth/logout/route.ts` or server action | Sign out Better Auth session and redirect to `/login`. |
-| Shared layout suite | `src/components/layout/authenticated-layout.tsx`, `src/components/layout/page-layout.tsx`, `src/components/layout/page-header.tsx`, `src/components/layout/mobile-action-bar.tsx` | New generic layout architecture: authenticated app chrome plus page header/content/footer anatomy. No record-create knowledge and no dashboard-specific naming. |
-| Mobile action bar | `src/components/layout/mobile-action-bar.tsx` or `src/app/mobile-action-bar.tsx` | Shared fixed mobile bottom action bar with safe-area padding, border/background tokens, layout constraints, and action slot rendering. It is app-level UI infrastructure, not dashboard-specific. |
-| App route frame | `src/app/app-route-frame.tsx` | Generic adapter from authenticated route context to `AuthenticatedLayout` and `PageLayout` props. It should know about authenticated app chrome, blocked access, navigation, and route slots; it should not know about record creation. |
-| Record action adapter | `src/app/record-action-frame.tsx` or `src/app/record-create-route-actions.tsx` | Owns create-record hrefs/dialog/query parsing and passes record-specific actions/dialog content into `AppRouteFrame` slots. |
-| Legacy wrappers | `src/app/dashboard-route-frame.tsx`, `src/app/home-dashboard-layout.tsx` | Existing names should become temporary compatibility wrappers or be deleted after call sites migrate. New code should not use dashboard-named wrappers for generic app layout. |
+| Shared layout suite | `src/components/layout/authenticated-layout.tsx`, `src/components/layout/page-layout.tsx` | New generic layout architecture: authenticated app chrome plus page header/content/footer anatomy. No record-create knowledge and no dashboard-specific naming. |
+| Unauthenticated route | `src/app/unauthenticated/page.tsx`, `src/app/unauthenticated/logout/route.ts` | Central page for app-access failures. Blocked app access redirects here through a logout route that clears the current Better Auth session before showing the reason-specific message. |
+| Record action adapter | `src/app/record-create-actions.tsx` | Owns create-record hrefs/dialog/query parsing and passes record-specific actions/dialog content into page layout slots. |
 | Member actions | `src/app/members/actions.ts` | Server actions for create invitation, update display name, maybe copy/retrieve invitation link. |
 | Member data source | `src/app/members/member-data-source.ts` or app data source extension | Read members plus latest pending invitation link for invited rows. |
 | Member page | `src/app/members/page.tsx` | Replace local prototype mutation with server-action-backed member management for authenticated route; keep preview mode only in non-production. |
@@ -535,26 +542,33 @@ Non-responsibilities:
 
 Pages and route adapters pass already-built actions as children.
 
-### Route Adapters
+### App Access Redirects
 
-`AppRouteFrame` should be a thin adapter from authenticated route context to generic layout:
+Authenticated app pages should handle access resolution explicitly:
 
-```ts
-type AppRouteFrameProps = {
-  children: ReactNode;
-  context: AuthenticatedAppRouteContext;
-  header: ReactNode;
-  footer?: ReactNode;
-  overlays?: ReactNode;
-  sidebarFooter?: ReactNode;
-};
+```tsx
+const context = await loadDashboardPageContext(...);
+
+if (context.kind === "blocked") {
+  redirectToUnauthenticated(context.view);
+}
+
+return (
+  <AuthenticatedLayout account={...} navigation={...} sidebarFooter={...}>
+    <PageLayout header={<PageHeader ... />}>
+      {content}
+    </PageLayout>
+  </AuthenticatedLayout>
+);
 ```
 
-Responsibilities:
+`redirectToUnauthenticated` redirects to `/unauthenticated/logout?reason=...`.
+That route handler signs out the current Better Auth session and then redirects
+to `/unauthenticated?reason=...`, where a shared unauthenticated page displays
+the reason-specific message.
 
-1. Handle blocked access state.
-2. Provide `AuthenticatedLayout` with sidebar account, navigation, and sidebar footer.
-3. Provide `PageLayout` with page header/content/footer/overlays.
+This keeps app-access failures outside the authenticated layout and avoids a
+generic route-frame abstraction.
 
 Record creation becomes a separate composition:
 
@@ -580,12 +594,10 @@ These belong to record-specific adapters, not shared layout.
 ### Migration Plan
 
 1. Add `AuthenticatedLayout`, `PageLayout`, `PageHeader`, and `MobileActionBar`.
-2. Rebuild `HomeDashboardLayout` as a temporary wrapper over the new layout suite, preserving current behavior.
-3. Add `AppRouteFrame` for generic authenticated routes.
+2. Migrate all `HomeDashboardLayout` and `DashboardRouteFrame` call sites to direct shared layout composition.
+3. Add `/unauthenticated` plus logout-before-redirect handling for app-access failures.
 4. Move record-create logic from `HomeDashboardLayout` into `RecordCreateActions` and `RecordCreateDialogHost`.
-5. Migrate `/members` to `AppRouteFrame` and shared layout components first.
-6. Migrate `/categories`, `/recurring`, `/reimbursements`, `/records`, and home routes.
-7. Delete or deprecate `HomeDashboardLayout` and `DashboardRouteFrame` once call sites move.
+5. Delete `HomeDashboardLayout` and `DashboardRouteFrame`.
 
 This refactor is a precondition for implementation because member management should depend on a stable shared page architecture, not on a home/ledger-specific layout that happens to be configurable enough.
 
@@ -593,11 +605,11 @@ This refactor is a precondition for implementation because member management sho
 
 Current dashboard-named modules exist because the original first screen was the household fund overview. For this slice, that naming has become misleading:
 
-- `HomeDashboardLayout` is not home-only and not a dashboard domain module; it is app chrome plus record-create convenience.
-- `DashboardRouteFrame` is not dashboard-specific; it adapts authenticated route context into app chrome and currently mixes record-create behavior.
-- `DashboardNavigationItem` should become `AppNavigationItem`.
+- `HomeDashboardLayout` was not home-only and not a dashboard domain module; it mixed app chrome with record-create convenience.
+- `DashboardRouteFrame` was not dashboard-specific; it adapted authenticated route context into app chrome and mixed record-create behavior.
+- `DashboardNavigationItem` becomes `AppNavigationItem`.
 
-Implementation should avoid adding new dashboard-named generic modules. Existing dashboard-named files may remain as temporary wrappers only if migrating every call site in one step is too risky.
+Implementation should avoid adding new dashboard-named generic modules. The old dashboard-named generic layout files are removed after call-site migration.
 
 ## Route And Authorization Boundaries
 

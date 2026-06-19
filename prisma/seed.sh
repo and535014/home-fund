@@ -37,6 +37,7 @@ if [ -z "${SEED_GOOGLE_ACCOUNT_EMAIL:-}" ]; then
 fi
 
 seed_email=$(printf "%s" "$SEED_GOOGLE_ACCOUNT_EMAIL" | sed "s/'/''/g")
+
 tmp_file=$(mktemp)
 
 cleanup() {
@@ -45,5 +46,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-sed "s/__SEED_GOOGLE_ACCOUNT_EMAIL__/$seed_email/g" prisma/seed.sql > "$tmp_file"
+sed \
+  -e "s/__SEED_GOOGLE_ACCOUNT_EMAIL__/$seed_email/g" \
+  prisma/seed.sql > "$tmp_file"
 prisma db execute --file "$tmp_file"

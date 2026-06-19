@@ -58,4 +58,22 @@ describe("startGoogleSignIn", () => {
       status: 302,
     });
   });
+
+  it("returns a login error redirect when Better Auth cannot start Google sign-in", async () => {
+    const response = await startGoogleSignIn({
+      headers: new Headers({ origin: "http://localhost:3000" }),
+      auth: {
+        api: {
+          signInSocial: async () => {
+            throw new Error("Can't reach database server at 127.0.0.1:5432");
+          },
+        },
+      },
+    });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?auth_error=google_sign_in",
+    );
+  });
 });

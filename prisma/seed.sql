@@ -9,6 +9,13 @@ ON CONFLICT ("id") DO UPDATE
 SET "name" = EXCLUDED."name",
     "updatedAt" = CURRENT_TIMESTAMP;
 
+-- Allow local seed identities to move between seeded members without hitting
+-- unique constraints from a previous seed run.
+UPDATE "Member"
+SET "googleAccountEmail" = NULL
+WHERE "googleAccountEmail" = '__SEED_GOOGLE_ACCOUNT_EMAIL__'
+  AND "id" <> 'member-admin';
+
 INSERT INTO "Member" (
   "id",
   "householdId",
@@ -22,8 +29,8 @@ VALUES
   (
     'member-admin',
     'household-demo',
-    'Admin Lin',
-    'admin@example.com',
+    'Admin',
+    '__SEED_GOOGLE_ACCOUNT_EMAIL__',
     'google-e2e-admin',
     'active',
     CURRENT_TIMESTAMP
@@ -50,7 +57,7 @@ VALUES
     'member-fin',
     'household-demo',
     'Lin',
-    '__SEED_GOOGLE_ACCOUNT_EMAIL__',
+    NULL,
     'google-e2e-linked',
     'active',
     CURRENT_TIMESTAMP
@@ -98,7 +105,7 @@ VALUES
   (
     'user-e2e-admin',
     'Admin E2E User',
-    'admin@example.com',
+    'user-e2e-admin@seed.local',
     true,
     NULL,
     CURRENT_TIMESTAMP,
@@ -107,7 +114,7 @@ VALUES
   (
     'user-e2e-linked',
     'Linked E2E User',
-    '__SEED_GOOGLE_ACCOUNT_EMAIL__',
+    'user-e2e-linked@seed.local',
     true,
     NULL,
     CURRENT_TIMESTAMP,
@@ -116,7 +123,7 @@ VALUES
   (
     'user-e2e-unlinked',
     'Unlinked E2E User',
-    'e2e-unlinked@example.com',
+    'user-e2e-unlinked@seed.local',
     true,
     NULL,
     CURRENT_TIMESTAMP,
@@ -125,7 +132,7 @@ VALUES
   (
     'user-e2e-general',
     'General E2E User',
-    'mei@example.com',
+    'user-e2e-general@seed.local',
     true,
     NULL,
     CURRENT_TIMESTAMP,
@@ -134,7 +141,7 @@ VALUES
   (
     'user-e2e-disabled',
     'Disabled E2E User',
-    'e2e-disabled@example.com',
+    'user-e2e-disabled@seed.local',
     true,
     NULL,
     CURRENT_TIMESTAMP,

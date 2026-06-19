@@ -40,6 +40,7 @@ export type HomeBlockedView = {
   title: string;
   description: string;
   primaryActionLabel: string;
+  errorCode?: string;
   errorMessage?: string;
 };
 
@@ -77,7 +78,7 @@ export function buildHomeAccessViewFromAccess(
   const { access } = input;
 
   if (!access.ok) {
-    return blockedViewFor(access.reason, input.authError);
+    return buildHomeBlockedViewFromAccess(access, input.authError);
   }
 
   const reimbursementTable = buildMonthlyReimbursementTable({
@@ -105,6 +106,13 @@ export function buildHomeAccessViewFromAccess(
     reimbursementTable,
     report,
   };
+}
+
+export function buildHomeBlockedViewFromAccess(
+  access: Exclude<ResolveHouseholdAccessResult, { ok: true }>,
+  authError?: string,
+): HomeBlockedView {
+  return blockedViewFor(access.reason, authError);
 }
 
 function buildPendingRecurringReminders(
@@ -173,19 +181,21 @@ function blockedViewFor(
 
 function authErrorMessageFor(
   authError: string | undefined,
-): Pick<HomeBlockedView, "errorMessage"> {
+): Pick<HomeBlockedView, "errorCode" | "errorMessage"> {
   if (!authError) {
     return {};
   }
 
   if (authError === "state_mismatch") {
     return {
+      errorCode: authError,
       errorMessage:
         "登入驗證狀態已失效，請重新點選 Google 登入。若仍發生，請清除 localhost 的 cookie 後再試一次。",
     };
   }
 
   return {
+    errorCode: authError,
     errorMessage: "Google 登入沒有完成，請重新嘗試。",
   };
 }

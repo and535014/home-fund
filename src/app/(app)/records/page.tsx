@@ -1,22 +1,25 @@
-import type { DashboardSearchParams } from "../dashboard-page-context";
-import { loadDashboardPageContext } from "../dashboard-page-context";
-import { DashboardRouteFrame } from "../dashboard-route-frame";
-import { RecordsTable, SummaryMetric, formatAmount } from "../dashboard-widgets";
+import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
+import type { AppSearchParams } from "@/app/route-search-params";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import { RecordsTable, SummaryMetric, formatAmount } from "@/app/dashboard-widgets";
+import { MonthSwitcher } from "@/app/month-switcher";
+import {
+  RecordCreateDialogHost,
+  RecordCreateHeaderActions,
+  RecordCreateMobileActionBar,
+  buildCreateRecordHref,
+} from "@/app/record-create-actions";
 import { Button } from "@/components/ui/button";
 
 type RecordsPageProps = {
-  searchParams?: DashboardSearchParams;
+  searchParams?: AppSearchParams;
 };
 
 export default async function RecordsPage({ searchParams }: RecordsPageProps) {
-  const context = await loadDashboardPageContext({
-    activeHref: "/records",
+  const context = await loadMonthlyWorkspaceContext({
+    returnTo: "/records",
     searchParams,
   });
-
-  if (context.kind === "blocked") {
-    return <DashboardRouteFrame context={context} title="紀錄" />;
-  }
 
   const { dashboardData, homeView, month } = context;
   const { report } = homeView;
@@ -28,7 +31,21 @@ export default async function RecordsPage({ searchParams }: RecordsPageProps) {
   );
 
   return (
-    <DashboardRouteFrame context={context} title="紀錄">
+    <PageLayout
+      footer={<RecordCreateMobileActionBar context={context} />}
+      header={
+        <PageHeader
+          actions={
+            <>
+              <MonthSwitcher currentMonth={month} />
+              <RecordCreateHeaderActions context={context} />
+            </>
+          }
+          title="紀錄"
+        />
+      }
+      overlays={<RecordCreateDialogHost context={context} />}
+    >
       <section
         aria-label="紀錄摘要"
         className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
@@ -67,12 +84,12 @@ export default async function RecordsPage({ searchParams }: RecordsPageProps) {
           </div>
           <div className="flex gap-2">
             <Button asChild size="sm" variant="secondary">
-              <a href={`/records?month=${encodeURIComponent(month)}&create=income`}>
+              <a href={buildCreateRecordHref("/records", month, "income")}>
                 新增收入
               </a>
             </Button>
             <Button asChild size="sm">
-              <a href={`/records?month=${encodeURIComponent(month)}&create=expense`}>
+              <a href={buildCreateRecordHref("/records", month, "expense")}>
                 新增支出
               </a>
             </Button>
@@ -80,6 +97,6 @@ export default async function RecordsPage({ searchParams }: RecordsPageProps) {
         </div>
         <RecordsTable categoryNames={categoryNames} records={monthRecords} />
       </section>
-    </DashboardRouteFrame>
+    </PageLayout>
   );
 }

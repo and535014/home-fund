@@ -3,7 +3,17 @@ set -eu
 
 e2e_db_name="${E2E_DB_NAME:-home_fund_e2e}"
 e2e_database_url="${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/home_fund_e2e}"
-seed_email="${SEED_GOOGLE_ACCOUNT_EMAIL:-e2e-finance@example.com}"
+seed_email="${E2E_SEED_GOOGLE_ACCOUNT_EMAIL:-admin@e2e.local}"
+
+if [ -f e2e/.env ]; then
+  set -a
+  . ./e2e/.env
+  set +a
+fi
+
+e2e_db_name="${E2E_DB_NAME:-$e2e_db_name}"
+e2e_database_url="${E2E_DATABASE_URL:-$e2e_database_url}"
+seed_email="${E2E_SEED_GOOGLE_ACCOUNT_EMAIL:-$seed_email}"
 
 if ! docker info >/dev/null 2>&1; then
   echo "Docker daemon is not running. Start Docker Desktop, then run: docker compose up -d" >&2

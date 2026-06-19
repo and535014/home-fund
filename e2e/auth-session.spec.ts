@@ -5,8 +5,12 @@ test("keeps unauthenticated users on the Google sign-in gate", async ({
 }) => {
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/login/u);
   await expect(page.getByRole("heading", {
-    name: "請先使用 Google 登入",
+    name: "使用 Google 登入",
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "使用 Google 登入",
   })).toBeVisible();
   await expect(page.getByRole("heading", {
     name: "家庭資金總覽",
@@ -37,8 +41,12 @@ test("blocks a controlled Google user that is not linked to a member", async ({
 
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/unauthenticated\?reason=google_account_not_linked/u);
   await expect(page.getByRole("heading", {
     name: "找不到家庭成員帳號",
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "使用 Google 登入",
   })).toBeVisible();
   await expect(page.getByText("確認收入")).toHaveCount(0);
 });
@@ -52,8 +60,12 @@ test("blocks a controlled Google user linked to an inactive member", async ({
 
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/unauthenticated\?reason=member_not_active/u);
   await expect(page.getByRole("heading", {
     name: "帳號尚未啟用",
   })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "使用 Google 登入",
+  })).toHaveCount(0);
   await expect(page.getByText("確認收入")).toHaveCount(0);
 });

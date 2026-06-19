@@ -11,6 +11,7 @@ test("admin can open category management from the sidebar", async ({ page }) => 
   await expect(page.getByRole("link", { name: "分類" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "分類" })).toBeVisible();
   await expect(page.getByText("啟用中的分類可用於新增收入或支出")).toBeVisible();
+  await expect(page.getByRole("button", { name: "登出" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /啟用分類/u })).toBeVisible();
   await expect(page.getByRole("tab", { name: /封存分類/u })).toBeVisible();
@@ -26,9 +27,8 @@ test("non-admin members cannot discover or browse category management", async ({
   await expect(page.getByRole("link", { name: "分類" })).toHaveCount(0);
 
   await page.goto("/categories");
-  await expect(page.getByRole("heading", {
-    name: "無法瀏覽分類管理",
-  })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect(page.getByRole("heading", { name: "家庭資金總覽" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toHaveCount(0);
 
   await signInAsGeneralMember(page);
@@ -36,9 +36,8 @@ test("non-admin members cannot discover or browse category management", async ({
   await expect(page.getByRole("link", { name: "分類" })).toHaveCount(0);
 
   await page.goto("/categories");
-  await expect(page.getByRole("heading", {
-    name: "無法瀏覽分類管理",
-  })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/u);
+  await expect(page.getByRole("heading", { name: "家庭資金總覽" })).toBeVisible();
 });
 
 test("admin creates a category without using URL state to open the modal", async ({

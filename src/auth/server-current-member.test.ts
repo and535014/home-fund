@@ -54,6 +54,26 @@ describe("resolveCurrentMemberFromRequest", () => {
     });
   });
 
+  it("returns unauthenticated when Better Auth cannot read the session", async () => {
+    await expect(resolveCurrentMemberFromRequest({
+      headers: new Headers(),
+      auth: {
+        api: {
+          getSession: async () => {
+            throw new Error("Failed to get session");
+          },
+        },
+      },
+      dataSource: {
+        listAccountsForUser: vi.fn(),
+        listHouseholdMembers: vi.fn(),
+      },
+    })).resolves.toEqual({
+      ok: false,
+      reason: "unauthenticated",
+    });
+  });
+
   it("resolves the session user through the current-member data source", async () => {
     await expect(resolveCurrentMemberFromRequest({
       headers: new Headers(),

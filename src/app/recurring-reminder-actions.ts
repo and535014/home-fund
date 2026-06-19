@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
+import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import { confirmRecurringOccurrenceInDatabase } from "@/modules/recurring-schedule/recurring-confirmation-command";
 import { readDashboardMonth } from "./month-selection";
@@ -17,16 +16,10 @@ export async function confirmRecurringReminderAction(formData: FormData) {
     redirect(recurringReminderRedirectUrl(returnTo, month, "missing_occurrence"));
   }
 
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(recurringReminderRedirectUrl(returnTo, month, "permission_denied"));
-  }
+  const session = await requireAuthenticatedMember();
 
   const result = await confirmRecurringOccurrenceInDatabase(
-    currentMember.member,
+    session.access.member,
     { occurrenceId },
     { prisma: getPrismaClient() },
   );

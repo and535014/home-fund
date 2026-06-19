@@ -4,10 +4,8 @@ import {
   Archive,
   Edit3,
   Loader2,
-  ShieldAlert,
   Tags,
 } from "lucide-react";
-import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -70,9 +68,7 @@ type CategoryManagementPanelProps = {
   categories: EditableCategory[];
   categoryResult?: CategoryResult;
   createAction?: CategoryFormAction;
-  isAdmin: boolean;
   renameAction?: CategoryFormAction;
-  roleLabel: string;
 };
 
 const OPEN_CATEGORY_CREATE_EVENT = "home-fund:open-category-create";
@@ -104,9 +100,7 @@ export function CategoryManagementPanel({
   categories,
   categoryResult,
   createAction,
-  isAdmin,
   renameAction,
-  roleLabel,
 }: CategoryManagementPanelProps) {
   const [editableCategories, setEditableCategories] = useState(categories);
   const [newType, setNewType] = useState<CategoryType>("expense");
@@ -145,10 +139,6 @@ export function CategoryManagementPanel({
 
   useEffect(() => {
     function openCreateDialog() {
-      if (!isAdmin) {
-        return;
-      }
-
       setIsCreateDialogOpen(true);
     }
 
@@ -156,7 +146,7 @@ export function CategoryManagementPanel({
     return () => {
       window.removeEventListener(OPEN_CATEGORY_CREATE_EVENT, openCreateDialog);
     };
-  }, [isAdmin]);
+  }, []);
 
   function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
     if (isServerBacked) {
@@ -164,11 +154,6 @@ export function CategoryManagementPanel({
     }
 
     event.preventDefault();
-
-    if (!isAdmin) {
-      toast.error("只有管理者可以新增分類。");
-      return;
-    }
 
     const normalizedName = newName.trim();
 
@@ -210,11 +195,6 @@ export function CategoryManagementPanel({
   }
 
   function submitRenameCategory(category: EditableCategory) {
-    if (!isAdmin) {
-      toast.error("只有管理者可以修改分類。");
-      return;
-    }
-
     const normalizedName = editingName.trim();
 
     if (!normalizedName) {
@@ -252,11 +232,6 @@ export function CategoryManagementPanel({
   }
 
   function confirmArchiveCategory(category: EditableCategory) {
-    if (!isAdmin) {
-      toast.error("只有管理者可以封存分類。");
-      return;
-    }
-
     setEditableCategories((currentCategories) =>
       currentCategories.map((candidate) =>
         candidate.id === category.id
@@ -270,10 +245,6 @@ export function CategoryManagementPanel({
       description: "既有紀錄仍會保留原分類。",
       id: `archive-category-${category.id}`,
     });
-  }
-
-  if (!isAdmin) {
-    return <DeniedCategoryAccess roleLabel={roleLabel} />;
   }
 
   return (
@@ -416,34 +387,6 @@ export function CategoryManagementPanel({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function DeniedCategoryAccess({ roleLabel }: { roleLabel: string }) {
-  return (
-    <section aria-labelledby="denied-title" className="mt-5">
-      <Card>
-        <CardContent className="grid min-h-72 place-items-center text-center">
-          <div className="max-w-md">
-            <ShieldAlert
-              aria-hidden="true"
-              className="mx-auto mb-4 text-destructive"
-              size={34}
-            />
-            <Badge variant="destructive">{roleLabel}</Badge>
-            <h3 id="denied-title" className="mt-4 text-subheading">
-              無法瀏覽分類管理
-            </h3>
-            <p className="mt-2 text-body text-muted-foreground">
-              只有管理者可以看到分類入口，並新增、修改或封存收入與支出分類。
-            </p>
-            <Button asChild className="mt-5" variant="secondary">
-              <Link href="/">返回月報</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </section>
   );
 }
 

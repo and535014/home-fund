@@ -132,9 +132,9 @@ https://your-app.vercel.app/api/auth/callback/google
 
 #### `SEED_GOOGLE_ACCOUNT_EMAIL`
 
-本機 seed 會用這個 email 建立一個 active member，讓 Google 登入後可以對應到家庭成員。
+本機 seed 會用這個 email 建立 admin member，讓 Google 登入後可以對應到管理者權限。
 
-請填入你實際會拿來登入的 Google email：
+請填入你實際會拿來登入並管理服務的 Google email：
 
 ```env
 SEED_GOOGLE_ACCOUNT_EMAIL="you@example.com"
@@ -237,6 +237,10 @@ corepack pnpm test:e2e
 `home_fund_e2e` database、套用 migration、匯入 deterministic seed，並用
 production-disabled controlled auth header 驗證 current-member mapping，
 dashboard 資料會從 Prisma 讀取：
+
+E2E 專用 DB/env 放在 `e2e/.env`，不要放進一般 `.env.local`。可從
+`e2e/.env.example` 複製；Playwright server 會用 `E2E_DATABASE_URL`
+連到 E2E DB，不會使用本機 app 的 `DATABASE_URL`。
 
 ```sh
 docker compose up -d

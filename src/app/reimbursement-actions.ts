@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
+import { requireServerActionAccess } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import { markExpensesReimbursedInDatabase } from "@/modules/reimbursement/reimbursement-command";
 import { readDashboardMonth } from "./month-selection";
@@ -14,16 +13,12 @@ export async function markExpensesReimbursedAction(formData: FormData) {
   const selectedExpenseIds = formData
     .getAll("selectedExpenseIds")
     .filter((value): value is string => typeof value === "string");
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(reimbursementRedirectUrl(returnTo, month, "permission_denied"));
-  }
+  const session = await requireServerActionAccess({
+    type: "perform_reimbursement",
+  });
 
   const result = await markExpensesReimbursedInDatabase(
-    currentMember.member,
+    session.access.member,
     { selectedExpenseIds },
     { prisma: getPrismaClient() },
   );

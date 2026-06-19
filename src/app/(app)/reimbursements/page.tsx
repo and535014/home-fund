@@ -1,28 +1,30 @@
-import type { DashboardSearchParams } from "../dashboard-page-context";
+import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
 import {
-  loadDashboardPageContext,
   readSearchParam,
-} from "../dashboard-page-context";
-import { DashboardRouteFrame } from "../dashboard-route-frame";
-import { SummaryMetric, formatAmount } from "../dashboard-widgets";
-import { markExpensesReimbursedAction } from "../reimbursement-actions";
-import { ReimbursementSettlementPanel } from "../reimbursement-settlement-panel";
+  type AppSearchParams,
+} from "@/app/route-search-params";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import { SummaryMetric, formatAmount } from "@/app/dashboard-widgets";
+import { MonthSwitcher } from "@/app/month-switcher";
+import {
+  RecordCreateDialogHost,
+  RecordCreateHeaderActions,
+  RecordCreateMobileActionBar,
+} from "@/app/record-create-actions";
+import { markExpensesReimbursedAction } from "@/app/reimbursement-actions";
+import { ReimbursementSettlementPanel } from "@/app/reimbursement-settlement-panel";
 
 type ReimbursementsPageProps = {
-  searchParams?: DashboardSearchParams;
+  searchParams?: AppSearchParams;
 };
 
 export default async function ReimbursementsPage({
   searchParams,
 }: ReimbursementsPageProps) {
-  const context = await loadDashboardPageContext({
-    activeHref: "/reimbursements",
+  const context = await loadMonthlyWorkspaceContext({
+    returnTo: "/reimbursements",
     searchParams,
   });
-
-  if (context.kind === "blocked") {
-    return <DashboardRouteFrame context={context} title="退款" />;
-  }
 
   const { homeView, month } = context;
   const reimbursementTable = homeView.reimbursementTable;
@@ -35,7 +37,21 @@ export default async function ReimbursementsPage({
   );
 
   return (
-    <DashboardRouteFrame context={context} title="退款">
+    <PageLayout
+      footer={<RecordCreateMobileActionBar context={context} />}
+      header={
+        <PageHeader
+          actions={
+            <>
+              <MonthSwitcher currentMonth={month} />
+              <RecordCreateHeaderActions context={context} />
+            </>
+          }
+          title="退款"
+        />
+      }
+      overlays={<RecordCreateDialogHost context={context} />}
+    >
       <section
         aria-label="退款摘要"
         className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
@@ -69,7 +85,7 @@ export default async function ReimbursementsPage({
           returnTo="/reimbursements"
         />
       </div>
-    </DashboardRouteFrame>
+    </PageLayout>
   );
 }
 

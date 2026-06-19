@@ -43,14 +43,30 @@ const defaultRuntimeFactories: CurrentMemberRuntimeFactories = {
 export async function resolveCurrentMemberFromRequest(
   input: ResolveCurrentMemberFromRequestInput,
 ) {
-  const session = await input.auth.api.getSession({
-    headers: input.headers,
-  });
+  const session = await getAuthSession(input.auth, input.headers);
+
+  if (!session) {
+    return {
+      ok: false as const,
+      reason: "unauthenticated" as const,
+    };
+  }
 
   return resolveCurrentMember({
-    user: session?.user ?? null,
+    user: session.user,
     dataSource: input.dataSource,
   });
+}
+
+async function getAuthSession(
+  auth: CurrentMemberAuthApi,
+  headers: Headers,
+): Promise<AuthSessionResult> {
+  try {
+    return await auth.api.getSession({ headers });
+  } catch {
+    return null;
+  }
 }
 
 export async function getCurrentMember(request: Request) {

@@ -3,6 +3,12 @@ set -eu
 
 tmp_dir="$(mktemp -d)"
 
+if [ -f e2e/.env ]; then
+  set -a
+  . ./e2e/.env
+  set +a
+fi
+
 cp next-env.d.ts "$tmp_dir/next-env.d.ts"
 cp tsconfig.json "$tmp_dir/tsconfig.json"
 

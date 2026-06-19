@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
+import { requireServerActionAccess } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import {
   archiveCategoryInDatabase,
@@ -21,16 +20,10 @@ export async function createCategoryAction(formData: FormData) {
     redirect(categoryRedirectUrl(returnTo, "invalid_name", "create"));
   }
 
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(categoryRedirectUrl(returnTo, "permission_denied", "create"));
-  }
+  const session = await requireServerActionAccess({ type: "manage_categories" });
 
   const result = await createCategoryInDatabase(
-    currentMember.member,
+    session.access.member,
     { type, name },
     { prisma: getPrismaClient() },
   );
@@ -52,16 +45,10 @@ export async function renameCategoryAction(formData: FormData) {
     redirect(categoryRedirectUrl(returnTo, "category_not_found", "rename"));
   }
 
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(categoryRedirectUrl(returnTo, "permission_denied", "rename"));
-  }
+  const session = await requireServerActionAccess({ type: "manage_categories" });
 
   const result = await renameCategoryInDatabase(
-    currentMember.member,
+    session.access.member,
     { categoryId, name },
     { prisma: getPrismaClient() },
   );
@@ -82,16 +69,10 @@ export async function archiveCategoryAction(formData: FormData) {
     redirect(categoryRedirectUrl(returnTo, "category_not_found", "archive"));
   }
 
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(categoryRedirectUrl(returnTo, "permission_denied", "archive"));
-  }
+  const session = await requireServerActionAccess({ type: "manage_categories" });
 
   const result = await archiveCategoryInDatabase(
-    currentMember.member,
+    session.access.member,
     { categoryId },
     { prisma: getPrismaClient() },
   );

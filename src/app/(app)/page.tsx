@@ -1,31 +1,33 @@
 import { ArrowRight } from "lucide-react";
-import type { DashboardSearchParams } from "./dashboard-page-context";
+import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
 import {
-  loadDashboardPageContext,
   readSearchParam,
-} from "./dashboard-page-context";
-import { DashboardRouteFrame } from "./dashboard-route-frame";
+  type AppSearchParams,
+} from "@/app/route-search-params";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import {
   formatAmount,
   RecordsTable,
   SummaryMetric,
-} from "./dashboard-widgets";
+} from "@/app/dashboard-widgets";
+import { MonthSwitcher } from "@/app/month-switcher";
+import {
+  RecordCreateDialogHost,
+  RecordCreateHeaderActions,
+  RecordCreateMobileActionBar,
+} from "@/app/record-create-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 type HomePageProps = {
-  searchParams?: DashboardSearchParams;
+  searchParams?: AppSearchParams;
 };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const context = await loadDashboardPageContext({
-    activeHref: "/",
+  const context = await loadMonthlyWorkspaceContext({
+    returnTo: "/",
     searchParams,
   });
-
-  if (context.kind === "blocked") {
-    return <DashboardRouteFrame context={context} title="家庭資金總覽" />;
-  }
 
   const { dashboardData, homeView, month } = context;
   const { pendingRecurringReminders, reimbursementTable, report } = homeView;
@@ -43,7 +45,21 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const recurringFeedback = readSearchParam(context.rawSearchParams, "recurring");
 
   return (
-    <DashboardRouteFrame context={context} title="家庭資金總覽">
+    <PageLayout
+      footer={<RecordCreateMobileActionBar context={context} />}
+      header={
+        <PageHeader
+          actions={
+            <>
+              <MonthSwitcher currentMonth={month} />
+              <RecordCreateHeaderActions context={context} />
+            </>
+          }
+          title="家庭資金總覽"
+        />
+      }
+      overlays={<RecordCreateDialogHost context={context} />}
+    >
       <section
         aria-label="月報摘要"
         className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
@@ -171,7 +187,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </Card>
         </section>
       </div>
-    </DashboardRouteFrame>
+    </PageLayout>
   );
 }
 

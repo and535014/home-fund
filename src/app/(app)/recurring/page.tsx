@@ -1,31 +1,33 @@
-import type { DashboardSearchParams } from "../dashboard-page-context";
+import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
 import {
-  loadDashboardPageContext,
   readSearchParam,
-} from "../dashboard-page-context";
-import { DashboardRouteFrame } from "../dashboard-route-frame";
-import { SummaryMetric } from "../dashboard-widgets";
-import { confirmRecurringReminderAction } from "../recurring-reminder-actions";
+  type AppSearchParams,
+} from "@/app/route-search-params";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import { SummaryMetric } from "@/app/dashboard-widgets";
+import { MonthSwitcher } from "@/app/month-switcher";
+import {
+  RecordCreateDialogHost,
+  RecordCreateHeaderActions,
+  RecordCreateMobileActionBar,
+} from "@/app/record-create-actions";
+import { confirmRecurringReminderAction } from "@/app/recurring-reminder-actions";
 import {
   recurringReminderFeedbackValues,
   type RecurringReminderFeedback,
-} from "../recurring-reminder-feedback";
-import { RecurringReminderConfirmationPanel } from "../recurring-reminder-confirmation-panel";
+} from "@/app/recurring-reminder-feedback";
+import { RecurringReminderConfirmationPanel } from "@/app/recurring-reminder-confirmation-panel";
 import { Card, CardContent } from "@/components/ui/card";
 
 type RecurringPageProps = {
-  searchParams?: DashboardSearchParams;
+  searchParams?: AppSearchParams;
 };
 
 export default async function RecurringPage({ searchParams }: RecurringPageProps) {
-  const context = await loadDashboardPageContext({
-    activeHref: "/recurring",
+  const context = await loadMonthlyWorkspaceContext({
+    returnTo: "/recurring",
     searchParams,
   });
-
-  if (context.kind === "blocked") {
-    return <DashboardRouteFrame context={context} title="週期" />;
-  }
 
   const { dashboardData, homeView, month } = context;
   const recurringFeedback = readRecurringReminderFeedback(
@@ -33,7 +35,21 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
   );
 
   return (
-    <DashboardRouteFrame context={context} title="週期">
+    <PageLayout
+      footer={<RecordCreateMobileActionBar context={context} />}
+      header={
+        <PageHeader
+          actions={
+            <>
+              <MonthSwitcher currentMonth={month} />
+              <RecordCreateHeaderActions context={context} />
+            </>
+          }
+          title="週期"
+        />
+      }
+      overlays={<RecordCreateDialogHost context={context} />}
+    >
       <section
         aria-label="週期摘要"
         className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
@@ -78,7 +94,7 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
           </Card>
         </section>
       </div>
-    </DashboardRouteFrame>
+    </PageLayout>
   );
 }
 

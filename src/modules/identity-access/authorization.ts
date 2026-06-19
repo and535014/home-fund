@@ -81,7 +81,7 @@ export function authorize(
   }
 
   if (command.type === "perform_reimbursement") {
-    return hasRole(member, "finance_manager")
+    return hasRole(member, "admin") || hasRole(member, "finance_manager")
       ? { allowed: true }
       : { allowed: false, reason: "finance_manager_required" };
   }

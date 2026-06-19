@@ -106,11 +106,14 @@ describe("authorize", () => {
     ).toEqual({ allowed: true });
   });
 
-  it("allows only finance managers to perform reimbursement", () => {
+  it("allows admins and finance managers to perform reimbursement", () => {
+    expect(authorize(admin, command("perform_reimbursement"))).toEqual({
+      allowed: true,
+    });
     expect(authorize(financeManager, command("perform_reimbursement"))).toEqual({
       allowed: true,
     });
-    expect(authorize(admin, command("perform_reimbursement"))).toEqual({
+    expect(authorize(generalMember, command("perform_reimbursement"))).toEqual({
       allowed: false,
       reason: "finance_manager_required",
     });

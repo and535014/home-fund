@@ -28,6 +28,7 @@ trace_links:
   - .ai/prototype/admin-google-oauth-member-invitations.md
   - .ai/spec/admin-google-oauth-member-invitations.md
   - .ai/technical-design/admin-google-oauth-member-invitations.md
+  - .ai/implementation/admin-google-oauth-member-invitations.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -134,8 +135,8 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-google-oauth-member-invitations.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin Google OAuth and member invitations Feature Technical Design is drafted and awaiting review.
-- recommended_resume_gate: TDD Implementation for admin-google-oauth-member-invitations after explicit user approval.
+- current_stage: admin Google OAuth and member invitations TDD Implementation is in progress; shared authenticated layout extraction and `/members` migration are complete.
+- recommended_resume_gate: Continue TDD Implementation for admin-google-oauth-member-invitations.
 - recommended_next_skill: tdd-implementation.
 
 ## Artifact Inventory
@@ -149,7 +150,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - experience-design/prototype: completed admin-only category management prototype is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - architecture/technical-design: admin Google OAuth and member invitations design is drafted at `.ai/technical-design/admin-google-oauth-member-invitations.md`; completed admin-only category management design is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - behavior specs: admin Google OAuth and member invitations spec is drafted at `.ai/spec/admin-google-oauth-member-invitations.md`; completed admin-only category management spec is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; remaining story specs stay active for future slice selection.
-- implementation: completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- implementation: admin Google OAuth and member invitations implementation is in progress at `.ai/implementation/admin-google-oauth-member-invitations.md`; completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - verification: completed admin-only category management verification is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` and supports `local_dev`; completed prior verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
@@ -163,5 +164,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: review `.ai/technical-design/admin-google-oauth-member-invitations.md`, then approve TDD Implementation for the admin Google OAuth and member invitations slice.
+- Smallest next path: continue TDD Implementation for persisted member invitations or real Google OAuth invitation callback wiring.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.

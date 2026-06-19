@@ -4,7 +4,6 @@ import {
   Copy,
   Edit3,
   MailPlus,
-  ShieldAlert,
 } from "lucide-react";
 import {
   useEffect,
@@ -20,12 +19,6 @@ import {
 } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -68,9 +61,7 @@ export type PrototypeMember = {
 };
 
 type MemberManagementPrototypeProps = {
-  canManageMembers: boolean;
   members: PrototypeMember[];
-  roleLabel: string;
 };
 
 const statusLabels: Record<PrototypeMemberStatus, string> = {
@@ -109,9 +100,7 @@ export function InviteMemberHeaderButton({
 }
 
 export function MemberManagementPrototype({
-  canManageMembers,
   members,
-  roleLabel,
 }: MemberManagementPrototypeProps) {
   const [editableMembers, setEditableMembers] = useState(members);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -124,10 +113,6 @@ export function MemberManagementPrototype({
 
   useEffect(() => {
     function openInviteDialog() {
-      if (!canManageMembers) {
-        return;
-      }
-
       setIsInviteDialogOpen(true);
     }
 
@@ -135,15 +120,10 @@ export function MemberManagementPrototype({
     return () => {
       window.removeEventListener(OPEN_MEMBER_INVITE_EVENT, openInviteDialog);
     };
-  }, [canManageMembers]);
+  }, []);
 
   function submitInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!canManageMembers) {
-      toast.error("只有管理者可以邀請成員。");
-      return;
-    }
 
     const normalizedEmail = inviteEmail.trim().toLowerCase();
     const displayName = displayNameFromEmail(normalizedEmail);
@@ -224,22 +204,6 @@ export function MemberManagementPrototype({
     toast.success("顯示名稱已更新", {
       description: `${nextName} 會成為所有人看到的名稱。`,
     });
-  }
-
-  if (!canManageMembers) {
-    return (
-      <Card aria-labelledby="members-denied-title" className="max-w-2xl">
-        <CardHeader>
-          <CardTitle id="members-denied-title" className="flex items-center gap-2">
-            <ShieldAlert aria-hidden="true" size={20} />
-            只有管理者可以管理成員
-          </CardTitle>
-          <CardDescription>
-            目前角色：{roleLabel}。你仍可使用家庭共用金功能，但不能邀請成員或修改顯示名稱。
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
   }
 
   return (

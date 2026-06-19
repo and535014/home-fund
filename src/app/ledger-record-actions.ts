@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCurrentMemberFromHeaders } from "@/auth/server-current-member";
+import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import {
   createLedgerRecordInDatabase,
@@ -19,16 +18,10 @@ export async function createLedgerRecordAction(formData: FormData) {
     redirect(createRecordRedirectUrl(returnTo, parsed.month, parsed.reason, createIntent));
   }
 
-  const currentMember = await getCurrentMemberFromHeaders(
-    new Headers(await headers()),
-  );
-
-  if (!currentMember.ok) {
-    redirect(createRecordRedirectUrl(returnTo, parsed.month, "permission_denied", createIntent));
-  }
+  const session = await requireAuthenticatedMember();
 
   const result = await createLedgerRecordInDatabase(
-    currentMember.member,
+    session.access.member,
     parsed.command,
     {
       prisma: getPrismaClient(),

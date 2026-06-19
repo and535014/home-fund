@@ -75,7 +75,7 @@ describe("buildAccessHints", () => {
         canManageCategories: true,
         canManageRecurring: true,
         canDeleteRecordsForOthers: true,
-        canPerformReimbursement: false,
+        canPerformReimbursement: true,
       },
     });
   });
