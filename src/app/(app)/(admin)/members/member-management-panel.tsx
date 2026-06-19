@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type {
+  CreatedInvitationResult,
   MemberManagementMember,
   MemberResult,
 } from "@/app/member-management-context";
@@ -53,6 +54,8 @@ import type {
 type MemberFormAction = (formData: FormData) => void | Promise<void>;
 
 type MemberManagementPanelProps = {
+  createInvitationAction?: MemberFormAction;
+  createdInvitation?: CreatedInvitationResult;
   memberResult?: MemberResult;
   members: MemberManagementMember[];
   updateDisplayNameAction?: MemberFormAction;
@@ -94,15 +97,23 @@ export function InviteMemberHeaderButton({
 }
 
 export function MemberManagementPanel({
+  createInvitationAction,
+  createdInvitation,
   memberResult,
   members,
   updateDisplayNameAction,
 }: MemberManagementPanelProps) {
   const [editableMembers, setEditableMembers] = useState(members);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(
+    Boolean(createdInvitation),
+  );
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState("");
-  const [invitedEmail, setInvitedEmail] = useState("");
+  const [inviteLink, setInviteLink] = useState(
+    createdInvitation?.invitationLink ?? "",
+  );
+  const [invitedEmail, setInvitedEmail] = useState(
+    createdInvitation?.email ?? "",
+  );
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
   const editingMember = editableMembers.find((member) => member.id === editingMemberId);
@@ -112,11 +123,15 @@ export function MemberManagementPanel({
       return;
     }
 
-    showMemberResultToast(memberResult);
+    if (memberResult !== "invited") {
+      showMemberResultToast(memberResult);
+    }
 
     const url = new URL(window.location.href);
     url.searchParams.delete("memberResult");
     url.searchParams.delete("memberAction");
+    url.searchParams.delete("inviteEmail");
+    url.searchParams.delete("inviteLink");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
   }, [memberResult]);
 
@@ -132,20 +147,28 @@ export function MemberManagementPanel({
   }, []);
 
   function submitInvite(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
     const normalizedEmail = inviteEmail.trim().toLowerCase();
-    const nextInviteLink = buildInviteLink(normalizedEmail);
 
-    if (!normalizedEmail.includes("@")) {
+    if (!isLikelyEmail(normalizedEmail)) {
+      event.preventDefault();
       toast.error("請輸入有效的 Google email。");
       return;
     }
 
     if (editableMembers.some((member) => member.email.toLowerCase() === normalizedEmail)) {
+      event.preventDefault();
       toast.error("這個 Google email 已經在成員清單中。");
       return;
     }
+
+    if (createInvitationAction) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextInviteLink = toAbsoluteInviteLink(
+      `/invite/accept?token=${encodeURIComponent(`preview-${Date.now()}-${normalizedEmail}`)}`,
+    );
 
     setEditableMembers((currentMembers) => [
       {
@@ -169,7 +192,7 @@ export function MemberManagementPanel({
     }
 
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(toAbsoluteInviteLink(link));
       toast.success("邀請連結已複製");
     } catch {
       toast.error("無法自動複製，請手動選取連結。");
@@ -357,13 +380,19 @@ export function MemberManagementPanel({
                   輸入要加入家庭共用金服務的 Google email。
                 </DialogDescription>
               </DialogHeader>
-              <form className="grid gap-4" onSubmit={submitInvite}>
+              <form
+                action={createInvitationAction}
+                className="grid gap-4"
+                onSubmit={submitInvite}
+              >
+                <input name="returnTo" type="hidden" value="/members" />
                 <FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="invite-email">Google email</FieldLabel>
                     <Input
                       id="invite-email"
                       inputMode="email"
+                      name="googleEmail"
                       onChange={(event) => setInviteEmail(event.target.value)}
                       placeholder="mei@example.com"
                       type="email"
@@ -449,27 +478,22 @@ function StatusBadge({ status }: { status: MemberManagementMember["status"] }) {
   return <Badge variant={variant}>{statusLabels[status]}</Badge>;
 }
 
-function buildInviteLink(email: string): string {
-  const token = encodeURIComponent(`preview-${Date.now()}-${email}`);
-  const origin = window.location.origin;
-
-  return `${origin}/invite/accept?token=${token}`;
-}
-
 function memberInitials(displayName: string): string {
   return displayName.trim().slice(0, 2).toUpperCase() || "成員";
 }
 
-function showMemberResultToast(result: MemberResult) {
+function showMemberResultToast(result: Exclude<MemberResult, "invited">) {
   if (result === "renamed") {
     toast.success("顯示名稱已更新");
     return;
   }
 
-  const messages: Record<Exclude<MemberResult, "renamed">, string> = {
+  const messages: Record<Exclude<MemberResult, "invited" | "renamed">, string> = {
     cannot_remove_last_admin: "至少需要保留一位管理者。",
     duplicate_google_account_email: "這個 Google email 已經在成員清單中。",
+    invalid_email: "請輸入有效的 Google email。",
     invalid_display_name: "顯示名稱不能空白。",
+    member_already_active: "這個 Google email 已經是啟用成員。",
     member_must_have_role: "成員至少需要一個角色。",
     member_not_found: "找不到這位成員。",
     permission_denied: "你沒有權限管理成員。",
@@ -477,4 +501,12 @@ function showMemberResultToast(result: MemberResult) {
   };
 
   toast.error(messages[result]);
+}
+
+function isLikelyEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email);
+}
+
+function toAbsoluteInviteLink(link: string): string {
+  return new URL(link, window.location.origin).toString();
 }

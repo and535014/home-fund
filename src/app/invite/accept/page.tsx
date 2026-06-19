@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getPrismaClient } from "@/db/prisma";
+import { validateMemberInvitationTokenInDatabase } from "@/modules/identity-access/member-invitation-command";
 
 type InviteAcceptPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -19,6 +21,11 @@ export default async function InviteAcceptPage({
   const resolvedSearchParams = await searchParams;
   const token = readSearchParam(resolvedSearchParams, "token");
   const error = readSearchParam(resolvedSearchParams, "auth_error");
+  const invitationState = await validateMemberInvitationTokenInDatabase(token, {
+    prisma: getPrismaClient(),
+  });
+  const tokenError = invitationState.ok ? undefined : invitationState.reason;
+  const canSubmit = invitationState.ok;
 
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 py-8 text-foreground">
@@ -35,17 +42,17 @@ export default async function InviteAcceptPage({
           <p className="text-body text-muted-foreground">
             請使用收到邀請的 Google 帳號登入，登入後會繼續完成加入流程。
           </p>
-          {!token ? (
+          {tokenError ? (
             <Alert className="mt-4 text-body" role="alert" variant="destructive">
               <AlertDescription>
-                這個邀請連結缺少 token，請向管理者索取新的邀請連結。
+                {inviteTokenErrorMessage(tokenError)}
               </AlertDescription>
             </Alert>
           ) : null}
           {error ? (
             <Alert className="mt-4 text-body" role="alert" variant="destructive">
               <AlertDescription>
-                Google 登入沒有完成，請確認帳號或重新嘗試。
+                {inviteAuthErrorMessage(error)}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -53,7 +60,7 @@ export default async function InviteAcceptPage({
             <input name="inviteToken" type="hidden" value={token ?? ""} />
             <Button
               className="mt-5 w-full"
-              disabled={!token}
+              disabled={!canSubmit}
               size="lg"
               type="submit"
             >
@@ -65,6 +72,37 @@ export default async function InviteAcceptPage({
       </Card>
     </main>
   );
+}
+
+function inviteTokenErrorMessage(
+  reason:
+    | "missing_token"
+    | "invalid_invite"
+    | "expired_invite"
+    | "accepted_invite"
+    | "revoked_invite",
+): string {
+  const messages = {
+    accepted_invite: "這個邀請連結已經使用過，請直接登入或向管理者確認。",
+    expired_invite: "這個邀請連結已過期，請向管理者索取新的邀請連結。",
+    invalid_invite: "這個邀請連結無效，請向管理者索取新的邀請連結。",
+    missing_token: "這個邀請連結缺少 token，請向管理者索取新的邀請連結。",
+    revoked_invite: "這個邀請連結已撤銷，請向管理者索取新的邀請連結。",
+  };
+
+  return messages[reason];
+}
+
+function inviteAuthErrorMessage(error: string): string {
+  const messages: Record<string, string> = {
+    accepted_invite: "這個邀請連結已經使用過，請直接登入或向管理者確認。",
+    expired_invite: "這個邀請連結已過期，請向管理者索取新的邀請連結。",
+    invalid_invite: "這個邀請連結無效，請向管理者索取新的邀請連結。",
+    revoked_invite: "這個邀請連結已撤銷，請向管理者索取新的邀請連結。",
+    wrong_google_account: "請使用收到邀請的 Google 帳號登入。",
+  };
+
+  return messages[error] ?? "Google 登入沒有完成，請確認帳號或重新嘗試。";
 }
 
 function readSearchParam(

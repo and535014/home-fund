@@ -24,6 +24,12 @@ enum MemberCapability {
   manage_recurring
 }
 
+enum MemberInvitationStatus {
+  pending
+  accepted
+  revoked
+}
+
 enum CategoryType {
   income
   expense
@@ -69,6 +75,7 @@ model Household {
   updatedAt DateTime @updatedAt
 
   members              Member[]
+  memberInvitations    MemberInvitation[]
   categories           Category[]
   ledgerRecords        LedgerRecord[]
   recurringRules       RecurringRule[]
@@ -95,8 +102,33 @@ model Member {
   sourcedIncomeRecords LedgerRecord[]               @relation("IncomeSourceMember")
   paidExpenseRecords   LedgerRecord[]               @relation("ExpensePayerMember")
   reimbursementBatches ReimbursementBatch[]         @relation("ReimbursementBatchActor")
+  createdInvitations   MemberInvitation[]           @relation("MemberInvitationCreator")
+  invitations          MemberInvitation[]           @relation("MemberInvitationTarget")
 
   @@index([householdId])
+}
+
+model MemberInvitation {
+  id                 String                 @id @default(cuid())
+  householdId        String
+  memberId           String
+  googleAccountEmail String
+  tokenHash          String                 @unique
+  previewToken       String?
+  status             MemberInvitationStatus @default(pending)
+  expiresAt          DateTime
+  acceptedAt         DateTime?
+  createdById        String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  member    Member    @relation("MemberInvitationTarget", fields: [memberId], references: [id], onDelete: Cascade)
+  createdBy Member    @relation("MemberInvitationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([householdId, status, expiresAt])
+  @@index([memberId, status])
+  @@index([googleAccountEmail, status])
 }
 
 model MemberRoleAssignment {

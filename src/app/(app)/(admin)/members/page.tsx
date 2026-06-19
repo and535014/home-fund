@@ -1,5 +1,8 @@
 import { loadMemberManagementContext } from "@/app/member-management-context";
-import { updateMemberDisplayNameAction } from "@/app/member-actions";
+import {
+  createMemberInvitationAction,
+  updateMemberDisplayNameAction,
+} from "@/app/member-actions";
 import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import {
@@ -27,6 +30,8 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
       }
     >
       <MemberManagementPanel
+        createInvitationAction={createMemberInvitationAction}
+        createdInvitation={context.createdInvitation}
         memberResult={context.memberResult}
         members={context.members}
         updateDisplayNameAction={updateMemberDisplayNameAction}

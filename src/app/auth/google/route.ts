@@ -3,9 +3,18 @@ import { createAuth } from "@/auth";
 
 export async function POST(request: Request): Promise<Response> {
   const auth = await createAuth();
+  const formData = await request.formData();
+  const inviteToken = readFormValue(formData, "inviteToken");
 
   return startGoogleSignIn({
     headers: request.headers,
     auth,
+    inviteToken,
   });
+}
+
+function readFormValue(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+
+  return typeof value === "string" && value ? value : undefined;
 }

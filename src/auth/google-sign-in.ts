@@ -30,6 +30,7 @@ export type GoogleSignInAuthApi = {
 export type StartGoogleSignInInput = {
   headers: Headers;
   auth: GoogleSignInAuthApi;
+  inviteToken?: string;
 };
 
 export async function startGoogleSignIn(
@@ -56,8 +57,12 @@ async function startBetterAuthGoogleSignIn(
       returnHeaders: true,
       body: {
         provider: "google",
-        callbackURL: "/",
-        errorCallbackURL: "/",
+        callbackURL: input.inviteToken
+          ? `/invite/accept/callback?token=${encodeURIComponent(input.inviteToken)}`
+          : "/",
+        errorCallbackURL: input.inviteToken
+          ? `/invite/accept?token=${encodeURIComponent(input.inviteToken)}&auth_error=google_sign_in`
+          : "/",
       },
     });
   } catch {

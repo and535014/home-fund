@@ -60,8 +60,8 @@ reviewed_at: 2026-06-19
 - gate: TDD Implementation
 - decision: in_progress
 - release_target: local_dev
-- completed_slice: persisted admin member display-name updates
-- next_slice: persisted member invitation/domain actions
+- completed_slice: persisted member invitation creation and accept callback
+- next_slice: local real-Google invitation smoke verification and release hardening
 
 ## Implemented Scope
 
@@ -101,6 +101,14 @@ reviewed_at: 2026-06-19
 - Added `updateMemberDisplayNameInDatabase` to run the existing member-management domain command and persist only `Member.displayName`.
 - Wired the member edit dialog to submit through the server action, revalidate `/`, `/members`, and the return path, then show result feedback on reload.
 - Kept avatar immutable from the admin UI; the display-name action only writes the `displayName` column.
+- Added `MemberInvitation` persistence with token hash, local/dev preview token, invited email, status, expiry, creator, and target member relations.
+- Added invitation domain and command modules for admin-only invite creation, duplicate pending invite reuse, token validation, wrong-account rejection, and invitation acceptance.
+- Wired admin invite creation to a server action that creates an invited member with `general_member`, stores a pending invitation, redirects back with the generated link, and lets the modal show the link without a success toast.
+- Replaced row re-copy links with persisted pending invitation links from the member-management read model.
+- Changed `/invite/accept` to validate real invitation tokens before enabling Google sign-in.
+- Changed `/auth/google` to preserve `inviteToken` through Better Auth by routing invited sign-in through `/invite/accept/callback`.
+- Added `/invite/accept/callback` to resolve the Google session, verify the token/email, activate the invited member, persist Google subject/name/avatar defaults, mark the invitation accepted, and redirect to `/`.
+- Added deterministic seed invitation data for e2e and local development.
 
 ## Tests First Evidence
 
@@ -110,6 +118,7 @@ reviewed_at: 2026-06-19
 - Added focused Playwright coverage for the accepted Behavior Spec routes and fixed the non-admin denied state to expose a real heading.
 - Added failing/auth-focused coverage for session identity Google name/image mapping, current-member Google profile synchronization, and persistence through `createCurrentMemberDataSource`.
 - Added command-level coverage for persisted member display-name updates, invalid blank names, and non-admin rejection before wiring the UI to the server action.
+- Added invitation domain/command coverage for admin creation, duplicate pending invitation reuse, token states, wrong-account rejection, and accepted invitation persistence.
 
 ## Verification Run During Implementation
 
@@ -127,6 +136,10 @@ reviewed_at: 2026-06-19
 - `corepack pnpm type-check` passed after wiring member actions and result parsing.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 5 tests.
+- `corepack pnpm test src/modules/identity-access/member-invitations.test.ts src/modules/identity-access/member-invitation-command.test.ts` passed: 11 tests.
+- `corepack pnpm type-check` passed after adding `MemberInvitation`, invite actions, token validation, and callback wiring.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
 
 ## Files Changed
 
@@ -148,6 +161,16 @@ reviewed_at: 2026-06-19
 - `src/app/member-actions.ts`
 - `src/modules/identity-access/member-management-command.ts`
 - `src/modules/identity-access/member-management-command.test.ts`
+- `src/modules/identity-access/member-invitations.ts`
+- `src/modules/identity-access/member-invitations.test.ts`
+- `src/modules/identity-access/member-invitation-command.ts`
+- `src/modules/identity-access/member-invitation-command.test.ts`
+- `src/app/invite/accept/callback/route.ts`
+- `src/app/invite/accept/page.tsx`
+- `src/app/auth/google/route.ts`
+- `src/auth/google-sign-in.ts`
+- `prisma/migrations/20260619194000_add_member_invitations/migration.sql`
+- `prisma/seed.sql`
 - `src/app/route-search-params.ts`
 - `src/app/dashboard-page-context.ts` removed
 - `src/auth/server-current-member-cache.ts`
@@ -179,9 +202,8 @@ reviewed_at: 2026-06-19
 
 ## Accepted Gaps
 
-- The persisted `MemberInvitation` model and server actions are not implemented in this slice.
-- Real Google OAuth callback/invitation linking remains for a follow-up implementation slice.
-- Persisted invitations and real OAuth callback wiring remain for the next implementation slice.
+- Local/dev keeps `MemberInvitation.previewToken` so admins can re-copy links. Production release must replace raw-token re-copy with email delivery or a one-time reveal policy.
+- Real Google OAuth invitation acceptance should still get a manual local smoke with a real invited Google account before release readiness.
 
 ## Review Gate
 

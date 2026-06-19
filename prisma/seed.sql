@@ -70,6 +70,15 @@ VALUES
     'google-e2e-disabled',
     'disabled',
     CURRENT_TIMESTAMP
+  ),
+  (
+    'member-seed-invited',
+    'household-demo',
+    'seed-invited@example.com',
+    'seed-invited@example.com',
+    NULL,
+    'invited',
+    CURRENT_TIMESTAMP
   )
 ON CONFLICT ("id") DO UPDATE
 SET "displayName" = EXCLUDED."displayName",
@@ -84,8 +93,41 @@ VALUES
   ('member-mei', 'general_member'),
   ('member-kai', 'general_member'),
   ('member-fin', 'finance_manager'),
-  ('member-e2e-disabled', 'general_member')
+  ('member-e2e-disabled', 'general_member'),
+  ('member-seed-invited', 'general_member')
 ON CONFLICT ("memberId", "role") DO NOTHING;
+
+INSERT INTO "MemberInvitation" (
+  "id",
+  "householdId",
+  "memberId",
+  "googleAccountEmail",
+  "tokenHash",
+  "previewToken",
+  "status",
+  "expiresAt",
+  "createdById",
+  "updatedAt"
+)
+VALUES (
+  'invite-seed-invited',
+  'household-demo',
+  'member-seed-invited',
+  'seed-invited@example.com',
+  'fb6bd43e35b03ee100246562795d5393a4973b110770b5d5aeda04f398d79cdb',
+  'seed-invite-token',
+  'pending',
+  CURRENT_TIMESTAMP + INTERVAL '7 days',
+  'member-admin',
+  CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO UPDATE
+SET "googleAccountEmail" = EXCLUDED."googleAccountEmail",
+    "tokenHash" = EXCLUDED."tokenHash",
+    "previewToken" = EXCLUDED."previewToken",
+    "status" = EXCLUDED."status",
+    "expiresAt" = EXCLUDED."expiresAt",
+    "updatedAt" = CURRENT_TIMESTAMP;
 
 INSERT INTO "MemberCapabilityAssignment" ("memberId", "capability")
 VALUES

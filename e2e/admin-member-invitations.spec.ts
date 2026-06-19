@@ -11,7 +11,7 @@ test("general login is separate from invitation acceptance", async ({ page }) =>
 });
 
 test("invitation acceptance keeps invite sign-in isolated", async ({ page }) => {
-  await page.goto("/invite/accept?token=preview-token");
+  await page.goto("/invite/accept?token=seed-invite-token");
 
   await expect(page.getByRole("heading", { name: "接受成員邀請" })).toBeVisible();
   await expect(page.getByRole("button", { name: "使用 Google 登入" })).toBeEnabled();
@@ -54,6 +54,30 @@ test("admin member preview uses shared page layout without record actions", asyn
   expect(thirdBox).not.toBeNull();
   expect(secondBox?.x ?? 0).toBeGreaterThan(firstBox?.x ?? 0);
   expect(thirdBox?.x ?? 0).toBeGreaterThan(secondBox?.x ?? 0);
+});
+
+test("admin creates and re-copies a persisted invitation link", async ({
+  page,
+}) => {
+  await page.context().grantPermissions(["clipboard-write"]);
+  await signInAsAdmin(page);
+  await page.goto("/members");
+
+  await page.getByRole("button", { name: "邀請成員" }).click();
+  await page.getByLabel("Google email").fill("new-invite@example.com");
+  await page.getByRole("button", { name: "建立邀請連結" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "邀請連結已建立" });
+  await expect(dialog).toBeVisible();
+  const inviteLink = dialog.getByRole("textbox", { name: "邀請連結" });
+  await expect(inviteLink).toHaveValue(/\/invite\/accept\?token=/u);
+  await expect(page.getByText("new-invite", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "完成" }).click();
+  await page
+    .getByRole("button", { name: "複製 new-invite 的邀請連結" })
+    .click();
+  await expect(page.getByText("邀請連結已複製").first()).toBeVisible();
 });
 
 test("admin display-name changes persist after reload", async ({ page }) => {
