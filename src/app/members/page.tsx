@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  InviteMemberHeaderButton,
   MemberManagementPrototype,
   type PrototypeMember,
 } from "./member-management-prototype";
@@ -55,8 +56,9 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
   return (
     <DashboardRouteFrame
       context={context}
-      headerActions={<LogoutPrototypeButton />}
+      headerActions={canManageMembers ? <InviteMemberHeaderButton /> : undefined}
       headerDescription="邀請家庭成員、管理全站顯示名稱，並檢視 Google 頭像來源。"
+      sidebarFooterActions={<LogoutPrototypeButton />}
       showCreateRecordActions={false}
       title="成員"
     >
@@ -88,9 +90,10 @@ function PreviewMembersPage({
       canCreateOwnRecords
       currentMonth="2026-06"
       displayName={canManageMembers ? "Lin 管理者" : "Mei"}
-      headerActions={<LogoutPrototypeButton />}
+      headerActions={canManageMembers ? <InviteMemberHeaderButton /> : undefined}
       headerDescription="邀請家庭成員、管理全站顯示名稱，並檢視 Google 頭像來源。"
       navigationItems={canManageMembers ? adminPreviewNavigation : memberPreviewNavigation}
+      sidebarFooterActions={<LogoutPrototypeButton />}
       showCreateRecordActions={false}
       showMonthSwitcher={false}
       subtitle="Experience Prototype · 不需登入"
@@ -107,7 +110,7 @@ function PreviewMembersPage({
 
 function LogoutPrototypeButton() {
   return (
-    <Button asChild className="hidden md:inline-flex" variant="secondary">
+    <Button asChild className="w-full justify-start" variant="ghost">
       <a href="/login">
         <LogOut aria-hidden="true" size={18} />
         登出
@@ -122,10 +125,10 @@ function buildMembersFromContext(
     displayName: string;
     googleAccountEmail?: string;
     roles: PrototypeMember["roles"];
-    status: PrototypeMember["status"];
+    status: PrototypeMember["status"] | "disabled";
   }>,
 ): PrototypeMember[] {
-  return members.map((member) => {
+  return members.filter(isRenderablePrototypeMember).map((member) => {
     const email = member.googleAccountEmail ?? `${member.id}@example.com`;
 
     return {
@@ -134,15 +137,40 @@ function buildMembersFromContext(
       displayName: member.displayName,
       email,
       googleName: member.displayName,
+      invitationLink: member.status === "invited"
+        ? buildPreviewInviteLink(email)
+        : undefined,
       roles: member.roles,
       status: member.status,
     };
   });
 }
 
+function isRenderablePrototypeMember(member: {
+  id: string;
+  displayName: string;
+  googleAccountEmail?: string;
+  roles: PrototypeMember["roles"];
+  status: PrototypeMember["status"] | "disabled";
+}): member is {
+  id: string;
+  displayName: string;
+  googleAccountEmail?: string;
+  roles: PrototypeMember["roles"];
+  status: PrototypeMember["status"];
+} {
+  return member.status !== "disabled";
+}
+
 function avatarForEmail(email: string): string {
   const encoded = encodeURIComponent(email);
   return `https://api.dicebear.com/9.x/initials/svg?seed=${encoded}&backgroundColor=0f766e,2563eb,9333ea`;
+}
+
+function buildPreviewInviteLink(email: string): string {
+  const token = encodeURIComponent(`preview-existing-${email}`);
+
+  return `/invite/accept?token=${token}`;
 }
 
 const adminPreviewNavigation: DashboardNavigationItem[] = [
@@ -187,16 +215,8 @@ const previewMembers: PrototypeMember[] = [
     displayName: "Kai",
     email: "kai.invited@example.com",
     googleName: "Kai Lin",
+    invitationLink: buildPreviewInviteLink("kai.invited@example.com"),
     roles: ["general_member"],
     status: "invited",
-  },
-  {
-    id: "member-disabled",
-    avatarUrl: avatarForEmail("old.member@example.com"),
-    displayName: "舊成員",
-    email: "old.member@example.com",
-    googleName: "Old Member",
-    roles: ["general_member"],
-    status: "disabled",
   },
 ];

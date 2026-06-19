@@ -1,19 +1,27 @@
 "use client";
 
 import {
+  Copy,
   Edit3,
-  LogOut,
   MailPlus,
   ShieldAlert,
-  UserRoundPlus,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type ComponentProps,
+  type FormEvent,
+} from "react";
 import { toast } from "sonner";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -36,13 +44,16 @@ import {
   Item,
   ItemActions,
   ItemContent,
-  ItemDescription,
-  ItemGroup,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-export type PrototypeMemberStatus = "active" | "invited" | "disabled";
+export type PrototypeMemberStatus = "active" | "invited";
 export type PrototypeMemberRole = "admin" | "finance_manager" | "general_member";
 
 export type PrototypeMember = {
@@ -51,6 +62,7 @@ export type PrototypeMember = {
   displayName: string;
   email: string;
   googleName: string;
+  invitationLink?: string;
   roles: PrototypeMemberRole[];
   status: PrototypeMemberStatus;
 };
@@ -64,7 +76,6 @@ type MemberManagementPrototypeProps = {
 const statusLabels: Record<PrototypeMemberStatus, string> = {
   active: "已啟用",
   invited: "已邀請",
-  disabled: "停用",
 };
 
 const roleLabels: Record<PrototypeMemberRole, string> = {
@@ -73,22 +84,58 @@ const roleLabels: Record<PrototypeMemberRole, string> = {
   general_member: "一般成員",
 };
 
+const OPEN_MEMBER_INVITE_EVENT = "home-fund:open-member-invite";
+
+export function InviteMemberHeaderButton({
+  className,
+  size,
+}: {
+  className?: string;
+  size?: ComponentProps<typeof Button>["size"];
+}) {
+  return (
+    <Button
+      className={className}
+      onClick={() => {
+        window.dispatchEvent(new Event(OPEN_MEMBER_INVITE_EVENT));
+      }}
+      size={size}
+      type="button"
+    >
+      <MailPlus aria-hidden="true" size={18} />
+      邀請成員
+    </Button>
+  );
+}
+
 export function MemberManagementPrototype({
   canManageMembers,
   members,
   roleLabel,
 }: MemberManagementPrototypeProps) {
   const [editableMembers, setEditableMembers] = useState(members);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [invitedEmail, setInvitedEmail] = useState("");
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
   const editingMember = editableMembers.find((member) => member.id === editingMemberId);
-  const memberStats = useMemo(() => ({
-    active: editableMembers.filter((member) => member.status === "active").length,
-    invited: editableMembers.filter((member) => member.status === "invited").length,
-    disabled: editableMembers.filter((member) => member.status === "disabled").length,
-  }), [editableMembers]);
+
+  useEffect(() => {
+    function openInviteDialog() {
+      if (!canManageMembers) {
+        return;
+      }
+
+      setIsInviteDialogOpen(true);
+    }
+
+    window.addEventListener(OPEN_MEMBER_INVITE_EVENT, openInviteDialog);
+    return () => {
+      window.removeEventListener(OPEN_MEMBER_INVITE_EVENT, openInviteDialog);
+    };
+  }, [canManageMembers]);
 
   function submitInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,7 +146,8 @@ export function MemberManagementPrototype({
     }
 
     const normalizedEmail = inviteEmail.trim().toLowerCase();
-    const displayName = inviteName.trim() || displayNameFromEmail(normalizedEmail);
+    const displayName = displayNameFromEmail(normalizedEmail);
+    const nextInviteLink = buildInviteLink(normalizedEmail);
 
     if (!normalizedEmail.includes("@")) {
       toast.error("請輸入有效的 Google email。");
@@ -118,16 +166,34 @@ export function MemberManagementPrototype({
         displayName,
         email: normalizedEmail,
         googleName: displayName,
+        invitationLink: nextInviteLink,
         roles: ["general_member"],
         status: "invited",
       },
       ...currentMembers,
     ]);
     setInviteEmail("");
-    setInviteName("");
-    toast.success("成員已邀請", {
-      description: "受邀者使用相同 Google email 登入後，系統會重新檢查成員資格。",
-    });
+    setInvitedEmail(normalizedEmail);
+    setInviteLink(nextInviteLink);
+  }
+
+  async function copyInviteLink(link = inviteLink) {
+    if (!link) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("邀請連結已複製");
+    } catch {
+      toast.error("無法自動複製，請手動選取連結。");
+    }
+  }
+
+  function resetInviteDialog() {
+    setInviteEmail("");
+    setInviteLink("");
+    setInvitedEmail("");
   }
 
   function startEditDisplayName(member: PrototypeMember) {
@@ -178,137 +244,180 @@ export function MemberManagementPrototype({
 
   return (
     <div className="grid gap-5">
-      <section aria-label="成員狀態摘要" className="grid gap-3 md:grid-cols-3">
-        <MetricCard label="已啟用" value={`${memberStats.active} 人`} />
-        <MetricCard label="已邀請" value={`${memberStats.invited} 人`} />
-        <MetricCard label="停用" value={`${memberStats.disabled} 人`} />
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)]">
-        <Card aria-labelledby="invite-member-title">
-          <CardHeader>
-            <CardTitle id="invite-member-title" className="flex items-center gap-2">
-              <UserRoundPlus aria-hidden="true" size={20} />
-              邀請成員
-            </CardTitle>
-            <CardDescription>
-              MVP prototype 使用 Google email 對應成員。正式寄信與邀請連結會在後續規格決定。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="grid gap-4" onSubmit={submitInvite}>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="invite-email">Google email</FieldLabel>
-                  <Input
-                    id="invite-email"
-                    inputMode="email"
-                    onChange={(event) => setInviteEmail(event.target.value)}
-                    placeholder="mei@example.com"
-                    type="email"
-                    value={inviteEmail}
-                  />
-                  <FieldDescription>
-                    受邀者必須使用這個 Google 帳號登入才會被辨識為家庭成員。
-                  </FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="invite-name">預設顯示名稱</FieldLabel>
-                  <Input
-                    id="invite-name"
-                    onChange={(event) => setInviteName(event.target.value)}
-                    placeholder="留空時先從 email 推估，首次連結可改用 Google 名稱"
-                    value={inviteName}
-                  />
-                  <FieldDescription>
-                    全站顯示的是 app 的顯示名稱；管理者之後可以修改。
-                  </FieldDescription>
-                </Field>
-              </FieldGroup>
-              <Button type="submit">
-                <MailPlus aria-hidden="true" size={18} />
-                邀請成員
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card aria-labelledby="member-list-title">
-          <CardHeader>
-            <CardTitle id="member-list-title">成員與顯示名稱</CardTitle>
-            <CardDescription>
-              頭像來自 Google，不可由管理者修改；顯示名稱由 app 管理，所有人都會看到同一個名稱。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ItemGroup className="gap-2">
-              {editableMembers.map((member) => (
-                <Item key={member.id} variant="outline">
-                  <ItemMedia className="size-12 rounded-full" variant="image">
-                    <span
-                      aria-label={`${member.displayName} 的 Google 頭像`}
-                      className="size-full bg-cover bg-center"
-                      role="img"
-                      style={{ backgroundImage: `url(${member.avatarUrl})` }}
-                    />
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>
-                      <span>{member.displayName}</span>
-                      <StatusBadge status={member.status} />
-                    </ItemTitle>
-                    <ItemDescription>
-                      Google：{member.googleName} · {member.email}
-                    </ItemDescription>
-                    <div className="flex flex-wrap gap-1.5">
-                      {member.roles.map((role) => (
-                        <Badge key={role} variant="outline">
-                          {roleLabels[role]}
-                        </Badge>
-                      ))}
-                    </div>
-                  </ItemContent>
-                  <ItemActions className="ml-auto">
+      <section
+        aria-label="成員清單"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {editableMembers.map((member) => (
+          <Item key={member.id} variant="outline">
+            <ItemMedia className="size-12 rounded-full" variant="image">
+              <Avatar
+                aria-label={`${member.displayName} 的 Google 頭像`}
+                className="size-12 ring-2 ring-border"
+              >
+                <AvatarImage
+                  alt={`${member.displayName} 的 Google 頭像`}
+                  src={member.avatarUrl}
+                />
+                <AvatarFallback>
+                  {memberInitials(member.displayName)}
+                </AvatarFallback>
+              </Avatar>
+            </ItemMedia>
+            <ItemContent className="min-w-0 gap-2">
+              <ItemTitle className="w-full flex-wrap">
+                <span className="min-w-0 truncate">{member.displayName}</span>
+                {member.roles.map((role) => (
+                  <Badge key={role} variant="outline">
+                    {roleLabels[role]}
+                  </Badge>
+                ))}
+              </ItemTitle>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <StatusBadge status={member.status} />
+              </div>
+            </ItemContent>
+            <ItemActions className="ml-auto">
+              {member.status === "invited" && member.invitationLink ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button
-                      aria-label={`修改 ${member.displayName} 的顯示名稱`}
-                      onClick={() => startEditDisplayName(member)}
+                      aria-label={`複製 ${member.displayName} 的邀請連結`}
+                      onClick={() => copyInviteLink(member.invitationLink)}
                       size="icon"
                       type="button"
                       variant="secondary"
                     >
-                      <Edit3 aria-hidden="true" size={16} />
+                      <Copy aria-hidden="true" size={16} />
                     </Button>
-                  </ItemActions>
-                </Item>
-              ))}
-            </ItemGroup>
-          </CardContent>
-        </Card>
+                  </TooltipTrigger>
+                  <TooltipContent>複製邀請連結</TooltipContent>
+                </Tooltip>
+              ) : null}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={`修改 ${member.displayName} 的顯示名稱`}
+                    onClick={() => startEditDisplayName(member)}
+                    size="icon"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Edit3 aria-hidden="true" size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>修改顯示名稱</TooltipContent>
+              </Tooltip>
+            </ItemActions>
+          </Item>
+        ))}
       </section>
 
-      <Card aria-labelledby="session-title">
-        <CardHeader>
-          <CardTitle id="session-title" className="flex items-center gap-2">
-            <LogOut aria-hidden="true" size={20} />
-            登出與切換 Google 帳號
-          </CardTitle>
-          <CardDescription>
-            登出後回到登入頁，使用者可以選擇不同 Google 帳號；prototype 只呈現互動位置。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => {
-              toast("Prototype：正式版會呼叫 Better Auth sign out，然後回到登入頁。");
-            }}
-            type="button"
-            variant="secondary"
-          >
-            <LogOut aria-hidden="true" size={18} />
-            登出
-          </Button>
-        </CardContent>
-      </Card>
+      <Dialog
+        onOpenChange={(open) => {
+          setIsInviteDialogOpen(open);
+          if (!open) {
+            resetInviteDialog();
+          }
+        }}
+        open={isInviteDialogOpen}
+      >
+        <DialogContent>
+          {inviteLink ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>邀請連結已建立</DialogTitle>
+                <DialogDescription>
+                  將連結傳給 {invitedEmail}，對方可用這個邀請加入服務。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <Field>
+                  <FieldLabel htmlFor="invite-link">邀請連結</FieldLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      id="invite-link"
+                      readOnly
+                      value={inviteLink}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          aria-label="複製邀請連結"
+                          onClick={() => copyInviteLink()}
+                          size="icon"
+                          type="button"
+                        >
+                          <Copy aria-hidden="true" size={18} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>複製邀請連結</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <FieldDescription>
+                    Prototype 只產生本地預覽連結；正式 token 與到期規則會在後續規格定義。
+                  </FieldDescription>
+                </Field>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    onClick={resetInviteDialog}
+                    type="button"
+                    variant="secondary"
+                  >
+                    再邀請一位
+                  </Button>
+                  <Button
+                    onClick={() => setIsInviteDialogOpen(false)}
+                    type="button"
+                  >
+                    完成
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>邀請成員</DialogTitle>
+                <DialogDescription>
+                  輸入要加入家庭共用金服務的 Google email。
+                </DialogDescription>
+              </DialogHeader>
+              <form className="grid gap-4" onSubmit={submitInvite}>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="invite-email">Google email</FieldLabel>
+                    <Input
+                      id="invite-email"
+                      inputMode="email"
+                      onChange={(event) => setInviteEmail(event.target.value)}
+                      placeholder="mei@example.com"
+                      type="email"
+                      value={inviteEmail}
+                    />
+                    <FieldDescription>
+                      受邀者必須使用這個 Google 帳號登入才會被辨識為家庭成員。
+                    </FieldDescription>
+                  </Field>
+                </FieldGroup>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    onClick={() => setIsInviteDialogOpen(false)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    取消
+                  </Button>
+                  <Button type="submit">
+                    <MailPlus aria-hidden="true" size={18} />
+                    建立邀請連結
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         onOpenChange={(open) => {
@@ -351,19 +460,8 @@ export function MemberManagementPrototype({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent>
-        <p className="text-label text-muted-foreground">{label}</p>
-        <p className="mt-1 text-subheading">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function StatusBadge({ status }: { status: PrototypeMemberStatus }) {
-  const variant = status === "active" ? "default" : status === "invited" ? "secondary" : "outline";
+  const variant = status === "active" ? "default" : "secondary";
 
   return <Badge variant={variant}>{statusLabels[status]}</Badge>;
 }
@@ -376,4 +474,15 @@ function displayNameFromEmail(email: string): string {
 function avatarForEmail(email: string): string {
   const encoded = encodeURIComponent(email);
   return `https://api.dicebear.com/9.x/initials/svg?seed=${encoded}&backgroundColor=0f766e,2563eb,9333ea`;
+}
+
+function buildInviteLink(email: string): string {
+  const token = encodeURIComponent(`preview-${Date.now()}-${email}`);
+  const origin = window.location.origin;
+
+  return `${origin}/invite/accept?token=${token}`;
+}
+
+function memberInitials(displayName: string): string {
+  return displayName.trim().slice(0, 2).toUpperCase() || "成員";
 }

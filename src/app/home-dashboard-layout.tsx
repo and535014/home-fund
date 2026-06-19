@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -40,6 +41,7 @@ export type HomeDashboardLayoutProps = {
   headerDescription?: string;
   mobileFooterActions?: ReactNode;
   navigationItems: DashboardNavigationItem[];
+  sidebarFooterActions?: ReactNode;
   showCreateRecordActions?: boolean;
   showMonthSwitcher?: boolean;
   subtitle?: string;
@@ -58,6 +60,7 @@ export function HomeDashboardLayout({
   headerDescription,
   mobileFooterActions,
   navigationItems,
+  sidebarFooterActions,
   showCreateRecordActions = true,
   showMonthSwitcher = true,
   subtitle = "2026 年 6 月",
@@ -73,6 +76,7 @@ export function HomeDashboardLayout({
       <DashboardSidebar
         displayName={displayName}
         navigationItems={navigationItems}
+        sidebarFooterActions={sidebarFooterActions}
       />
       <SidebarInset className="min-w-0 pb-28 md:pb-0">
         <header className="fixed inset-x-0 top-0 z-20 border-b border-border bg-background/95 px-4 py-4 backdrop-blur md:left-(--sidebar-width) sm:px-6 lg:px-8">
@@ -151,9 +155,11 @@ export function HomeDashboardLayout({
 function DashboardSidebar({
   displayName,
   navigationItems,
+  sidebarFooterActions,
 }: {
   displayName: string;
   navigationItems: DashboardNavigationItem[];
+  sidebarFooterActions?: ReactNode;
 }) {
   return (
     <Sidebar className="min-h-svh border-r border-border">
@@ -196,6 +202,11 @@ function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      {sidebarFooterActions ? (
+        <SidebarFooter className="border-t border-sidebar-border px-4 py-4">
+          {sidebarFooterActions}
+        </SidebarFooter>
+      ) : null}
     </Sidebar>
   );
 }

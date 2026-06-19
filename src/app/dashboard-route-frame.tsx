@@ -10,6 +10,7 @@ type DashboardRouteFrameProps = {
   headerActions?: ReactNode;
   headerDescription?: string;
   mobileFooterActions?: ReactNode;
+  sidebarFooterActions?: ReactNode;
   showCreateRecordActions?: boolean;
   title: string;
 };
@@ -20,6 +21,7 @@ export function DashboardRouteFrame({
   headerActions,
   headerDescription,
   mobileFooterActions,
+  sidebarFooterActions,
   showCreateRecordActions = true,
   title,
 }: DashboardRouteFrameProps) {
@@ -62,6 +64,7 @@ export function DashboardRouteFrame({
       headerDescription={headerDescription}
       mobileFooterActions={mobileFooterActions}
       navigationItems={context.navigationItems}
+      sidebarFooterActions={sidebarFooterActions}
       showCreateRecordActions={showCreateRecordActions}
       title={title}
     >
