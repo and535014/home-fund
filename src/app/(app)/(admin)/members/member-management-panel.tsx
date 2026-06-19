@@ -116,7 +116,9 @@ export function MemberManagementPanel({
   );
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
-  const editingMember = editableMembers.find((member) => member.id === editingMemberId);
+  const isServerBacked = Boolean(createInvitationAction && updateDisplayNameAction);
+  const displayedMembers = isServerBacked ? members : editableMembers;
+  const editingMember = displayedMembers.find((member) => member.id === editingMemberId);
 
   useEffect(() => {
     if (!memberResult) {
@@ -155,7 +157,7 @@ export function MemberManagementPanel({
       return;
     }
 
-    if (editableMembers.some((member) => member.email.toLowerCase() === normalizedEmail)) {
+    if (displayedMembers.some((member) => member.email.toLowerCase() === normalizedEmail)) {
       event.preventDefault();
       toast.error("這個 Google email 已經在成員清單中。");
       return;
@@ -248,7 +250,7 @@ export function MemberManagementPanel({
         aria-label="成員清單"
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {editableMembers.map((member) => (
+        {displayedMembers.map((member) => (
           <Item key={member.id} variant="outline">
             <ItemMedia className="size-12 rounded-full" variant="image">
               <Avatar
@@ -257,6 +259,7 @@ export function MemberManagementPanel({
               >
                 <AvatarImage
                   alt={`${member.displayName} 的 Google 頭像`}
+                  referrerPolicy="no-referrer"
                   src={member.avatarUrl ?? undefined}
                 />
                 <AvatarFallback>
