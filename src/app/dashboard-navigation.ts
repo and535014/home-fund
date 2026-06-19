@@ -23,12 +23,6 @@ export function getVisibleDashboardNavigationItems(
       visible: accessHints.navigation.canOpenRecords,
     },
     {
-      label: "新增",
-      href: "/?create=income",
-      icon: APP_NAVIGATION_ICONS.plus,
-      visible: accessHints.navigation.canOpenCreateRecord,
-    },
-    {
       label: "退款",
       href: "/reimbursements",
       icon: APP_NAVIGATION_ICONS.handCoins,

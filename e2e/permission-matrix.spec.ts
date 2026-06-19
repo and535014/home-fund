@@ -20,7 +20,8 @@ test("blocks a general member from creating income for another member", async ({
   page,
 }) => {
   await signInAsGeneralMember(page);
-  await page.goto("/?month=2026-06&create=income");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增收入" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增收入" })).toBeVisible();
@@ -38,8 +39,7 @@ test("blocks a general member from creating income for another member", async ({
   await expect(page.getByRole("alert")).toContainText(
     "目前帳號沒有新增這筆紀錄的權限。",
   );
-  await expect(page).toHaveURL(/create=income/u);
-  await expect(page).toHaveURL(/result=permission_denied/u);
+  await expectNoCreateParams(page);
   await expect(page.getByText("E2E 未授權收入")).toHaveCount(0);
 });
 
@@ -47,7 +47,8 @@ test("blocks a general member from creating a member-paid expense for another me
   page,
 }) => {
   await signInAsGeneralMember(page);
-  await page.goto("/?month=2026-06&create=expense");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增支出" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增支出" })).toBeVisible();
@@ -65,8 +66,7 @@ test("blocks a general member from creating a member-paid expense for another me
   await expect(page.getByRole("alert")).toContainText(
     "目前帳號沒有新增這筆紀錄的權限。",
   );
-  await expect(page).toHaveURL(/create=expense/u);
-  await expect(page).toHaveURL(/result=permission_denied/u);
+  await expectNoCreateParams(page);
   await expect(page.getByText("E2E 未授權代墊")).toHaveCount(0);
   await expect(page.locator('section[aria-labelledby="reimbursement-title"]')
     .getByText("$4,321")).toHaveCount(0);
@@ -78,7 +78,8 @@ test("allows a finance manager to create income for another member", async ({
   await page.setExtraHTTPHeaders({
     "x-e2e-auth-user-id": "user-e2e-linked",
   });
-  await page.goto("/?month=2026-06&create=income");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增收入" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增收入" })).toBeVisible();
@@ -92,6 +93,7 @@ test("allows a finance manager to create income for another member", async ({
 
   await expect(page.getByText("E2E 權限允許收入")).toBeVisible();
   await expect(page).toHaveURL(/month=2026-06/u);
+  await expectNoCreateParams(page);
 });
 
 async function signInAsGeneralMember(page: Page) {
@@ -121,4 +123,9 @@ async function setFormValue(
       element.value = nextValue;
     }
   }, value);
+}
+
+async function expectNoCreateParams(page: Page) {
+  await expect(page).not.toHaveURL(/[?&]create=/u);
+  await expect(page).not.toHaveURL(/[?&]result=/u);
 }

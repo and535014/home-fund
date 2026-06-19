@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { RecordEntryPanel } from "./record-entry-panel";
 import type { HomeDashboardData } from "./home-dashboard-data-source";
 import type { HomeDashboardView } from "./home-access";
@@ -15,28 +13,28 @@ import {
 export function CreateRecordDialog({
   canCreateRecordsForOthers,
   categories,
-  defaultOpen,
-  feedback,
   members,
   mode,
   month,
+  onOpenChange,
+  onSuccess,
+  open,
   profile,
   returnTo,
 }: {
   canCreateRecordsForOthers: boolean;
   categories: HomeDashboardData["categories"];
-  defaultOpen: boolean;
-  feedback: string | undefined;
   members: HomeDashboardData["householdMembers"];
   mode: "income" | "expense";
   month: string;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+  open: boolean;
   profile: HomeDashboardView["profile"];
   returnTo: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
+    <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent disableOutsidePointerDown forceMount>
         <DialogHeader>
           <DialogTitle>
@@ -51,10 +49,10 @@ export function CreateRecordDialog({
         <RecordEntryPanel
           canCreateRecordsForOthers={canCreateRecordsForOthers}
           categories={categories}
-          feedback={feedback}
           members={members}
           mode={mode}
           month={month}
+          onSuccess={onSuccess}
           profile={profile}
           returnTo={returnTo}
         />

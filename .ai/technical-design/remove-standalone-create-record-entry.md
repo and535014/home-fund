@@ -210,7 +210,7 @@ export type CreateLedgerRecordActionState = ActionState<
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approve
 - reviewer_focus:
   - Confirm action-state contract and success close behavior.
   - Confirm no compatibility path for old `?create=...` modal URLs.

@@ -6,10 +6,9 @@ import { MonthSwitcher } from "@/app/month-switcher";
 import {
   RecordCreateDialogHost,
   RecordCreateHeaderActions,
+  RecordCreateInlineActions,
   RecordCreateMobileActionBar,
-  buildCreateRecordHref,
 } from "@/app/record-create-actions";
-import { Button } from "@/components/ui/button";
 
 type RecordsPageProps = {
   searchParams?: AppSearchParams;
@@ -82,18 +81,7 @@ export default async function RecordsPage({ searchParams }: RecordsPageProps) {
               收入、基金支出與成員代墊支出集中在這裡管理。
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button asChild size="sm" variant="secondary">
-              <a href={buildCreateRecordHref("/records", month, "income")}>
-                新增收入
-              </a>
-            </Button>
-            <Button asChild size="sm">
-              <a href={buildCreateRecordHref("/records", month, "expense")}>
-                新增支出
-              </a>
-            </Button>
-          </div>
+          <RecordCreateInlineActions />
         </div>
         <RecordsTable categoryNames={categoryNames} records={monthRecords} />
       </section>

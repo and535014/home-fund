@@ -1,8 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
-import { createLedgerRecordAction } from "./ledger-record-actions";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { initialActionState } from "./action-state";
+import {
+  createLedgerRecordAction,
+  type CreateLedgerRecordActionCode,
+  type CreateLedgerRecordActionField,
+} from "./ledger-record-actions";
 import type { HomeDashboardData } from "./home-dashboard-data-source";
 import type { HomeDashboardView } from "./home-access";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,22 +27,30 @@ type RecordEntryMode = "income" | "expense";
 export function RecordEntryPanel({
   canCreateRecordsForOthers,
   categories,
-  feedback,
   members,
   mode,
   month,
+  onSuccess,
   profile,
   returnTo,
 }: {
   canCreateRecordsForOthers: boolean;
   categories: HomeDashboardData["categories"];
-  feedback: string | undefined;
   members: HomeDashboardData["householdMembers"];
   mode: RecordEntryMode;
   month: string;
+  onSuccess: () => void;
   profile: HomeDashboardView["profile"];
   returnTo: string;
 }) {
+  const [actionState, formAction, isPending] = useActionState(
+    createLedgerRecordAction,
+    initialActionState<
+      { month: string; recordId: string },
+      CreateLedgerRecordActionField,
+      CreateLedgerRecordActionCode
+    >(),
+  );
   const [entryKind, setEntryKind] = useState<RecordEntryKind>(
     mode === "income" ? "income" : "member_expense",
   );
@@ -52,10 +65,16 @@ export function RecordEntryPanel({
     [categories, entryKind],
   );
   const defaultOccurredOn = `${month}-01`;
-  const feedbackMessage = createRecordFeedbackMessage(feedback);
+  const feedbackMessage = createRecordFeedbackMessage(actionState);
   const isIncome = mode === "income";
   const isMemberPaidExpense = entryKind === "member_expense";
   const hasCategories = activeCategories.length > 0;
+
+  useEffect(() => {
+    if (actionState.status === "success") {
+      onSuccess();
+    }
+  }, [actionState.status, onSuccess]);
 
   return (
     <section aria-label="新增紀錄表單" className="scroll-mt-32">
@@ -69,7 +88,7 @@ export function RecordEntryPanel({
         </Alert>
       ) : null}
 
-      <form action={createLedgerRecordAction}>
+      <form action={formAction}>
         <input name="month" type="hidden" value={month} />
         <input name="createIntent" type="hidden" value={mode} />
         <input name="returnTo" type="hidden" value={returnTo} />
@@ -177,9 +196,19 @@ export function RecordEntryPanel({
             <Input name="note" placeholder="可留空" type="text" />
           </Field>
 
-          <Button className="mt-1 w-full" disabled={!hasCategories} type="submit">
+          <Button
+            className="mt-1 w-full"
+            disabled={!hasCategories || isPending}
+            type="submit"
+          >
             <Plus aria-hidden="true" size={18} />
-            <span>{mode === "income" ? "新增收入" : "新增支出"}</span>
+            <span>
+              {isPending
+                ? "新增中..."
+                : mode === "income"
+                  ? "新增收入"
+                  : "新增支出"}
+            </span>
           </Button>
         </FieldGroup>
       </form>
@@ -275,35 +304,14 @@ function NativeSelect({
 }
 
 function createRecordFeedbackMessage(
-  result: string | undefined,
+  result: ReturnType<typeof initialActionState> & { message?: string },
 ): { tone: "success" | "error"; message: string } | undefined {
-  if (!result) {
+  if (result.status === "idle" || !result.message) {
     return undefined;
   }
 
-  if (result === "success") {
-    return {
-      tone: "success",
-      message: "紀錄已新增。",
-    };
-  }
-
-  const messages: Record<string, string> = {
-    archived_category: "這個分類已封存，請改選其他分類。",
-    category_type_mismatch: "分類類型與紀錄類型不一致。",
-    fund_paid_expense_cannot_have_member_payer: "基金支出不能指定代墊成員。",
-    invalid_amount: "金額格式不正確，請輸入大於 0 的金額。",
-    invalid_date: "日期格式不正確。",
-    missing_category: "請選擇分類。",
-    missing_name: "請輸入紀錄名稱。",
-    missing_member_payer: "請選擇代墊成員。",
-    missing_payer_member: "請選擇代墊成員。",
-    missing_source_member: "請選擇收入來源。",
-    permission_denied: "目前帳號沒有新增這筆紀錄的權限。",
-  };
-
   return {
-    tone: "error",
-    message: messages[result] ?? "紀錄新增失敗，請確認欄位後再試一次。",
+    tone: result.status === "success" ? "success" : "error",
+    message: result.message,
   };
 }

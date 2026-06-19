@@ -10,10 +10,13 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("creates an income record through the browser", async ({ page }) => {
-  await page.goto("/?month=2026-06&create=income");
+  await page.goto("/?month=2026-06");
+  await expectNoCreateParams(page);
+  await page.getByRole("button", { name: "新增收入" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增收入" })).toBeVisible();
+  await expectNoCreateParams(page);
   await dialog.locator('input[name="name"]').fill("E2E 新增收入");
   await dialog.locator('input[name="amountTwd"]').fill("3210");
   await dialog.locator('input[name="occurredOn"]').fill("2026-06-17");
@@ -24,17 +27,21 @@ test("creates an income record through the browser", async ({ page }) => {
   await expect(page.getByRole("heading", {
     name: "家庭資金總覽",
   })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("E2E 新增收入")).toBeVisible();
   await expect(page).toHaveURL(/month=2026-06/u);
+  await expectNoCreateParams(page);
 });
 
 test("creates a fund-paid expense without adding reimbursement", async ({
   page,
 }) => {
-  await page.goto("/?month=2026-06&create=expense");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增支出" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增支出" })).toBeVisible();
+  await expectNoCreateParams(page);
   await selectFieldOption(page, "支出類型", "基金支出");
   await dialog.locator('input[name="name"]').fill("E2E 基金支出");
   await dialog.locator('input[name="amountTwd"]').fill("765");
@@ -43,7 +50,9 @@ test("creates a fund-paid expense without adding reimbursement", async ({
 
   await dialog.getByRole("button", { name: "新增支出" }).click();
 
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("E2E 基金支出")).toBeVisible();
+  await expectNoCreateParams(page);
   await page.goto("/reimbursements?month=2026-06");
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
@@ -54,10 +63,12 @@ test("creates a fund-paid expense without adding reimbursement", async ({
 test("creates a member-paid expense and adds reimbursement", async ({
   page,
 }) => {
-  await page.goto("/?month=2026-06&create=expense");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增支出" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增支出" })).toBeVisible();
+  await expectNoCreateParams(page);
   await dialog.locator('input[name="name"]').fill("E2E 成員代墊");
   await dialog.locator('input[name="amountTwd"]').fill("888");
   await dialog.locator('input[name="occurredOn"]').fill("2026-06-19");
@@ -65,7 +76,9 @@ test("creates a member-paid expense and adds reimbursement", async ({
 
   await dialog.getByRole("button", { name: "新增支出" }).click();
 
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("E2E 成員代墊")).toBeVisible();
+  await expectNoCreateParams(page);
   await page.goto("/reimbursements?month=2026-06");
   const reimbursementRegion = page.locator(
     'section[aria-labelledby="reimbursement-title"]',
@@ -76,7 +89,8 @@ test("creates a member-paid expense and adds reimbursement", async ({
 test("keeps the income dialog visible after a server-side validation error", async ({
   page,
 }) => {
-  await page.goto("/?month=2026-06&create=income");
+  await page.goto("/?month=2026-06");
+  await page.getByRole("button", { name: "新增收入" }).first().click();
 
   const dialog = page.getByRole("dialog");
   await dialog.locator('input[name="name"]').fill("E2E 缺少分類");
@@ -89,8 +103,31 @@ test("keeps the income dialog visible after a server-side validation error", asy
     name: "新增收入",
   })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("請選擇分類。");
-  await expect(page).toHaveURL(/create=income/u);
-  await expect(page).toHaveURL(/result=missing_category/u);
+  await expectNoCreateParams(page);
+});
+
+test("closes an open create dialog after browser reload", async ({ page }) => {
+  await page.goto("/records?month=2026-06");
+  await page.getByRole("button", { name: "新增支出" }).first().click();
+
+  await expect(page.getByRole("dialog").getByRole("heading", {
+    name: "新增支出",
+  })).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/month=2026-06/u);
+  await expectNoCreateParams(page);
+});
+
+test("does not expose the removed standalone create-record route", async ({
+  page,
+}) => {
+  await page.goto("/records/new");
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 });
 
 async function selectFieldOption(page: Page, label: string, option: string) {
@@ -99,4 +136,9 @@ async function selectFieldOption(page: Page, label: string, option: string) {
     .locator("..")
     .getByRole("combobox")
     .selectOption({ label: option });
+}
+
+async function expectNoCreateParams(page: Page) {
+  await expect(page).not.toHaveURL(/[?&]create=/u);
+  await expect(page).not.toHaveURL(/[?&]result=/u);
 }
