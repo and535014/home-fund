@@ -12,10 +12,7 @@ type ReimbursementsPageProps = {
 export default async function ReimbursementsPage({
   searchParams,
 }: ReimbursementsPageProps) {
-  const context = await loadMonthlyWorkspaceContext({
-    returnTo: "/reimbursements",
-    searchParams,
-  });
+  const context = await loadMonthlyWorkspaceContext({ searchParams });
 
   const { homeView, month } = context;
   const reimbursementTable = homeView.reimbursementTable;

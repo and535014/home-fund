@@ -11,7 +11,7 @@ inputs:
   - .ai/spec/remove-standalone-create-record-entry.md
   - src/app/action-state.ts
   - src/app/dashboard-navigation.ts
-  - src/app/record-create-actions.tsx
+  - src/app/record-create.tsx
   - src/app/create-record-dialog.tsx
   - src/app/record-entry-panel.tsx
   - src/app/ledger-record-actions.ts
@@ -25,7 +25,7 @@ trace_links:
     - .ai/spec/remove-standalone-create-record-entry.md
   target_files:
     - src/app/dashboard-navigation.ts
-    - src/app/record-create-actions.tsx
+    - src/app/record-create.tsx
     - src/app/create-record-dialog.tsx
     - src/app/record-entry-panel.tsx
     - src/app/ledger-record-actions.ts
@@ -59,24 +59,26 @@ reviewed_at: 2026-06-20
 
 ## Component Boundary
 
-### Record Create State Owner
+### Record Create Scope
 
-- Refactor `src/app/record-create-actions.tsx` into a client-owned record-create entry surface.
-- Introduce a shared client component that owns:
-  - `open: boolean`
+- Replace the generic/global `src/app/record-create-actions.tsx` surface with a scoped `src/app/record-create.tsx` client boundary.
+- Introduce `RecordCreateScope` as the shared client owner for:
   - `mode: "income" | "expense" | null`
-  - trigger handlers for income and expense
+  - income and expense open handlers
   - modal close handling
   - success handling
-- Use this owner to render desktop header buttons, mobile footer buttons, and the dialog host so they share the same modal state.
+- Render `CreateRecordDialog` inside `RecordCreateScope` so pages only compose the scope and action buttons.
+- Pass a narrow `RecordCreateData` object from the homepage server component instead of passing the full monthly workspace context into each trigger/dialog component.
+- Render desktop header buttons, mobile footer buttons, and the dialog under the same scope so they share modal state through React context.
+- Do not use `window.dispatchEvent`, `window.addEventListener`, route query params, or other global event/state channels for opening the modal.
 - Do not keep records-page toolbar buttons because `/records` is removed. Retained pages should use the same owner or trigger component rather than constructing hrefs.
-- Do not render `RecordCreateHeaderActions`, `RecordCreateMobileActionBar`, or `RecordCreateDialogHost` on `/reimbursements` or `/recurring`; homepage is the only create-record entry surface.
+- Do not render create-record triggers or dialog hosts on `/reimbursements` or `/recurring`; homepage is the only create-record entry surface.
 
 ### Trigger Buttons
 
 - Create triggers are `<button type="button">`, not anchor links.
 - Accessible names remain `新增收入` and `新增支出`.
-- Trigger clicks call `setMode(...)` and `setOpen(true)`.
+- Trigger clicks call the scope-owned open handlers.
 - Trigger clicks must not call `router.push`, mutate `window.location`, or append search params.
 
 ### Dialog
@@ -89,6 +91,8 @@ reviewed_at: 2026-06-20
 - Remove `defaultOpen` as the way to infer URL-driven initial open state.
 - When closed manually, the dialog simply closes; it does not navigate.
 - Refresh naturally closes the dialog because state is client-local.
+- Remove the obsolete `returnTo` hidden field from the create-record form because the server action no longer redirects.
+- Remove obsolete create/result query parsing from the monthly workspace context once no route consumes it.
 
 ## Server Action Contract
 
@@ -204,8 +208,8 @@ export type CreateLedgerRecordActionState = ActionState<
 4. Remove create-record header/footer/overlay wiring from reimbursements and recurring pages.
 4. Convert create-record server action to `ActionState`.
 5. Convert record-entry form to `useActionState`.
-6. Refactor record-create triggers/dialog host to client state.
-7. Update pages that render create controls to use the new trigger surface.
+6. Refactor record-create triggers and dialog ownership to `RecordCreateScope` client state.
+7. Update the homepage to use the new scoped trigger surface and narrow create-record data contract.
 8. Run targeted unit/type/lint/E2E checks.
 
 ## Release Target Implications

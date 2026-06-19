@@ -17,8 +17,6 @@ export type ReadyMonthlyWorkspaceContext = Omit<
   never
 > & {
   kind: "workspace";
-  createFeedbackResult?: string;
-  createResult?: string;
   dashboardData: HomeDashboardData;
   homeView: HomeDashboardView;
   month: string;
@@ -26,16 +24,13 @@ export type ReadyMonthlyWorkspaceContext = Omit<
     | Record<string, string | string[] | undefined>
     | URLSearchParams
     | undefined;
-  returnTo: string;
 };
 
 export type MonthlyWorkspaceContext = ReadyMonthlyWorkspaceContext;
 
 export async function loadMonthlyWorkspaceContext({
-  returnTo,
   searchParams,
 }: {
-  returnTo: string;
   searchParams?: AppSearchParams;
 }): Promise<MonthlyWorkspaceContext> {
   const session = await requireAuthenticatedMember();
@@ -64,12 +59,9 @@ export async function loadMonthlyWorkspaceContext({
   return {
     ...session,
     kind: "workspace",
-    createFeedbackResult: readSearchParam(rawSearchParams, "result"),
-    createResult: readSearchParam(rawSearchParams, "create"),
     dashboardData,
     homeView,
     month,
     rawSearchParams,
-    returnTo,
   };
 }

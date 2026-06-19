@@ -61,7 +61,6 @@ describe("shared app layout", () => {
             title="成員"
           />
         }
-        overlays={<div role="dialog">邀請成員 dialog</div>}
       >
         <PageContent>
           <section>member rows</section>
@@ -74,7 +73,6 @@ describe("shared app layout", () => {
     expect(html).toContain("邀請成員");
     expect(html).toContain("member rows");
     expect(html).toContain("page status");
-    expect(html).toContain("邀請成員 dialog");
     expect(html).toContain("fixed inset-x-0 bottom-0");
   });
 });

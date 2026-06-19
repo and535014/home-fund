@@ -39,7 +39,7 @@ export type CreateLedgerRecordActionField =
   | "sourceMemberId";
 
 export type CreateLedgerRecordActionState = ActionState<
-  { month: string; recordId: string },
+  { recordId: string },
   CreateLedgerRecordActionField,
   CreateLedgerRecordActionCode
 >;
@@ -72,7 +72,6 @@ export async function createLedgerRecordAction(
   revalidatePath("/reimbursements");
   revalidatePath("/recurring");
   return actionSuccess("紀錄已新增。", {
-    month: parsed.month,
     recordId: result.record.id,
   });
 }

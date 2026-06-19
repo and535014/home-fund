@@ -4,7 +4,6 @@ import { parseCreateLedgerRecordForm } from "./ledger-record-form";
 describe("parseCreateLedgerRecordForm", () => {
   it("parses an income form into a ledger record command", () => {
     const formData = new FormData();
-    formData.set("month", "2026-06");
     formData.set("recordType", "income");
     formData.set("name", "六月房租");
     formData.set("amountTwd", "12000");
@@ -15,7 +14,6 @@ describe("parseCreateLedgerRecordForm", () => {
 
     expect(parseCreateLedgerRecordForm(formData)).toEqual({
       ok: true,
-      month: "2026-06",
       command: {
         type: "income",
         name: "六月房租",
@@ -30,7 +28,6 @@ describe("parseCreateLedgerRecordForm", () => {
 
   it("parses a fund-paid expense without a payer", () => {
     const formData = new FormData();
-    formData.set("month", "2026-06");
     formData.set("recordType", "expense");
     formData.set("name", "網路費");
     formData.set("paymentSource", "fund");
@@ -40,7 +37,6 @@ describe("parseCreateLedgerRecordForm", () => {
 
     expect(parseCreateLedgerRecordForm(formData)).toEqual({
       ok: true,
-      month: "2026-06",
       command: {
         type: "expense",
         name: "網路費",
@@ -54,7 +50,6 @@ describe("parseCreateLedgerRecordForm", () => {
 
   it("requires a payer for member-paid expenses", () => {
     const formData = new FormData();
-    formData.set("month", "2026-06");
     formData.set("recordType", "expense");
     formData.set("name", "日用品");
     formData.set("paymentSource", "member");
@@ -65,13 +60,11 @@ describe("parseCreateLedgerRecordForm", () => {
     expect(parseCreateLedgerRecordForm(formData)).toEqual({
       ok: false,
       reason: "missing_payer_member",
-      month: "2026-06",
     });
   });
 
   it("rejects invalid amounts before writing", () => {
     const formData = new FormData();
-    formData.set("month", "2026-06");
     formData.set("recordType", "income");
     formData.set("name", "六月房租");
     formData.set("amountTwd", "12.345");
@@ -82,7 +75,6 @@ describe("parseCreateLedgerRecordForm", () => {
     expect(parseCreateLedgerRecordForm(formData)).toEqual({
       ok: false,
       reason: "invalid_amount",
-      month: "2026-06",
     });
   });
 });

@@ -1,13 +1,11 @@
 import type {
   CreateLedgerRecordCommand,
 } from "@/modules/fund-ledger/ledger-records";
-import { readDashboardMonth } from "./month-selection";
 
 export type ParseCreateLedgerRecordFormResult =
   | {
       ok: true;
       command: CreateLedgerRecordCommand;
-      month: string;
     }
   | {
       ok: false;
@@ -19,13 +17,11 @@ export type ParseCreateLedgerRecordFormResult =
         | "missing_source_member"
         | "invalid_payment_source"
         | "missing_payer_member";
-      month: string;
     };
 
 export function parseCreateLedgerRecordForm(
   formData: FormData,
 ): ParseCreateLedgerRecordFormResult {
-  const month = readDashboardMonth(readFormString(formData, "month"));
   const type = readFormString(formData, "recordType");
   const name = readFormString(formData, "name");
   const amountCents = parseAmountCents(readFormString(formData, "amountTwd"));
@@ -34,27 +30,26 @@ export function parseCreateLedgerRecordForm(
   const note = readOptionalFormString(formData, "note");
 
   if (!name) {
-    return { ok: false, reason: "missing_name", month };
+    return { ok: false, reason: "missing_name" };
   }
 
   if (amountCents === null) {
-    return { ok: false, reason: "invalid_amount", month };
+    return { ok: false, reason: "invalid_amount" };
   }
 
   if (!categoryId) {
-    return { ok: false, reason: "missing_category", month };
+    return { ok: false, reason: "missing_category" };
   }
 
   if (type === "income") {
     const sourceMemberId = readFormString(formData, "sourceMemberId");
 
     if (!sourceMemberId) {
-      return { ok: false, reason: "missing_source_member", month };
+      return { ok: false, reason: "missing_source_member" };
     }
 
     return {
       ok: true,
-      month,
       command: {
         type: "income",
         name,
@@ -68,7 +63,7 @@ export function parseCreateLedgerRecordForm(
   }
 
   if (type !== "expense") {
-    return { ok: false, reason: "invalid_record_type", month };
+    return { ok: false, reason: "invalid_record_type" };
   }
 
   const paymentSource = readFormString(formData, "paymentSource");
@@ -76,7 +71,6 @@ export function parseCreateLedgerRecordForm(
   if (paymentSource === "fund") {
     return {
       ok: true,
-      month,
       command: {
         type: "expense",
         name,
@@ -90,18 +84,17 @@ export function parseCreateLedgerRecordForm(
   }
 
   if (paymentSource !== "member") {
-    return { ok: false, reason: "invalid_payment_source", month };
+    return { ok: false, reason: "invalid_payment_source" };
   }
 
   const payerMemberId = readFormString(formData, "payerMemberId");
 
   if (!payerMemberId) {
-    return { ok: false, reason: "missing_payer_member", month };
+    return { ok: false, reason: "missing_payer_member" };
   }
 
   return {
     ok: true,
-    month,
     command: {
       type: "expense",
       name,

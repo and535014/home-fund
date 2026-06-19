@@ -42,7 +42,7 @@ test("creates a fund-paid expense without adding reimbursement", async ({
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增支出" })).toBeVisible();
   await expectNoCreateParams(page);
-  await selectFieldOption(page, "支出類型", "基金支出");
+  await dialog.getByRole("tab", { name: "基金支出" }).click();
   await dialog.locator('input[name="name"]').fill("E2E 基金支出");
   await dialog.locator('input[name="amountTwd"]').fill("765");
   await dialog.locator('input[name="occurredOn"]').fill("2026-06-18");

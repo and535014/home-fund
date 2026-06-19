@@ -11,10 +11,7 @@ type RecurringPageProps = {
 };
 
 export default async function RecurringPage({ searchParams }: RecurringPageProps) {
-  const context = await loadMonthlyWorkspaceContext({
-    returnTo: "/recurring",
-    searchParams,
-  });
+  const context = await loadMonthlyWorkspaceContext({ searchParams });
 
   const { dashboardData, homeView, month } = context;
 

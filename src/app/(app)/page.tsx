@@ -4,18 +4,22 @@ import {
   readSearchParam,
   type AppSearchParams,
 } from "@/app/route-search-params";
-import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import {
+  MobileActionBar,
+  PageHeader,
+  PageLayout,
+} from "@/components/layout/page-layout";
 import {
   formatAmount,
   RecordsTable,
   SummaryMetric,
 } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
+import { buildRecordCreateData } from "@/app/record-create-data";
 import {
-  RecordCreateDialogHost,
-  RecordCreateHeaderActions,
-  RecordCreateMobileActionBar,
-} from "@/app/record-create-actions";
+  RecordCreateActions,
+  RecordCreateScope,
+} from "@/app/record-create";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -24,10 +28,7 @@ type HomePageProps = {
 };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const context = await loadMonthlyWorkspaceContext({
-    returnTo: "/",
-    searchParams,
-  });
+  const context = await loadMonthlyWorkspaceContext({ searchParams });
 
   const { dashboardData, homeView, month } = context;
   const { pendingRecurringReminders, reimbursementTable, report } = homeView;
@@ -43,23 +44,36 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     "reimbursement",
   );
   const recurringFeedback = readSearchParam(context.rawSearchParams, "recurring");
+  const canCreateOwnRecords = homeView.accessHints.actions.canCreateOwnRecords;
+  const createRecord = buildRecordCreateData(context);
 
   return (
-    <PageLayout
-      footer={<RecordCreateMobileActionBar context={context} />}
-      header={
-        <PageHeader
-          actions={
-            <>
-              <MonthSwitcher currentMonth={month} />
-              <RecordCreateHeaderActions context={context} />
-            </>
-          }
-          title="總覽"
-        />
-      }
-      overlays={<RecordCreateDialogHost context={context} />}
-    >
+    <RecordCreateScope createRecord={createRecord}>
+      <PageLayout
+        footer={
+          canCreateOwnRecords ? (
+            <MobileActionBar>
+              <RecordCreateActions
+                buttonClassName="h-12 min-w-0 flex-1 px-3"
+                size="lg"
+              />
+            </MobileActionBar>
+          ) : null
+        }
+        header={
+          <PageHeader
+            actions={
+              <>
+                <MonthSwitcher currentMonth={month} />
+                {canCreateOwnRecords ? (
+                  <RecordCreateActions buttonClassName="hidden md:inline-flex" />
+                ) : null}
+              </>
+            }
+            title="總覽"
+          />
+        }
+      >
       <section
         aria-label="月報摘要"
         className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
@@ -179,7 +193,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </Card>
         </section>
       </div>
-    </PageLayout>
+      </PageLayout>
+    </RecordCreateScope>
   );
 }
 

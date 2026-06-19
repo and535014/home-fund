@@ -6,7 +6,6 @@ export type PageLayoutProps = {
   contentClassName?: string;
   footer?: ReactNode;
   header?: ReactNode;
-  overlays?: ReactNode;
 };
 
 export function PageLayout({
@@ -14,7 +13,6 @@ export function PageLayout({
   contentClassName,
   footer,
   header,
-  overlays,
 }: PageLayoutProps) {
   return (
     <div className="flex h-svh min-h-0 flex-col overflow-hidden">
@@ -30,7 +28,6 @@ export function PageLayout({
         </div>
       </div>
       {footer}
-      {overlays}
     </div>
   );
 }
@@ -94,7 +91,7 @@ export type MobileActionBarProps = {
 
 export function MobileActionBar({ children }: MobileActionBarProps) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-[0_-12px_30px_rgba(0,0,0,0.28)] backdrop-blur md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-3 shadow-[0_-12px_30px_rgba(0,0,0,0.28)] backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-md items-center gap-2">
         {children}
       </div>
