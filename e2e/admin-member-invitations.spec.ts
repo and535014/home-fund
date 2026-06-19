@@ -56,6 +56,23 @@ test("admin member preview uses shared page layout without record actions", asyn
   expect(thirdBox?.x ?? 0).toBeGreaterThan(secondBox?.x ?? 0);
 });
 
+test("admin display-name changes persist after reload", async ({ page }) => {
+  await signInAsAdmin(page);
+  await page.goto("/members");
+
+  await page.getByRole("button", { name: "修改 Admin 的顯示名稱" }).click();
+  const dialog = page.getByRole("dialog", { name: "修改顯示名稱" });
+  await dialog.getByRole("textbox", { name: "顯示名稱" }).fill("Admin Updated");
+  await dialog.getByRole("button", { name: "儲存" }).click();
+
+  await expect(page.getByText("顯示名稱已更新").first()).toBeVisible();
+  const memberList = page.getByLabel("成員清單");
+  await expect(memberList.getByText("Admin Updated", { exact: true })).toBeVisible();
+
+  await page.reload();
+  await expect(memberList.getByText("Admin Updated", { exact: true })).toBeVisible();
+});
+
 test("non-admin members are redirected away from member management", async ({ page }) => {
   await signInAsGeneralMember(page);
   await page.goto("/members");

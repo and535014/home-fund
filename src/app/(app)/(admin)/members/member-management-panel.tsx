@@ -45,10 +45,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { MemberManagementMember } from "@/app/member-management-context";
+import type {
+  MemberManagementMember,
+  MemberResult,
+} from "@/app/member-management-context";
+
+type MemberFormAction = (formData: FormData) => void | Promise<void>;
 
 type MemberManagementPanelProps = {
+  memberResult?: MemberResult;
   members: MemberManagementMember[];
+  updateDisplayNameAction?: MemberFormAction;
 };
 
 const statusLabels: Record<MemberManagementMember["status"], string> = {
@@ -87,7 +94,9 @@ export function InviteMemberHeaderButton({
 }
 
 export function MemberManagementPanel({
+  memberResult,
   members,
+  updateDisplayNameAction,
 }: MemberManagementPanelProps) {
   const [editableMembers, setEditableMembers] = useState(members);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -97,6 +106,19 @@ export function MemberManagementPanel({
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
   const editingMember = editableMembers.find((member) => member.id === editingMemberId);
+
+  useEffect(() => {
+    if (!memberResult) {
+      return;
+    }
+
+    showMemberResultToast(memberResult);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("memberResult");
+    url.searchParams.delete("memberAction");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [memberResult]);
 
   useEffect(() => {
     function openInviteDialog() {
@@ -165,18 +187,25 @@ export function MemberManagementPanel({
     setEditingDisplayName(member.displayName);
   }
 
-  function saveDisplayName() {
+  function submitDisplayName(event: FormEvent<HTMLFormElement>) {
     if (!editingMember) {
+      event.preventDefault();
       return;
     }
 
     const nextName = editingDisplayName.trim();
 
     if (!nextName) {
+      event.preventDefault();
       toast.error("顯示名稱不能空白。");
       return;
     }
 
+    if (updateDisplayNameAction) {
+      return;
+    }
+
+    event.preventDefault();
     setEditableMembers((currentMembers) =>
       currentMembers.map((member) =>
         member.id === editingMember.id
@@ -373,32 +402,41 @@ export function MemberManagementPanel({
         open={Boolean(editingMember)}
       >
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>修改顯示名稱</DialogTitle>
-            <DialogDescription>
-              這只會修改 app 內所有人看到的名稱，不會改 Google 名稱或頭像。
-            </DialogDescription>
-          </DialogHeader>
-          <Field>
-            <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
-            <Input
-              id="display-name"
-              onChange={(event) => setEditingDisplayName(event.target.value)}
-              value={editingDisplayName}
-            />
-          </Field>
-          <div className="flex justify-end gap-2">
-            <Button
-              onClick={() => setEditingMemberId(null)}
-              type="button"
-              variant="secondary"
-            >
-              取消
-            </Button>
-            <Button onClick={saveDisplayName} type="button">
-              儲存
-            </Button>
-          </div>
+          <form
+            action={updateDisplayNameAction}
+            className="grid gap-4"
+            onSubmit={submitDisplayName}
+          >
+            <DialogHeader>
+              <DialogTitle>修改顯示名稱</DialogTitle>
+              <DialogDescription>
+                這只會修改 app 內所有人看到的名稱，不會改 Google 名稱或頭像。
+              </DialogDescription>
+            </DialogHeader>
+            <input name="memberId" type="hidden" value={editingMember?.id ?? ""} />
+            <input name="returnTo" type="hidden" value="/members" />
+            <Field>
+              <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
+              <Input
+                id="display-name"
+                name="displayName"
+                onChange={(event) => setEditingDisplayName(event.target.value)}
+                value={editingDisplayName}
+              />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => setEditingMemberId(null)}
+                type="button"
+                variant="secondary"
+              >
+                取消
+              </Button>
+              <Button type="submit">
+                儲存
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -420,4 +458,23 @@ function buildInviteLink(email: string): string {
 
 function memberInitials(displayName: string): string {
   return displayName.trim().slice(0, 2).toUpperCase() || "成員";
+}
+
+function showMemberResultToast(result: MemberResult) {
+  if (result === "renamed") {
+    toast.success("顯示名稱已更新");
+    return;
+  }
+
+  const messages: Record<Exclude<MemberResult, "renamed">, string> = {
+    cannot_remove_last_admin: "至少需要保留一位管理者。",
+    duplicate_google_account_email: "這個 Google email 已經在成員清單中。",
+    invalid_display_name: "顯示名稱不能空白。",
+    member_must_have_role: "成員至少需要一個角色。",
+    member_not_found: "找不到這位成員。",
+    permission_denied: "你沒有權限管理成員。",
+    unknown_error: "成員資料無法更新。",
+  };
+
+  toast.error(messages[result]);
 }

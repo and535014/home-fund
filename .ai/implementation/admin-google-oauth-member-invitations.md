@@ -36,11 +36,14 @@ outputs:
   - src/app/(app)/reimbursements/page.tsx
   - src/app/(app)/(admin)/members/page.tsx
   - src/app/(app)/(admin)/members/member-management-panel.tsx
+  - src/app/member-actions.ts
   - prisma/schema.prisma
   - prisma/migrations/20260619183000_add_member_avatar_url/migration.sql
   - src/auth/current-member.ts
   - src/auth/current-member-data-source.ts
   - src/auth/session-identity.ts
+  - src/modules/identity-access/member-management-command.ts
+  - src/modules/identity-access/member-management-command.test.ts
   - src/components/layout/shared-layout.test.tsx
   - e2e/auth-session.spec.ts
   - e2e/admin-member-invitations.spec.ts
@@ -57,7 +60,7 @@ reviewed_at: 2026-06-19
 - gate: TDD Implementation
 - decision: in_progress
 - release_target: local_dev
-- completed_slice: member profile read model and Google profile synchronization
+- completed_slice: persisted admin member display-name updates
 - next_slice: persisted member invitation/domain actions
 
 ## Implemented Scope
@@ -94,6 +97,10 @@ reviewed_at: 2026-06-19
 - Renamed `member-management-prototype.tsx` to `member-management-panel.tsx` and removed `PrototypeMember`/`MemberManagementPrototype` naming from production code.
 - Removed page-local `buildMembersFromContext`, fake Dicebear avatar generation, and the extra Google-name field from the member page.
 - Kept the member page behavior from the prototype: header invite action, modal invite form, copyable invite links with tooltip/icon button, and display-name edit dialog.
+- Added `updateMemberDisplayNameAction` as the server action for member display-name updates.
+- Added `updateMemberDisplayNameInDatabase` to run the existing member-management domain command and persist only `Member.displayName`.
+- Wired the member edit dialog to submit through the server action, revalidate `/`, `/members`, and the return path, then show result feedback on reload.
+- Kept avatar immutable from the admin UI; the display-name action only writes the `displayName` column.
 
 ## Tests First Evidence
 
@@ -102,6 +109,7 @@ reviewed_at: 2026-06-19
 - Implemented the shared layout components and migrated call sites until the layout tests passed.
 - Added focused Playwright coverage for the accepted Behavior Spec routes and fixed the non-admin denied state to expose a real heading.
 - Added failing/auth-focused coverage for session identity Google name/image mapping, current-member Google profile synchronization, and persistence through `createCurrentMemberDataSource`.
+- Added command-level coverage for persisted member display-name updates, invalid blank names, and non-admin rejection before wiring the UI to the server action.
 
 ## Verification Run During Implementation
 
@@ -115,6 +123,10 @@ reviewed_at: 2026-06-19
 - `corepack pnpm type-check` passed after adding `Member.avatarUrl` and updating affected read models.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 4 tests.
+- `corepack pnpm test src/modules/identity-access/member-management-command.test.ts src/modules/identity-access/member-management.test.ts` passed: 9 tests.
+- `corepack pnpm type-check` passed after wiring member actions and result parsing.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 5 tests.
 
 ## Files Changed
 
@@ -133,6 +145,9 @@ reviewed_at: 2026-06-19
 - `src/app/category-management-context.ts`
 - `src/app/member-management-context.ts`
 - `src/app/(app)/(admin)/members/member-management-panel.tsx`
+- `src/app/member-actions.ts`
+- `src/modules/identity-access/member-management-command.ts`
+- `src/modules/identity-access/member-management-command.test.ts`
 - `src/app/route-search-params.ts`
 - `src/app/dashboard-page-context.ts` removed
 - `src/auth/server-current-member-cache.ts`

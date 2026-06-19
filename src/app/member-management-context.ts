@@ -6,7 +6,7 @@ import type {
   HouseholdMemberStatus,
 } from "@/modules/identity-access/member-management";
 import type { MemberRole } from "@/modules/identity-access/authorization";
-import type { AppSearchParams } from "./route-search-params";
+import { readSearchParam, type AppSearchParams } from "./route-search-params";
 
 export type MemberManagementMemberStatus = Extract<
   HouseholdMemberStatus,
@@ -23,11 +23,22 @@ export type MemberManagementMember = {
   status: MemberManagementMemberStatus;
 };
 
+export type MemberResult =
+  | "renamed"
+  | "permission_denied"
+  | "invalid_display_name"
+  | "member_not_found"
+  | "cannot_remove_last_admin"
+  | "member_must_have_role"
+  | "duplicate_google_account_email"
+  | "unknown_error";
+
 export type ReadyMemberManagementContext = Omit<
   AppAccessSession,
   never
 > & {
   kind: "member-management";
+  memberResult?: MemberResult;
   members: MemberManagementMember[];
 };
 
@@ -38,7 +49,7 @@ export async function loadMemberManagementContext({
 }: {
   searchParams?: AppSearchParams;
 }): Promise<MemberManagementContext> {
-  await searchParams;
+  const resolvedSearchParams = await searchParams;
   const session = await requireAppRouteAccess("members");
   const members = await createCurrentMemberDataSource(
     getPrismaClient(),
@@ -47,10 +58,36 @@ export async function loadMemberManagementContext({
   return {
     ...session,
     kind: "member-management",
+    ...readMemberResult(resolvedSearchParams),
     members: members
       .filter(isVisibleMember)
       .map(mapMemberAccountToManagementMember),
   };
+}
+
+function readMemberResult(
+  searchParams: Awaited<AppSearchParams> | undefined,
+): { memberResult?: MemberResult } {
+  const value = readSearchParam(searchParams, "memberResult");
+
+  if (isMemberResult(value)) {
+    return { memberResult: value };
+  }
+
+  return {};
+}
+
+function isMemberResult(value: unknown): value is MemberResult {
+  return typeof value === "string" && [
+    "renamed",
+    "permission_denied",
+    "invalid_display_name",
+    "member_not_found",
+    "cannot_remove_last_admin",
+    "member_must_have_role",
+    "duplicate_google_account_email",
+    "unknown_error",
+  ].includes(value);
 }
 
 function isVisibleMember(
