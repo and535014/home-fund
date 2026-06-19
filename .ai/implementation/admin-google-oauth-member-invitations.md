@@ -35,7 +35,12 @@ outputs:
   - src/app/(app)/recurring/page.tsx
   - src/app/(app)/reimbursements/page.tsx
   - src/app/(app)/(admin)/members/page.tsx
-  - src/app/(app)/(admin)/members/member-management-prototype.tsx
+  - src/app/(app)/(admin)/members/member-management-panel.tsx
+  - prisma/schema.prisma
+  - prisma/migrations/20260619183000_add_member_avatar_url/migration.sql
+  - src/auth/current-member.ts
+  - src/auth/current-member-data-source.ts
+  - src/auth/session-identity.ts
   - src/components/layout/shared-layout.test.tsx
   - e2e/auth-session.spec.ts
   - e2e/admin-member-invitations.spec.ts
@@ -52,8 +57,8 @@ reviewed_at: 2026-06-19
 - gate: TDD Implementation
 - decision: in_progress
 - release_target: local_dev
-- completed_slice: shared authenticated layout extraction and centralized app/admin access guards
-- next_slice: persisted member invitation/domain actions or real Google OAuth callback wiring
+- completed_slice: member profile read model and Google profile synchronization
+- next_slice: persisted member invitation/domain actions
 
 ## Implemented Scope
 
@@ -78,6 +83,17 @@ reviewed_at: 2026-06-19
 - Updated category, reimbursement, recurring reminder, and ledger server actions to use the centralized access guard for authenticated actor lookup or route-level action authorization before domain command execution.
 - Added Vitest alias resolution so component tests can import project modules through `@/*`.
 - Added focused E2E coverage for login, invite accept, admin member management layout, and non-admin redirects.
+- Added `Member.avatarUrl` plus a database migration so app-owned member profiles can store the Google avatar source.
+- Extended Better Auth session identity mapping to include Google display name and image in the app Google identity.
+- Added current-member profile synchronization after successful membership resolution:
+  - Google `image` updates `Member.avatarUrl`.
+  - Google `name` becomes the app display name only when the member still has a blank or seed `Admin` display name.
+  - Google email and subject are persisted to the matched member when they differ.
+- Threaded `avatarUrl` through `HouseholdMemberAccount`, `HouseholdAccessProfile`, `AuthenticatedLayout`, the sidebar footer account display, and dashboard/member read models.
+- Replaced the member page's prototype adapter with a formal `MemberManagementMember` read model built in `loadMemberManagementContext`.
+- Renamed `member-management-prototype.tsx` to `member-management-panel.tsx` and removed `PrototypeMember`/`MemberManagementPrototype` naming from production code.
+- Removed page-local `buildMembersFromContext`, fake Dicebear avatar generation, and the extra Google-name field from the member page.
+- Kept the member page behavior from the prototype: header invite action, modal invite form, copyable invite links with tooltip/icon button, and display-name edit dialog.
 
 ## Tests First Evidence
 
@@ -85,6 +101,7 @@ reviewed_at: 2026-06-19
 - Initial failure: missing `./authenticated-layout`, confirming the new shared layout contract did not exist.
 - Implemented the shared layout components and migrated call sites until the layout tests passed.
 - Added focused Playwright coverage for the accepted Behavior Spec routes and fixed the non-admin denied state to expose a real heading.
+- Added failing/auth-focused coverage for session identity Google name/image mapping, current-member Google profile synchronization, and persistence through `createCurrentMemberDataSource`.
 
 ## Verification Run During Implementation
 
@@ -94,6 +111,10 @@ reviewed_at: 2026-06-19
 - `corepack pnpm exec playwright test e2e/admin-member-invitations.spec.ts` passed: 4 tests.
 - `corepack pnpm exec playwright test e2e/auth-session.spec.ts` passed: 4 tests.
 - `corepack pnpm exec playwright test e2e/admin-category-management.spec.ts` passed: 6 tests.
+- `corepack pnpm test src/auth/session-identity.test.ts src/auth/current-member.test.ts src/auth/current-member-data-source.test.ts` passed: 12 tests.
+- `corepack pnpm type-check` passed after adding `Member.avatarUrl` and updating affected read models.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 4 tests.
 
 ## Files Changed
 
@@ -111,11 +132,19 @@ reviewed_at: 2026-06-19
 - `src/app/monthly-workspace-context.ts`
 - `src/app/category-management-context.ts`
 - `src/app/member-management-context.ts`
+- `src/app/(app)/(admin)/members/member-management-panel.tsx`
 - `src/app/route-search-params.ts`
 - `src/app/dashboard-page-context.ts` removed
 - `src/auth/server-current-member-cache.ts`
 - `src/app/(app)/(admin)/members/page.tsx`
-- `src/app/(app)/(admin)/members/member-management-prototype.tsx`
+- `src/app/(app)/(admin)/members/member-management-prototype.tsx` renamed to `member-management-panel.tsx`
+- `prisma/schema.prisma`
+- `prisma/migrations/20260619183000_add_member_avatar_url/migration.sql`
+- `src/auth/current-member.ts`
+- `src/auth/current-member-data-source.ts`
+- `src/auth/session-identity.ts`
+- `src/modules/identity-access/member-management.ts`
+- `src/modules/identity-access/session-access.ts`
 - `src/app/(app)/(admin)/categories/page.tsx`
 - `src/app/(app)/(admin)/categories/category-management-panel.tsx`
 - `src/app/(app)/page.tsx`

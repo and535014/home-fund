@@ -11,6 +11,7 @@ type PrismaAccountRow = BetterAuthAccountIdentity;
 type PrismaMemberRow = {
   id: string;
   displayName: string;
+  avatarUrl: string | null;
   googleAccountEmail: string | null;
   googleSubject: string | null;
   status: HouseholdMemberAccount["status"];
@@ -40,6 +41,7 @@ export type CurrentMemberPrismaClient = {
       select: {
         id: true;
         displayName: true;
+        avatarUrl: true;
         googleAccountEmail: true;
         googleSubject: true;
         status: true;
@@ -58,6 +60,17 @@ export type CurrentMemberPrismaClient = {
         displayName: "asc";
       };
     }): Promise<PrismaMemberRow[]>;
+    update?(args: {
+      where: {
+        id: string;
+      };
+      data: {
+        displayName?: string;
+        avatarUrl?: string;
+        googleAccountEmail?: string;
+        googleSubject?: string;
+      };
+    }): Promise<unknown>;
   };
 };
 
@@ -80,6 +93,7 @@ export function createCurrentMemberDataSource(
         select: {
           id: true,
           displayName: true,
+          avatarUrl: true,
           googleAccountEmail: true,
           googleSubject: true,
           status: true,
@@ -101,6 +115,18 @@ export function createCurrentMemberDataSource(
 
       return members.map(mapPrismaMemberToHouseholdMember);
     },
+    updateMemberGoogleProfile(memberId, profile) {
+      if (!prisma.member.update) {
+        return Promise.resolve();
+      }
+
+      return prisma.member.update({
+        where: {
+          id: memberId,
+        },
+        data: profile,
+      }).then(() => undefined);
+    },
   };
 }
 
@@ -110,6 +136,7 @@ export function mapPrismaMemberToHouseholdMember(
   return {
     id: member.id,
     displayName: member.displayName,
+    ...(member.avatarUrl ? { avatarUrl: member.avatarUrl } : {}),
     ...(member.googleAccountEmail
       ? { googleAccountEmail: member.googleAccountEmail }
       : {}),

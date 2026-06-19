@@ -4,6 +4,8 @@ import type { HouseholdMemberAccount, HouseholdMemberStatus } from "./member-man
 export type GoogleIdentity = {
   subject: string;
   email?: string;
+  displayName?: string;
+  avatarUrl?: string;
 };
 
 export type ResolveHouseholdAccessInput = {
@@ -14,6 +16,7 @@ export type ResolveHouseholdAccessInput = {
 export type HouseholdAccessProfile = {
   id: string;
   displayName: string;
+  avatarUrl?: string;
   roles: AuthenticatedMember["roles"];
   capabilities: NonNullable<AuthenticatedMember["capabilities"]>;
 };
@@ -66,6 +69,7 @@ export function resolveHouseholdAccess(
     profile: {
       id: member.id,
       displayName: member.displayName,
+      ...(member.avatarUrl ? { avatarUrl: member.avatarUrl } : {}),
       roles: member.roles,
       capabilities: member.capabilities,
     },

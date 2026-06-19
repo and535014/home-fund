@@ -10,6 +10,7 @@ describe("createHomeDashboardDataSource", () => {
       {
         id: "member-fin",
         displayName: "Lin",
+        avatarUrl: "https://example.com/lin.png",
         googleAccountEmail: "lin@example.com",
         googleSubject: "google-lin",
         status: "active" as const,
@@ -76,6 +77,7 @@ describe("createHomeDashboardDataSource", () => {
         {
           id: "member-fin",
           displayName: "Lin",
+          avatarUrl: "https://example.com/lin.png",
           googleAccountEmail: "lin@example.com",
           googleSubject: "google-lin",
           status: "active",

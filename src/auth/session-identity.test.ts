@@ -20,6 +20,8 @@ describe("resolveGoogleIdentityFromAuthSession", () => {
       user: {
         id: "user-mei",
         email: " MEI@EXAMPLE.COM ",
+        name: " Mei Lin ",
+        image: " https://example.com/mei.png ",
       },
       accounts: [
         {
@@ -36,6 +38,8 @@ describe("resolveGoogleIdentityFromAuthSession", () => {
     })).toEqual({
       subject: "google-mei",
       email: "mei@example.com",
+      displayName: "Mei Lin",
+      avatarUrl: "https://example.com/mei.png",
     });
   });
 

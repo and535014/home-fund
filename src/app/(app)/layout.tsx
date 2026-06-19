@@ -12,7 +12,10 @@ export default async function AppLayout({
 
   return (
     <AuthenticatedLayout
-      account={{ displayName: session.profile.displayName }}
+      account={{
+        displayName: session.profile.displayName,
+        avatarUrl: session.profile.avatarUrl,
+      }}
       navigation={getVisibleDashboardNavigationItems(session.accessHints)}
     >
       {children}

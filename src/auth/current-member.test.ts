@@ -6,6 +6,7 @@ const members: HouseholdMemberAccount[] = [
   {
     id: "member-mei",
     displayName: "Mei",
+    avatarUrl: "https://example.com/old.png",
     googleAccountEmail: "mei@example.com",
     googleSubject: "google-mei",
     roles: ["general_member"],
@@ -59,6 +60,8 @@ describe("resolveCurrentMember", () => {
       user: {
         id: "user-mei",
         email: "MEI@EXAMPLE.COM",
+        name: "Mei Google",
+        image: "https://example.com/mei.png",
       },
       dataSource: {
         listAccountsForUser: async () => [
@@ -69,6 +72,7 @@ describe("resolveCurrentMember", () => {
           },
         ],
         listHouseholdMembers: async () => members,
+        updateMemberGoogleProfile: vi.fn(),
       },
     })).resolves.toMatchObject({
       ok: true,
@@ -80,7 +84,53 @@ describe("resolveCurrentMember", () => {
       profile: {
         id: "member-mei",
         displayName: "Mei",
+        avatarUrl: "https://example.com/mei.png",
       },
+    });
+  });
+
+  it("syncs Google profile fields when the linked member still has the seed display name", async () => {
+    const updateMemberGoogleProfile = vi.fn();
+
+    await expect(resolveCurrentMember({
+      user: {
+        id: "user-admin",
+        email: "ADMIN@EXAMPLE.COM",
+        name: "Google Admin",
+        image: "https://example.com/admin.png",
+      },
+      dataSource: {
+        listAccountsForUser: async () => [
+          {
+            providerId: "google",
+            accountId: "google-admin",
+            userId: "user-admin",
+          },
+        ],
+        listHouseholdMembers: async () => [
+          {
+            id: "member-admin",
+            displayName: "Admin",
+            googleAccountEmail: "admin@example.com",
+            roles: ["admin"],
+            capabilities: [],
+            status: "active",
+          },
+        ],
+        updateMemberGoogleProfile,
+      },
+    })).resolves.toMatchObject({
+      ok: true,
+      profile: {
+        id: "member-admin",
+        displayName: "Google Admin",
+        avatarUrl: "https://example.com/admin.png",
+      },
+    });
+    expect(updateMemberGoogleProfile).toHaveBeenCalledWith("member-admin", {
+      displayName: "Google Admin",
+      avatarUrl: "https://example.com/admin.png",
+      googleSubject: "google-admin",
     });
   });
 });

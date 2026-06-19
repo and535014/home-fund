@@ -80,6 +80,7 @@ model Member {
   id                 String       @id @default(cuid())
   householdId        String
   displayName        String
+  avatarUrl          String?
   googleAccountEmail String?      @unique
   googleSubject      String?      @unique
   status             MemberStatus @default(invited)

@@ -11,6 +11,7 @@ export type HouseholdMemberStatus = "invited" | "active" | "disabled";
 export type HouseholdMemberAccount = {
   id: string;
   displayName: string;
+  avatarUrl?: string;
   googleAccountEmail?: string;
   googleSubject?: string;
   roles: MemberRole[];

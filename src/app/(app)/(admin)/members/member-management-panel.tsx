@@ -45,31 +45,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { MemberManagementMember } from "@/app/member-management-context";
 
-export type PrototypeMemberStatus = "active" | "invited";
-export type PrototypeMemberRole = "admin" | "finance_manager" | "general_member";
-
-export type PrototypeMember = {
-  id: string;
-  avatarUrl: string;
-  displayName: string;
-  email: string;
-  googleName: string;
-  invitationLink?: string;
-  roles: PrototypeMemberRole[];
-  status: PrototypeMemberStatus;
+type MemberManagementPanelProps = {
+  members: MemberManagementMember[];
 };
 
-type MemberManagementPrototypeProps = {
-  members: PrototypeMember[];
-};
-
-const statusLabels: Record<PrototypeMemberStatus, string> = {
+const statusLabels: Record<MemberManagementMember["status"], string> = {
   active: "已啟用",
   invited: "已邀請",
 };
 
-const roleLabels: Record<PrototypeMemberRole, string> = {
+const roleLabels: Record<MemberManagementMember["roles"][number], string> = {
   admin: "管理者",
   finance_manager: "財務管理",
   general_member: "一般成員",
@@ -99,9 +86,9 @@ export function InviteMemberHeaderButton({
   );
 }
 
-export function MemberManagementPrototype({
+export function MemberManagementPanel({
   members,
-}: MemberManagementPrototypeProps) {
+}: MemberManagementPanelProps) {
   const [editableMembers, setEditableMembers] = useState(members);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -126,7 +113,6 @@ export function MemberManagementPrototype({
     event.preventDefault();
 
     const normalizedEmail = inviteEmail.trim().toLowerCase();
-    const displayName = displayNameFromEmail(normalizedEmail);
     const nextInviteLink = buildInviteLink(normalizedEmail);
 
     if (!normalizedEmail.includes("@")) {
@@ -142,10 +128,8 @@ export function MemberManagementPrototype({
     setEditableMembers((currentMembers) => [
       {
         id: `member-preview-${Date.now()}`,
-        avatarUrl: avatarForEmail(normalizedEmail),
-        displayName,
+        displayName: normalizedEmail,
         email: normalizedEmail,
-        googleName: displayName,
         invitationLink: nextInviteLink,
         roles: ["general_member"],
         status: "invited",
@@ -176,7 +160,7 @@ export function MemberManagementPrototype({
     setInvitedEmail("");
   }
 
-  function startEditDisplayName(member: PrototypeMember) {
+  function startEditDisplayName(member: MemberManagementMember) {
     setEditingMemberId(member.id);
     setEditingDisplayName(member.displayName);
   }
@@ -221,7 +205,7 @@ export function MemberManagementPrototype({
               >
                 <AvatarImage
                   alt={`${member.displayName} 的 Google 頭像`}
-                  src={member.avatarUrl}
+                  src={member.avatarUrl ?? undefined}
                 />
                 <AvatarFallback>
                   {memberInitials(member.displayName)}
@@ -318,9 +302,6 @@ export function MemberManagementPrototype({
                       <TooltipContent>複製邀請連結</TooltipContent>
                     </Tooltip>
                   </div>
-                  <FieldDescription>
-                    Prototype 只產生本地預覽連結；正式 token 與到期規則會在後續規格定義。
-                  </FieldDescription>
                 </Field>
                 <div className="flex justify-end gap-2">
                   <Button
@@ -424,20 +405,10 @@ export function MemberManagementPrototype({
   );
 }
 
-function StatusBadge({ status }: { status: PrototypeMemberStatus }) {
+function StatusBadge({ status }: { status: MemberManagementMember["status"] }) {
   const variant = status === "active" ? "default" : "secondary";
 
   return <Badge variant={variant}>{statusLabels[status]}</Badge>;
-}
-
-function displayNameFromEmail(email: string): string {
-  const [name] = email.split("@");
-  return name || "新成員";
-}
-
-function avatarForEmail(email: string): string {
-  const encoded = encodeURIComponent(email);
-  return `https://api.dicebear.com/9.x/initials/svg?seed=${encoded}&backgroundColor=0f766e,2563eb,9333ea`;
 }
 
 function buildInviteLink(email: string): string {

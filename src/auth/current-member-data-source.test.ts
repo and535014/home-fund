@@ -15,7 +15,7 @@ describe("createCurrentMemberDataSource", () => {
     ]);
     const dataSource = createCurrentMemberDataSource({
       account: { findMany },
-      member: { findMany: vi.fn() },
+      member: { findMany: vi.fn(), update: vi.fn() },
     });
 
     await expect(dataSource.listAccountsForUser("user-mei")).resolves.toEqual([
@@ -40,6 +40,7 @@ describe("createCurrentMemberDataSource", () => {
       {
         id: "member-mei",
         displayName: "Mei",
+        avatarUrl: "https://example.com/mei.png",
         googleAccountEmail: "mei@example.com",
         googleSubject: "google-mei",
         status: "active" as const,
@@ -60,13 +61,14 @@ describe("createCurrentMemberDataSource", () => {
     ]);
     const dataSource = createCurrentMemberDataSource({
       account: { findMany: vi.fn() },
-      member: { findMany },
+      member: { findMany, update: vi.fn() },
     });
 
     await expect(dataSource.listHouseholdMembers()).resolves.toEqual([
       {
         id: "member-mei",
         displayName: "Mei",
+        avatarUrl: "https://example.com/mei.png",
         googleAccountEmail: "mei@example.com",
         googleSubject: "google-mei",
         status: "active",
@@ -78,6 +80,7 @@ describe("createCurrentMemberDataSource", () => {
       select: {
         id: true,
         displayName: true,
+        avatarUrl: true,
         googleAccountEmail: true,
         googleSubject: true,
         status: true,
@@ -104,6 +107,7 @@ describe("mapPrismaMemberToHouseholdMember", () => {
     expect(mapPrismaMemberToHouseholdMember({
       id: "member-invited",
       displayName: "Invited",
+      avatarUrl: null,
       googleAccountEmail: null,
       googleSubject: null,
       status: "invited",
@@ -119,6 +123,33 @@ describe("mapPrismaMemberToHouseholdMember", () => {
       status: "invited",
       roles: ["general_member"],
       capabilities: [],
+    });
+  });
+
+  it("persists Google profile updates for a linked member", async () => {
+    const update = vi.fn(async () => ({}));
+    const dataSource = createCurrentMemberDataSource({
+      account: { findMany: vi.fn() },
+      member: { findMany: vi.fn(), update },
+    });
+
+    await dataSource.updateMemberGoogleProfile?.("member-mei", {
+      displayName: "Mei Google",
+      avatarUrl: "https://example.com/mei.png",
+      googleAccountEmail: "mei@example.com",
+      googleSubject: "google-mei",
+    });
+
+    expect(update).toHaveBeenCalledWith({
+      where: {
+        id: "member-mei",
+      },
+      data: {
+        displayName: "Mei Google",
+        avatarUrl: "https://example.com/mei.png",
+        googleAccountEmail: "mei@example.com",
+        googleSubject: "google-mei",
+      },
     });
   });
 });

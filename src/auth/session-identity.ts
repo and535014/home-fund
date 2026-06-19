@@ -3,6 +3,8 @@ import type { GoogleIdentity } from "../modules/identity-access/session-access";
 export type BetterAuthSessionUser = {
   id: string;
   email?: string | null;
+  name?: string | null;
+  image?: string | null;
 };
 
 export type BetterAuthAccountIdentity = {
@@ -33,9 +35,13 @@ export function resolveGoogleIdentityFromAuthSession(
   }
 
   const normalizedEmail = input.user.email?.trim().toLowerCase();
+  const displayName = input.user.name?.trim();
+  const avatarUrl = input.user.image?.trim();
 
   return {
     subject: googleAccount.accountId,
     ...(normalizedEmail ? { email: normalizedEmail } : {}),
+    ...(displayName ? { displayName } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
   };
 }

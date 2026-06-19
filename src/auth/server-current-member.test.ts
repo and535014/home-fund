@@ -9,6 +9,7 @@ const members: HouseholdMemberAccount[] = [
   {
     id: "member-mei",
     displayName: "Mei",
+    avatarUrl: "https://example.com/mei.png",
     googleAccountEmail: "mei@example.com",
     googleSubject: "google-mei",
     roles: ["general_member"],
@@ -120,6 +121,7 @@ describe("getCurrentMemberFromHeaders", () => {
     const memberFindMany = vi.fn(async () => members.map((member) => ({
       id: member.id,
       displayName: member.displayName,
+      avatarUrl: member.avatarUrl ?? null,
       googleAccountEmail: member.googleAccountEmail ?? null,
       googleSubject: member.googleSubject ?? null,
       status: member.status,

@@ -1,6 +1,10 @@
 import { Home, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -25,9 +29,11 @@ export type AppNavigationItem = {
 export type AuthenticatedLayoutProps = {
   account?: {
     displayName: string;
+    avatarUrl?: string;
   };
   accountOverride?: {
     displayName: string;
+    avatarUrl?: string;
   };
   children: ReactNode;
   navigation: AppNavigationItem[];
@@ -44,6 +50,7 @@ export async function AuthenticatedLayout({
   return (
     <SidebarProvider className="min-h-screen bg-background text-foreground">
       <AuthenticatedSidebar
+        avatarUrl={resolvedAccount?.avatarUrl}
         displayName={resolvedAccount?.displayName ?? ""}
         navigationItems={navigation}
       />
@@ -55,9 +62,11 @@ export async function AuthenticatedLayout({
 }
 
 function AuthenticatedSidebar({
+  avatarUrl,
   displayName,
   navigationItems,
 }: {
+  avatarUrl?: string;
   displayName: string;
   navigationItems: AppNavigationItem[];
 }) {
@@ -83,6 +92,7 @@ function AuthenticatedSidebar({
       <SidebarFooter className="border-t border-sidebar-border px-4 py-4">
         <div className="mb-3 flex min-w-0 items-center gap-3">
           <Avatar className="size-8">
+            <AvatarImage alt={`${displayName} 的頭像`} src={avatarUrl} />
             <AvatarFallback>{avatarFallbackFor(displayName)}</AvatarFallback>
           </Avatar>
           <p className="min-w-0 truncate text-label text-foreground">

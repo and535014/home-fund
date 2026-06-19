@@ -78,6 +78,7 @@ export type HomeDashboardPrismaClient = {
       select: {
         id: true;
         displayName: true;
+        avatarUrl: true;
         googleAccountEmail: true;
         googleSubject: true;
         status: true;
@@ -180,10 +181,11 @@ export function createHomeDashboardDataSource(
         await Promise.all([
           prisma.member.findMany({
             select: {
-              id: true,
-              displayName: true,
-              googleAccountEmail: true,
-              googleSubject: true,
+        id: true,
+        displayName: true,
+        avatarUrl: true,
+        googleAccountEmail: true,
+        googleSubject: true,
               status: true,
               roles: {
                 select: {
