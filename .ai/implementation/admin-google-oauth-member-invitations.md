@@ -36,7 +36,13 @@ outputs:
   - src/app/(app)/reimbursements/page.tsx
   - src/app/(app)/(admin)/members/page.tsx
   - src/app/(app)/(admin)/members/member-management-panel.tsx
+  - src/app/action-state.ts
   - src/app/member-actions.ts
+  - src/app/category-actions.ts
+  - src/app/reimbursement-actions.ts
+  - src/app/recurring-reminder-actions.ts
+  - src/app/reimbursement-settlement-panel.tsx
+  - src/app/recurring-reminder-confirmation-panel.tsx
   - prisma/schema.prisma
   - prisma/migrations/20260619183000_add_member_avatar_url/migration.sql
   - src/auth/current-member.ts
@@ -109,6 +115,13 @@ reviewed_at: 2026-06-19
 - Changed `/auth/google` to preserve `inviteToken` through Better Auth by routing invited sign-in through `/invite/accept/callback`.
 - Added `/invite/accept/callback` to resolve the Google session, verify the token/email, activate the invited member, persist Google subject/name/avatar defaults, mark the invitation accepted, and redirect to `/`.
 - Added deterministic seed invitation data for e2e and local development.
+- Added `src/app/action-state.ts` as the shared server-action response contract for `useActionState` forms: `status`, `message`, optional `code`, `fieldErrors`, and optional typed `data`.
+- Converted member invite and display-name server actions from redirect/query feedback to typed `ActionState` returns.
+- Removed member-management URL feedback parsing and made the member panel own its `useActionState` feedback, invitation link reveal, copy behavior, and refresh behavior.
+- Converted category create, rename, and archive actions from redirect/query feedback to typed `ActionState` returns.
+- Removed category-management URL result parsing; category management now uses one `useActionState` flow per form and keeps feedback local to the panel.
+- Converted reimbursement settlement and recurring reminder confirmation from redirect/query feedback to `useActionState` while preserving inline alert feedback and refreshing server data after success.
+- Updated reimbursement and recurring E2E expectations so action feedback is asserted in-page and no longer encoded in URL query state.
 
 ## Tests First Evidence
 
@@ -140,6 +153,9 @@ reviewed_at: 2026-06-19
 - `corepack pnpm type-check` passed after adding `MemberInvitation`, invite actions, token validation, and callback wiring.
 - `corepack pnpm lint` passed.
 - `pnpm test:e2e e2e/admin-member-invitations.spec.ts` passed: 6 tests.
+- `corepack pnpm type-check` passed after introducing the shared `ActionState` contract and converting member, category, reimbursement, and recurring reminder forms.
+- `corepack pnpm lint` passed.
+- `pnpm test:e2e e2e/admin-member-invitations.spec.ts e2e/admin-category-management.spec.ts e2e/reimbursement-settlement.spec.ts e2e/recurring-reminder-confirmation.spec.ts` passed: 17 tests.
 
 ## Files Changed
 
@@ -176,6 +192,19 @@ reviewed_at: 2026-06-19
 - `src/auth/server-current-member-cache.ts`
 - `src/app/(app)/(admin)/members/page.tsx`
 - `src/app/(app)/(admin)/members/member-management-prototype.tsx` renamed to `member-management-panel.tsx`
+- `src/app/action-state.ts`
+- `src/app/member-actions.ts`
+- `src/app/category-actions.ts`
+- `src/app/reimbursement-actions.ts`
+- `src/app/recurring-reminder-actions.ts`
+- `src/app/(app)/(admin)/categories/page.tsx`
+- `src/app/(app)/(admin)/categories/category-management-panel.tsx`
+- `src/app/(app)/reimbursements/page.tsx`
+- `src/app/reimbursement-settlement-panel.tsx`
+- `src/app/(app)/recurring/page.tsx`
+- `src/app/recurring-reminder-confirmation-panel.tsx`
+- `e2e/reimbursement-settlement.spec.ts`
+- `e2e/recurring-reminder-confirmation.spec.ts`
 - `prisma/schema.prisma`
 - `prisma/migrations/20260619183000_add_member_avatar_url/migration.sql`
 - `src/auth/current-member.ts`
@@ -204,6 +233,7 @@ reviewed_at: 2026-06-19
 
 - Local/dev keeps `MemberInvitation.previewToken` so admins can re-copy links. Production release must replace raw-token re-copy with email delivery or a one-time reveal policy.
 - Real Google OAuth invitation acceptance should still get a manual local smoke with a real invited Google account before release readiness.
+- The record-create flow still uses URL state because the same query currently controls modal routing (`create=income|expense`) and submit feedback. It should be separated into a later slice before converting that form to `useActionState`.
 
 ## Review Gate
 

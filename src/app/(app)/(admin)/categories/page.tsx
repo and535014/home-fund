@@ -4,10 +4,7 @@ import {
   renameCategoryAction,
 } from "@/app/category-actions";
 import { loadCategoryManagementContext } from "@/app/category-management-context";
-import {
-  readSearchParam,
-  type AppSearchParams,
-} from "@/app/route-search-params";
+import type { AppSearchParams } from "@/app/route-search-params";
 import {
   MobileActionBar,
   PageHeader,
@@ -16,7 +13,6 @@ import {
 import {
   AddCategoryHeaderButton,
   CategoryManagementPanel,
-  type CategoryResult,
 } from "./category-management-panel";
 
 type CategoriesPageProps = {
@@ -28,9 +24,6 @@ const CATEGORY_HEADER_DESCRIPTION =
 
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
   const resolvedSearchParams = await searchParams;
-  const categoryResult = readCategoryResult(
-    readSearchParam(resolvedSearchParams, "categoryResult"),
-  );
 
   const context = await loadCategoryManagementContext({
     searchParams: resolvedSearchParams,
@@ -54,26 +47,9 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
       <CategoryManagementPanel
         archiveAction={archiveCategoryAction}
         categories={context.categories}
-        categoryResult={categoryResult}
         createAction={createCategoryAction}
         renameAction={renameCategoryAction}
       />
     </PageLayout>
   );
-}
-
-function readCategoryResult(value: string | undefined): CategoryResult | undefined {
-  const validResults: CategoryResult[] = [
-    "created",
-    "renamed",
-    "archived",
-    "permission_denied",
-    "invalid_name",
-    "category_not_found",
-    "archived_category",
-    "duplicate_active_category_name",
-    "unknown_error",
-  ];
-
-  return validResults.find((result) => result === value);
 }

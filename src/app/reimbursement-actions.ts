@@ -1,15 +1,34 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import {
+  actionError,
+  actionSuccess,
+  type ActionState,
+} from "@/app/action-state";
 import { requireServerActionAccess } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import { markExpensesReimbursedInDatabase } from "@/modules/reimbursement/reimbursement-command";
 import { readDashboardMonth } from "./month-selection";
 
-export async function markExpensesReimbursedAction(formData: FormData) {
+export type ReimbursementActionCode =
+  | "permission_denied"
+  | "empty_selection"
+  | "expense_not_found"
+  | "not_refundable"
+  | "already_reimbursed";
+export type ReimbursementActionField = "selectedExpenseIds";
+export type ReimbursementActionState = ActionState<
+  { month: string; selectedExpenseIds: string[] },
+  ReimbursementActionField,
+  ReimbursementActionCode
+>;
+
+export async function markExpensesReimbursedAction(
+  _previousState: ReimbursementActionState,
+  formData: FormData,
+): Promise<ReimbursementActionState> {
   const month = readDashboardMonth(readFormValue(formData, "month"));
-  const returnTo = sanitizeReturnTo(readFormValue(formData, "returnTo"));
   const selectedExpenseIds = formData
     .getAll("selectedExpenseIds")
     .filter((value): value is string => typeof value === "string");
@@ -24,25 +43,15 @@ export async function markExpensesReimbursedAction(formData: FormData) {
   );
 
   if (!result.ok) {
-    redirect(reimbursementRedirectUrl(returnTo, month, result.reason));
+    return reimbursementError(result.reason);
   }
 
   revalidatePath("/");
-  revalidatePath(returnTo);
-  redirect(reimbursementRedirectUrl(returnTo, month, "success"));
-}
-
-function reimbursementRedirectUrl(
-  returnTo: string,
-  month: string,
-  result: string,
-): string {
-  const params = new URLSearchParams({
+  revalidatePath("/reimbursements");
+  return actionSuccess("已完成退款。", {
     month,
-    reimbursement: result,
+    selectedExpenseIds,
   });
-
-  return `${returnTo}?${params.toString()}`;
 }
 
 function readFormValue(formData: FormData, key: string): string | undefined {
@@ -51,10 +60,19 @@ function readFormValue(formData: FormData, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function sanitizeReturnTo(value: string | undefined): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
-    return "/";
-  }
+function reimbursementError(
+  code: ReimbursementActionCode,
+): ReimbursementActionState {
+  const messages: Record<ReimbursementActionCode, string> = {
+    already_reimbursed: "其中一筆支出已經退款，請重新整理後再試。",
+    empty_selection: "請先選擇要退款的支出。",
+    expense_not_found: "找不到其中一筆退款支出，請重新整理後再試。",
+    not_refundable: "其中一筆支出目前不可退款，請重新整理後再試。",
+    permission_denied: "你沒有執行退款的權限。",
+  };
 
-  return value;
+  return actionError(messages[code], {
+    code,
+    fieldErrors: { selectedExpenseIds: [messages[code]] },
+  });
 }

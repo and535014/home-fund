@@ -31,8 +31,6 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
     >
       <MemberManagementPanel
         createInvitationAction={createMemberInvitationAction}
-        createdInvitation={context.createdInvitation}
-        memberResult={context.memberResult}
         members={context.members}
         updateDisplayNameAction={updateMemberDisplayNameAction}
       />

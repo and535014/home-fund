@@ -1,8 +1,5 @@
 import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
-import {
-  readSearchParam,
-  type AppSearchParams,
-} from "@/app/route-search-params";
+import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { SummaryMetric } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
@@ -12,10 +9,6 @@ import {
   RecordCreateMobileActionBar,
 } from "@/app/record-create-actions";
 import { confirmRecurringReminderAction } from "@/app/recurring-reminder-actions";
-import {
-  recurringReminderFeedbackValues,
-  type RecurringReminderFeedback,
-} from "@/app/recurring-reminder-feedback";
 import { RecurringReminderConfirmationPanel } from "@/app/recurring-reminder-confirmation-panel";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -30,9 +23,6 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
   });
 
   const { dashboardData, homeView, month } = context;
-  const recurringFeedback = readRecurringReminderFeedback(
-    readSearchParam(context.rawSearchParams, "recurring"),
-  );
 
   return (
     <PageLayout
@@ -74,10 +64,8 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.6fr)]">
         <RecurringReminderConfirmationPanel
           confirmRecurringReminderAction={confirmRecurringReminderAction}
-          feedback={recurringFeedback}
           month={month}
           pendingReminders={homeView.pendingRecurringReminders}
-          returnTo="/recurring"
         />
 
         <section aria-labelledby="recurring-rules-title">
@@ -96,14 +84,4 @@ export default async function RecurringPage({ searchParams }: RecurringPageProps
       </div>
     </PageLayout>
   );
-}
-
-function readRecurringReminderFeedback(
-  recurringResult: string | undefined,
-): RecurringReminderFeedback | undefined {
-  if (!recurringResult) {
-    return undefined;
-  }
-
-  return recurringReminderFeedbackValues.find((value) => value === recurringResult);
 }

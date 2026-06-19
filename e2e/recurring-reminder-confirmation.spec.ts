@@ -42,7 +42,8 @@ test("finance manager confirms a pending recurring reminder", async ({ page }) =
   await dialog.getByRole("button", { name: "確認建立紀錄" }).click();
 
   await expect(pendingRegion.getByText("沒有待確認週期項目")).toBeVisible();
-  await expect(page).toHaveURL(/recurring=confirmed/u);
+  await expect(pendingRegion.getByText("已確認週期提醒。")).toBeVisible();
+  await expect(page).not.toHaveURL(/recurring=/u);
   await page.goto("/records?month=2026-06");
   await expect(page.getByText("Kai 每月生活費提醒")).toBeVisible();
 });

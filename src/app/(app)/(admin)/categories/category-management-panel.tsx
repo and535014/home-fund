@@ -7,8 +7,20 @@ import {
   Tags,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  initialActionState,
+  type ActionState,
+  type FormAction,
+} from "@/app/action-state";
+import type {
+  ArchiveCategoryActionField,
+  CategoryActionCode,
+  CreateCategoryActionField,
+  RenameCategoryActionField,
+} from "@/app/category-actions";
 import type { Category } from "@/modules/categorization/category-catalog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,25 +62,23 @@ type EditableCategory = Category & {
   recordCount: number;
 };
 
-type CategoryFormAction = (formData: FormData) => void | Promise<void>;
-
-export type CategoryResult =
-  | "created"
-  | "renamed"
-  | "archived"
-  | "permission_denied"
-  | "invalid_name"
-  | "category_not_found"
-  | "archived_category"
-  | "duplicate_active_category_name"
-  | "unknown_error";
-
 type CategoryManagementPanelProps = {
-  archiveAction?: CategoryFormAction;
+  archiveAction?: FormAction<
+    { categoryId: string },
+    ArchiveCategoryActionField,
+    CategoryActionCode
+  >;
   categories: EditableCategory[];
-  categoryResult?: CategoryResult;
-  createAction?: CategoryFormAction;
-  renameAction?: CategoryFormAction;
+  createAction?: FormAction<
+    { categoryId: string; name: string; type: CategoryType },
+    CreateCategoryActionField,
+    CategoryActionCode
+  >;
+  renameAction?: FormAction<
+    { categoryId: string; name: string },
+    RenameCategoryActionField,
+    CategoryActionCode
+  >;
 };
 
 const OPEN_CATEGORY_CREATE_EVENT = "home-fund:open-category-create";
@@ -98,10 +108,34 @@ export function AddCategoryHeaderButton({
 export function CategoryManagementPanel({
   archiveAction,
   categories,
-  categoryResult,
   createAction,
   renameAction,
 }: CategoryManagementPanelProps) {
+  const router = useRouter();
+  const [createActionState, createFormAction] = useActionState(
+    createAction ?? fallbackCreateCategoryAction,
+    initialActionState<
+      { categoryId: string; name: string; type: CategoryType },
+      CreateCategoryActionField,
+      CategoryActionCode
+    >(),
+  );
+  const [renameActionState, renameFormAction] = useActionState(
+    renameAction ?? fallbackRenameCategoryAction,
+    initialActionState<
+      { categoryId: string; name: string },
+      RenameCategoryActionField,
+      CategoryActionCode
+    >(),
+  );
+  const [archiveActionState, archiveFormAction] = useActionState(
+    archiveAction ?? fallbackArchiveCategoryAction,
+    initialActionState<
+      { categoryId: string },
+      ArchiveCategoryActionField,
+      CategoryActionCode
+    >(),
+  );
   const [editableCategories, setEditableCategories] = useState(categories);
   const [newType, setNewType] = useState<CategoryType>("expense");
   const [newName, setNewName] = useState("");
@@ -125,19 +159,6 @@ export function CategoryManagementPanel({
     displayedCategories.find((category) => category.id === archivingId) ?? null;
 
   useEffect(() => {
-    if (!categoryResult) {
-      return;
-    }
-
-    showCategoryResultToast(categoryResult);
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("categoryResult");
-    url.searchParams.delete("categoryAction");
-    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }, [categoryResult]);
-
-  useEffect(() => {
     function openCreateDialog() {
       setIsCreateDialogOpen(true);
     }
@@ -148,25 +169,61 @@ export function CategoryManagementPanel({
     };
   }, []);
 
-  function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
-    if (isServerBacked) {
-      return;
+  useEffect(() => {
+    showCategoryActionToast(createActionState, {
+      successDescription: "已加入啟用分類。",
+      successId: "category-created",
+    });
+
+    if (createActionState.status === "success") {
+      router.refresh();
     }
+  }, [createActionState, router]);
 
-    event.preventDefault();
+  useEffect(() => {
+    showCategoryActionToast(renameActionState, {
+      successDescription: "已更新分類名稱。",
+      successId: "category-renamed",
+    });
 
+    if (renameActionState.status === "success") {
+      router.refresh();
+    }
+  }, [renameActionState, router]);
+
+  useEffect(() => {
+    showCategoryActionToast(archiveActionState, {
+      successDescription: "既有紀錄仍會保留原分類。",
+      successId: "category-archived",
+    });
+
+    if (archiveActionState.status === "success") {
+      router.refresh();
+    }
+  }, [archiveActionState, router]);
+
+  function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
     const normalizedName = newName.trim();
 
     if (!normalizedName) {
+      event.preventDefault();
       toast.error("請輸入分類名稱。");
       return;
     }
 
-    if (hasDuplicateActiveName(editableCategories, newType, normalizedName)) {
+    if (hasDuplicateActiveName(displayedCategories, newType, normalizedName)) {
+      event.preventDefault();
       toast.error("同類型已有啟用中的相同分類名稱。");
       return;
     }
 
+    if (isServerBacked) {
+      setNewName("");
+      setIsCreateDialogOpen(false);
+      return;
+    }
+
+    event.preventDefault();
     setIsSubmitting(true);
     window.setTimeout(() => {
       setEditableCategories((currentCategories) => [
@@ -194,25 +251,36 @@ export function CategoryManagementPanel({
     setEditingName(category.name);
   }
 
-  function submitRenameCategory(category: EditableCategory) {
+  function submitRenameCategory(
+    event: FormEvent<HTMLFormElement>,
+    category: EditableCategory,
+  ) {
     const normalizedName = editingName.trim();
 
     if (!normalizedName) {
+      event.preventDefault();
       toast.error("請輸入分類名稱。");
       return;
     }
 
     if (
       hasDuplicateActiveName(
-        editableCategories.filter((candidate) => candidate.id !== category.id),
+        displayedCategories.filter((candidate) => candidate.id !== category.id),
         category.type,
         normalizedName,
       )
     ) {
+      event.preventDefault();
       toast.error("同類型已有啟用中的相同分類名稱。");
       return;
     }
 
+    if (isServerBacked) {
+      setEditingId(null);
+      return;
+    }
+
+    event.preventDefault();
     setEditableCategories((currentCategories) =>
       currentCategories.map((candidate) =>
         candidate.id === category.id
@@ -231,7 +299,16 @@ export function CategoryManagementPanel({
     setArchivingId(category.id);
   }
 
-  function confirmArchiveCategory(category: EditableCategory) {
+  function confirmArchiveCategory(
+    event: FormEvent<HTMLFormElement>,
+    category: EditableCategory,
+  ) {
+    if (isServerBacked) {
+      setArchivingId(null);
+      return;
+    }
+
+    event.preventDefault();
     setEditableCategories((currentCategories) =>
       currentCategories.map((candidate) =>
         candidate.id === category.id
@@ -286,7 +363,8 @@ export function CategoryManagementPanel({
             </DialogDescription>
           </DialogHeader>
           <CategoryForm
-            action={createAction}
+            action={createFormAction}
+            fieldError={createActionState.fieldErrors?.name?.[0]}
             isSubmitting={isSubmitting}
             name={newName}
             onNameChange={setNewName}
@@ -314,15 +392,13 @@ export function CategoryManagementPanel({
           </DialogHeader>
           {editingCategory ? (
             <CategoryForm
-              action={renameAction}
+              action={renameFormAction}
               categoryId={editingCategory.id}
+              fieldError={renameActionState.fieldErrors?.name?.[0]}
               isSubmitting={false}
               name={editingName}
               onNameChange={setEditingName}
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitRenameCategory(editingCategory);
-              }}
+              onSubmit={(event) => submitRenameCategory(event, editingCategory)}
               onTypeChange={() => undefined}
               submitLabel="儲存修改"
               type={editingCategory.type}
@@ -362,25 +438,25 @@ export function CategoryManagementPanel({
                 >
                   取消
                 </Button>
-                {archiveAction ? (
-                  <form action={archiveAction}>
+                <form
+                  action={archiveFormAction}
+                  onSubmit={(event) =>
+                    confirmArchiveCategory(event, archivingCategory)
+                  }
+                >
+                  <div className="grid gap-2">
                     <input name="categoryId" type="hidden" value={archivingCategory.id} />
-                    <input name="returnTo" type="hidden" value="/categories" />
+                    {archiveActionState.fieldErrors?.categoryId?.[0] ? (
+                      <p className="text-caption text-destructive">
+                        {archiveActionState.fieldErrors.categoryId[0]}
+                      </p>
+                    ) : null}
                     <Button type="submit" variant="destructive">
                       <Archive aria-hidden="true" />
                       確認封存
                     </Button>
-                  </form>
-                ) : (
-                  <Button
-                    onClick={() => confirmArchiveCategory(archivingCategory)}
-                    type="button"
-                    variant="destructive"
-                  >
-                    <Archive aria-hidden="true" />
-                    確認封存
-                  </Button>
-                )}
+                  </div>
+                </form>
               </div>
             </div>
           ) : null}
@@ -477,6 +553,7 @@ function ArchivedCategoryTab({
 function CategoryForm({
   action,
   categoryId,
+  fieldError,
   isSubmitting,
   name,
   onNameChange,
@@ -486,8 +563,9 @@ function CategoryForm({
   type,
   typeDisabled = false,
 }: {
-  action?: CategoryFormAction;
+  action?: ComponentProps<"form">["action"];
   categoryId?: string;
+  fieldError?: string;
   isSubmitting: boolean;
   name: string;
   onNameChange: (name: string) => void;
@@ -498,9 +576,8 @@ function CategoryForm({
   typeDisabled?: boolean;
 }) {
   return (
-    <form action={action} className="grid gap-4" onSubmit={action ? undefined : onSubmit}>
+    <form action={action} className="grid gap-4" onSubmit={onSubmit}>
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
-      <input name="returnTo" type="hidden" value="/categories" />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="category-type">類型</FieldLabel>
@@ -530,7 +607,7 @@ function CategoryForm({
             value={name}
           />
           <FieldDescription>
-            同一類型中，啟用分類不可重複命名。
+            {fieldError ?? "同一類型中，啟用分類不可重複命名。"}
           </FieldDescription>
         </Field>
       </FieldGroup>
@@ -700,43 +777,29 @@ export function buildEditableCategories(
   return seedEditableCategories(categories, records);
 }
 
-function showCategoryResultToast(result: CategoryResult) {
-  if (result === "created") {
-    toast.success("分類已新增", {
-      description: "已加入啟用分類。",
-      id: "category-created",
+function showCategoryActionToast(
+  state: ActionState<unknown, string, CategoryActionCode>,
+  {
+    successDescription,
+    successId,
+  }: {
+    successDescription: string;
+    successId: string;
+  },
+) {
+  if (state.status === "success" && state.message) {
+    toast.success(state.message, {
+      description: successDescription,
+      id: successId,
     });
     return;
   }
 
-  if (result === "renamed") {
-    toast.success("分類已更新", {
-      description: "已更新分類名稱。",
-      id: "category-renamed",
+  if (state.status === "error" && state.message) {
+    toast.error(state.message, {
+      id: `category-${state.code ?? "unknown_error"}`,
     });
-    return;
   }
-
-  if (result === "archived") {
-    toast.success("分類已封存", {
-      description: "既有紀錄仍會保留原分類。",
-      id: "category-archived",
-    });
-    return;
-  }
-
-  const messages: Record<Exclude<CategoryResult, "created" | "renamed" | "archived">, string> = {
-    archived_category: "封存分類不可修改。",
-    category_not_found: "找不到這個分類。",
-    duplicate_active_category_name: "同類型已有啟用中的相同分類名稱。",
-    invalid_name: "請輸入分類名稱。",
-    permission_denied: "只有管理者可以管理分類。",
-    unknown_error: "分類管理失敗，請稍後再試。",
-  };
-
-  toast.error(messages[result], {
-    id: `category-${result}`,
-  });
 }
 
 function hasDuplicateActiveName(
@@ -750,4 +813,28 @@ function hasDuplicateActiveName(
       category.status === "active" &&
       category.name === name,
   );
+}
+
+async function fallbackCreateCategoryAction() {
+  return initialActionState<
+    { categoryId: string; name: string; type: CategoryType },
+    CreateCategoryActionField,
+    CategoryActionCode
+  >();
+}
+
+async function fallbackRenameCategoryAction() {
+  return initialActionState<
+    { categoryId: string; name: string },
+    RenameCategoryActionField,
+    CategoryActionCode
+  >();
+}
+
+async function fallbackArchiveCategoryAction() {
+  return initialActionState<
+    { categoryId: string },
+    ArchiveCategoryActionField,
+    CategoryActionCode
+  >();
 }

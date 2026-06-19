@@ -6,12 +6,22 @@ import {
   MailPlus,
 } from "lucide-react";
 import {
+  useActionState,
   useEffect,
   useState,
   type ComponentProps,
   type FormEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { initialActionState, type FormAction } from "@/app/action-state";
+import type {
+  InviteMemberActionCode,
+  InviteMemberActionField,
+  InviteMemberActionResult,
+  UpdateMemberDisplayNameActionCode,
+  UpdateMemberDisplayNameActionField,
+} from "@/app/member-actions";
 import {
   Avatar,
   AvatarFallback,
@@ -45,20 +55,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type {
-  CreatedInvitationResult,
-  MemberManagementMember,
-  MemberResult,
-} from "@/app/member-management-context";
-
-type MemberFormAction = (formData: FormData) => void | Promise<void>;
+import type { MemberManagementMember } from "@/app/member-management-context";
 
 type MemberManagementPanelProps = {
-  createInvitationAction?: MemberFormAction;
-  createdInvitation?: CreatedInvitationResult;
-  memberResult?: MemberResult;
+  createInvitationAction?: FormAction<
+    InviteMemberActionResult,
+    InviteMemberActionField,
+    InviteMemberActionCode
+  >;
   members: MemberManagementMember[];
-  updateDisplayNameAction?: MemberFormAction;
+  updateDisplayNameAction?: FormAction<
+    { memberId: string; displayName: string },
+    UpdateMemberDisplayNameActionField,
+    UpdateMemberDisplayNameActionCode
+  >;
 };
 
 const statusLabels: Record<MemberManagementMember["status"], string> = {
@@ -98,44 +108,80 @@ export function InviteMemberHeaderButton({
 
 export function MemberManagementPanel({
   createInvitationAction,
-  createdInvitation,
-  memberResult,
   members,
   updateDisplayNameAction,
 }: MemberManagementPanelProps) {
+  const router = useRouter();
+  const [inviteActionState, inviteFormAction] = useActionState(
+    createInvitationAction ?? fallbackCreateInvitationAction,
+    initialActionState<
+      InviteMemberActionResult,
+      InviteMemberActionField,
+      InviteMemberActionCode
+    >(),
+  );
+  const [displayNameActionState, displayNameFormAction] = useActionState(
+    updateDisplayNameAction ?? fallbackUpdateDisplayNameAction,
+    initialActionState<
+      { memberId: string; displayName: string },
+      UpdateMemberDisplayNameActionField,
+      UpdateMemberDisplayNameActionCode
+    >(),
+  );
   const [editableMembers, setEditableMembers] = useState(members);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(
-    Boolean(createdInvitation),
-  );
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteLink, setInviteLink] = useState(
-    createdInvitation?.invitationLink ?? "",
-  );
-  const [invitedEmail, setInvitedEmail] = useState(
-    createdInvitation?.email ?? "",
+  const [inviteLink, setInviteLink] = useState("");
+  const [invitedEmail, setInvitedEmail] = useState("");
+  const [dismissedInviteLink, setDismissedInviteLink] = useState<string | null>(
+    null,
   );
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingDisplayName, setEditingDisplayName] = useState("");
   const isServerBacked = Boolean(createInvitationAction && updateDisplayNameAction);
   const displayedMembers = isServerBacked ? members : editableMembers;
   const editingMember = displayedMembers.find((member) => member.id === editingMemberId);
+  const activeInviteResult = inviteActionState.status === "success" &&
+    inviteActionState.data &&
+    dismissedInviteLink !== inviteActionState.data.invitationLink
+    ? inviteActionState.data
+    : undefined;
+  const shownInviteLink = activeInviteResult?.invitationLink ?? inviteLink;
+  const shownInvitedEmail = activeInviteResult?.email ?? invitedEmail;
+  const isInviteOpen = isInviteDialogOpen || Boolean(activeInviteResult);
 
   useEffect(() => {
-    if (!memberResult) {
+    if (inviteActionState.status !== "error" || !inviteActionState.message) {
       return;
     }
 
-    if (memberResult !== "invited") {
-      showMemberResultToast(memberResult);
+    toast.error(inviteActionState.message);
+  }, [inviteActionState]);
+
+  useEffect(() => {
+    if (inviteActionState.status !== "success") {
+      return;
     }
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("memberResult");
-    url.searchParams.delete("memberAction");
-    url.searchParams.delete("inviteEmail");
-    url.searchParams.delete("inviteLink");
-    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }, [memberResult]);
+    router.refresh();
+  }, [inviteActionState, router]);
+
+  useEffect(() => {
+    if (displayNameActionState.status !== "success") {
+      return;
+    }
+
+    toast.success(displayNameActionState.message ?? "顯示名稱已更新");
+    router.refresh();
+  }, [displayNameActionState, router]);
+
+  useEffect(() => {
+    if (displayNameActionState.status !== "error" || !displayNameActionState.message) {
+      return;
+    }
+
+    toast.error(displayNameActionState.message);
+  }, [displayNameActionState]);
 
   useEffect(() => {
     function openInviteDialog() {
@@ -164,6 +210,7 @@ export function MemberManagementPanel({
     }
 
     if (createInvitationAction) {
+      setDismissedInviteLink(null);
       return;
     }
 
@@ -202,6 +249,10 @@ export function MemberManagementPanel({
   }
 
   function resetInviteDialog() {
+    if (activeInviteResult) {
+      setDismissedInviteLink(activeInviteResult.invitationLink);
+    }
+
     setInviteEmail("");
     setInviteLink("");
     setInvitedEmail("");
@@ -227,6 +278,7 @@ export function MemberManagementPanel({
     }
 
     if (updateDisplayNameAction) {
+      setEditingMemberId(null);
       return;
     }
 
@@ -323,15 +375,15 @@ export function MemberManagementPanel({
             resetInviteDialog();
           }
         }}
-        open={isInviteDialogOpen}
+        open={isInviteOpen}
       >
         <DialogContent>
-          {inviteLink ? (
+          {shownInviteLink ? (
             <>
               <DialogHeader>
                 <DialogTitle>邀請連結已建立</DialogTitle>
                 <DialogDescription>
-                  將連結傳給 {invitedEmail}，對方可用這個邀請加入服務。
+                  將連結傳給 {shownInvitedEmail}，對方可用這個邀請加入服務。
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4">
@@ -341,13 +393,13 @@ export function MemberManagementPanel({
                     <Input
                       id="invite-link"
                       readOnly
-                      value={inviteLink}
+                      value={toAbsoluteInviteLink(shownInviteLink)}
                     />
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           aria-label="複製邀請連結"
-                          onClick={() => copyInviteLink()}
+                          onClick={() => copyInviteLink(shownInviteLink)}
                           size="icon"
                           type="button"
                         >
@@ -360,14 +412,20 @@ export function MemberManagementPanel({
                 </Field>
                 <div className="flex justify-end gap-2">
                   <Button
-                    onClick={resetInviteDialog}
+                    onClick={() => {
+                      resetInviteDialog();
+                      setIsInviteDialogOpen(true);
+                    }}
                     type="button"
                     variant="secondary"
                   >
                     再邀請一位
                   </Button>
                   <Button
-                    onClick={() => setIsInviteDialogOpen(false)}
+                    onClick={() => {
+                      resetInviteDialog();
+                      setIsInviteDialogOpen(false);
+                    }}
                     type="button"
                   >
                     完成
@@ -384,11 +442,10 @@ export function MemberManagementPanel({
                 </DialogDescription>
               </DialogHeader>
               <form
-                action={createInvitationAction}
+                action={inviteFormAction}
                 className="grid gap-4"
                 onSubmit={submitInvite}
               >
-                <input name="returnTo" type="hidden" value="/members" />
                 <FieldGroup>
                   <Field>
                     <FieldLabel htmlFor="invite-email">Google email</FieldLabel>
@@ -402,7 +459,8 @@ export function MemberManagementPanel({
                       value={inviteEmail}
                     />
                     <FieldDescription>
-                      受邀者必須使用這個 Google 帳號登入才會被辨識為家庭成員。
+                      {inviteActionState.fieldErrors?.googleEmail?.[0] ??
+                        "受邀者必須使用這個 Google 帳號登入才會被辨識為家庭成員。"}
                     </FieldDescription>
                   </Field>
                 </FieldGroup>
@@ -435,7 +493,7 @@ export function MemberManagementPanel({
       >
         <DialogContent>
           <form
-            action={updateDisplayNameAction}
+            action={displayNameFormAction}
             className="grid gap-4"
             onSubmit={submitDisplayName}
           >
@@ -446,7 +504,6 @@ export function MemberManagementPanel({
               </DialogDescription>
             </DialogHeader>
             <input name="memberId" type="hidden" value={editingMember?.id ?? ""} />
-            <input name="returnTo" type="hidden" value="/members" />
             <Field>
               <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
               <Input
@@ -455,6 +512,11 @@ export function MemberManagementPanel({
                 onChange={(event) => setEditingDisplayName(event.target.value)}
                 value={editingDisplayName}
               />
+              {displayNameActionState.fieldErrors?.displayName?.[0] ? (
+                <FieldDescription>
+                  {displayNameActionState.fieldErrors.displayName[0]}
+                </FieldDescription>
+              ) : null}
             </Field>
             <div className="flex justify-end gap-2">
               <Button
@@ -485,31 +547,26 @@ function memberInitials(displayName: string): string {
   return displayName.trim().slice(0, 2).toUpperCase() || "成員";
 }
 
-function showMemberResultToast(result: Exclude<MemberResult, "invited">) {
-  if (result === "renamed") {
-    toast.success("顯示名稱已更新");
-    return;
-  }
-
-  const messages: Record<Exclude<MemberResult, "invited" | "renamed">, string> = {
-    cannot_remove_last_admin: "至少需要保留一位管理者。",
-    duplicate_google_account_email: "這個 Google email 已經在成員清單中。",
-    invalid_email: "請輸入有效的 Google email。",
-    invalid_display_name: "顯示名稱不能空白。",
-    member_already_active: "這個 Google email 已經是啟用成員。",
-    member_must_have_role: "成員至少需要一個角色。",
-    member_not_found: "找不到這位成員。",
-    permission_denied: "你沒有權限管理成員。",
-    unknown_error: "成員資料無法更新。",
-  };
-
-  toast.error(messages[result]);
-}
-
 function isLikelyEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email);
 }
 
 function toAbsoluteInviteLink(link: string): string {
   return new URL(link, window.location.origin).toString();
+}
+
+async function fallbackCreateInvitationAction() {
+  return initialActionState<
+    InviteMemberActionResult,
+    InviteMemberActionField,
+    InviteMemberActionCode
+  >();
+}
+
+async function fallbackUpdateDisplayNameAction() {
+  return initialActionState<
+    { memberId: string; displayName: string },
+    UpdateMemberDisplayNameActionField,
+    UpdateMemberDisplayNameActionCode
+  >();
 }

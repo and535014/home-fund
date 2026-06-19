@@ -1,8 +1,5 @@
 import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
-import {
-  readSearchParam,
-  type AppSearchParams,
-} from "@/app/route-search-params";
+import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { SummaryMetric, formatAmount } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
@@ -31,9 +28,6 @@ export default async function ReimbursementsPage({
   const pendingExpenseCount = reimbursementTable.groups.reduce(
     (total, group) => total + group.expenseIds.length,
     0,
-  );
-  const reimbursementFeedback = readReimbursementFeedback(
-    readSearchParam(context.rawSearchParams, "reimbursement"),
   );
 
   return (
@@ -78,37 +72,11 @@ export default async function ReimbursementsPage({
           canPerformReimbursement={
             homeView.accessHints.actions.canPerformReimbursement
           }
-          feedback={reimbursementFeedback}
           markExpensesReimbursedAction={markExpensesReimbursedAction}
           month={month}
           reimbursementTable={reimbursementTable}
-          returnTo="/reimbursements"
         />
       </div>
     </PageLayout>
   );
-}
-
-function readReimbursementFeedback(
-  reimbursementResult: string | undefined,
-):
-  | "success"
-  | "permission_denied"
-  | "empty_selection"
-  | "expense_not_found"
-  | "not_refundable"
-  | "already_reimbursed"
-  | undefined {
-  if (
-    reimbursementResult === "success" ||
-    reimbursementResult === "permission_denied" ||
-    reimbursementResult === "empty_selection" ||
-    reimbursementResult === "expense_not_found" ||
-    reimbursementResult === "not_refundable" ||
-    reimbursementResult === "already_reimbursed"
-  ) {
-    return reimbursementResult;
-  }
-
-  return undefined;
 }

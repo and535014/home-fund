@@ -7,7 +7,7 @@ import type {
 } from "@/modules/identity-access/member-management";
 import type { MemberRole } from "@/modules/identity-access/authorization";
 import { buildInvitationLink } from "@/modules/identity-access/member-invitation-command";
-import { readSearchParam, type AppSearchParams } from "./route-search-params";
+import type { AppSearchParams } from "./route-search-params";
 
 export type MemberManagementMemberStatus = Extract<
   HouseholdMemberStatus,
@@ -24,31 +24,11 @@ export type MemberManagementMember = {
   status: MemberManagementMemberStatus;
 };
 
-export type MemberResult =
-  | "invited"
-  | "renamed"
-  | "permission_denied"
-  | "invalid_email"
-  | "member_already_active"
-  | "invalid_display_name"
-  | "member_not_found"
-  | "cannot_remove_last_admin"
-  | "member_must_have_role"
-  | "duplicate_google_account_email"
-  | "unknown_error";
-
-export type CreatedInvitationResult = {
-  email: string;
-  invitationLink: string;
-};
-
 export type ReadyMemberManagementContext = Omit<
   AppAccessSession,
   never
 > & {
   kind: "member-management";
-  createdInvitation?: CreatedInvitationResult;
-  memberResult?: MemberResult;
   members: MemberManagementMember[];
 };
 
@@ -59,7 +39,7 @@ export async function loadMemberManagementContext({
 }: {
   searchParams?: AppSearchParams;
 }): Promise<MemberManagementContext> {
-  const resolvedSearchParams = await searchParams;
+  await searchParams;
   const session = await requireAppRouteAccess("members");
   const members = await createCurrentMemberDataSource(
     getPrismaClient(),
@@ -69,7 +49,6 @@ export async function loadMemberManagementContext({
   return {
     ...session,
     kind: "member-management",
-    ...readMemberFeedback(resolvedSearchParams),
     members: members
       .filter(isVisibleMember)
       .map((member) => mapMemberAccountToManagementMember(
@@ -77,49 +56,6 @@ export async function loadMemberManagementContext({
         invitationLinks,
       )),
   };
-}
-
-function readMemberFeedback(
-  searchParams: Awaited<AppSearchParams> | undefined,
-): {
-  createdInvitation?: CreatedInvitationResult;
-  memberResult?: MemberResult;
-} {
-  const value = readSearchParam(searchParams, "memberResult");
-  const inviteEmail = readSearchParam(searchParams, "inviteEmail");
-  const inviteLink = readSearchParam(searchParams, "inviteLink");
-
-  if (isMemberResult(value)) {
-    return {
-      memberResult: value,
-      ...(value === "invited" && inviteEmail && inviteLink
-        ? {
-            createdInvitation: {
-              email: inviteEmail,
-              invitationLink: inviteLink,
-            },
-          }
-        : {}),
-    };
-  }
-
-  return {};
-}
-
-function isMemberResult(value: unknown): value is MemberResult {
-  return typeof value === "string" && [
-    "invited",
-    "renamed",
-    "permission_denied",
-    "invalid_email",
-    "member_already_active",
-    "invalid_display_name",
-    "member_not_found",
-    "cannot_remove_last_admin",
-    "member_must_have_role",
-    "duplicate_google_account_email",
-    "unknown_error",
-  ].includes(value);
 }
 
 function isVisibleMember(

@@ -1,7 +1,13 @@
 "use client";
 
 import { CalendarCheck } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { initialActionState, type FormAction } from "@/app/action-state";
+import type {
+  RecurringReminderActionCode,
+  RecurringReminderActionField,
+} from "@/app/recurring-reminder-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,31 +27,47 @@ import {
   ItemGroup,
   ItemTitle,
 } from "@/components/ui/item";
-import type { RecurringReminderFeedback } from "./recurring-reminder-feedback";
 import type { PendingRecurringReminder } from "./home-access";
 
 type RecurringReminderConfirmationPanelProps = {
-  confirmRecurringReminderAction: (formData: FormData) => void;
-  feedback?: RecurringReminderFeedback;
+  confirmRecurringReminderAction: FormAction<
+    { month: string; occurrenceId: string },
+    RecurringReminderActionField,
+    RecurringReminderActionCode
+  >;
   month: string;
   pendingReminders: PendingRecurringReminder[];
-  returnTo?: string;
 };
 
 export function RecurringReminderConfirmationPanel({
   confirmRecurringReminderAction,
-  feedback,
   month,
   pendingReminders,
-  returnTo = "/",
 }: RecurringReminderConfirmationPanelProps) {
+  const router = useRouter();
+  const [actionState, formAction] = useActionState(
+    confirmRecurringReminderAction,
+    initialActionState<
+      { month: string; occurrenceId: string },
+      RecurringReminderActionField,
+      RecurringReminderActionCode
+    >(),
+  );
   const isHydrated = useHydrated();
   const [selectedReminderId, setSelectedReminderId] = useState<string>();
   const selectedReminder = useMemo(
     () => pendingReminders.find((reminder) => reminder.id === selectedReminderId),
     [pendingReminders, selectedReminderId],
   );
-  const feedbackMessage = feedback ? feedbackMessages[feedback] : undefined;
+  const feedbackMessage = actionState.message;
+
+  useEffect(() => {
+    if (actionState.status !== "success") {
+      return;
+    }
+
+    router.refresh();
+  }, [actionState, router]);
 
   return (
     <section
@@ -113,7 +135,7 @@ export function RecurringReminderConfirmationPanel({
       {feedbackMessage ? (
         <Alert
           className="mt-3"
-          variant={feedback === "confirmed" ? "default" : "destructive"}
+          variant={actionState.status === "success" ? "default" : "destructive"}
         >
           <AlertDescription>{feedbackMessage}</AlertDescription>
         </Alert>
@@ -137,9 +159,12 @@ export function RecurringReminderConfirmationPanel({
             </DialogDescription>
           </DialogHeader>
           {selectedReminder ? (
-            <form action={confirmRecurringReminderAction} className="grid gap-4">
+            <form
+              action={formAction}
+              className="grid gap-4"
+              onSubmit={() => setSelectedReminderId(undefined)}
+            >
               <input name="month" type="hidden" value={month} />
-              <input name="returnTo" type="hidden" value={returnTo} />
               <input
                 name="occurrenceId"
                 type="hidden"
@@ -160,24 +185,6 @@ export function RecurringReminderConfirmationPanel({
     </section>
   );
 }
-
-const feedbackMessages: Record<RecurringReminderFeedback, string> = {
-  confirmed: "已確認週期提醒。",
-  permission_denied: "你沒有確認這筆週期提醒的權限。",
-  missing_occurrence: "找不到這筆週期提醒，請重新整理後再試。",
-  occurrence_already_posted: "這筆週期提醒已確認入帳，請重新整理。",
-  stale_confirmation: "這筆週期提醒已確認入帳，請重新整理。",
-  occurrence_rule_mismatch: "這筆週期提醒資料不一致，請重新整理後再試。",
-  ledger_record_creation_failed: "這筆週期提醒目前無法建立紀錄。",
-  invalid_amount: "這筆週期提醒的金額無法建立紀錄。",
-  invalid_day_of_month: "這筆週期提醒的日期無法建立紀錄。",
-  missing_category: "這筆週期提醒缺少分類，請檢查規則設定。",
-  archived_category: "這筆週期提醒的分類已封存，請檢查規則設定。",
-  category_type_mismatch: "這筆週期提醒的分類類型不符，請檢查規則設定。",
-  missing_income_source_member: "這筆收入提醒缺少收入來源成員。",
-  missing_payment_source: "這筆支出提醒缺少付款來源。",
-  missing_member_payer: "這筆支出提醒缺少代墊成員。",
-};
 
 function formatAmount(amountCents: number): string {
   return new Intl.NumberFormat("zh-TW", {

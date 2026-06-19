@@ -87,5 +87,6 @@ test("finance manager reimburses a selected member-paid expense", async ({
     reimbursementRegion.getByText("Kai", { exact: true }),
   ).toBeVisible();
   await expect(reimbursementRegion.getByText("$1,880").first()).toBeVisible();
-  await expect(page).toHaveURL(/reimbursement=success/u);
+  await expect(reimbursementRegion.getByText("已完成退款。")).toBeVisible();
+  await expect(page).not.toHaveURL(/reimbursement=/u);
 });

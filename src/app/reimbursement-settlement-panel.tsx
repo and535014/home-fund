@@ -1,7 +1,13 @@
 "use client";
 
 import { HandCoins } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { initialActionState, type FormAction } from "@/app/action-state";
+import type {
+  ReimbursementActionCode,
+  ReimbursementActionField,
+} from "@/app/reimbursement-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,31 +31,32 @@ import type {
   ReimbursementTableExpense,
 } from "@/modules/reimbursement/reimbursement-table";
 
-type ReimbursementFeedback =
-  | "success"
-  | "permission_denied"
-  | "empty_selection"
-  | "expense_not_found"
-  | "not_refundable"
-  | "already_reimbursed";
-
 type ReimbursementSettlementPanelProps = {
   canPerformReimbursement: boolean;
-  feedback?: ReimbursementFeedback;
-  markExpensesReimbursedAction: (formData: FormData) => void;
+  markExpensesReimbursedAction: FormAction<
+    { month: string; selectedExpenseIds: string[] },
+    ReimbursementActionField,
+    ReimbursementActionCode
+  >;
   month: string;
   reimbursementTable: MonthlyReimbursementTable;
-  returnTo?: string;
 };
 
 export function ReimbursementSettlementPanel({
   canPerformReimbursement,
-  feedback,
   markExpensesReimbursedAction,
   month,
   reimbursementTable,
-  returnTo = "/",
 }: ReimbursementSettlementPanelProps) {
+  const router = useRouter();
+  const [actionState, formAction] = useActionState(
+    markExpensesReimbursedAction,
+    initialActionState<
+      { month: string; selectedExpenseIds: string[] },
+      ReimbursementActionField,
+      ReimbursementActionCode
+    >(),
+  );
   const isHydrated = useHydrated();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
@@ -71,7 +78,15 @@ export function ReimbursementSettlementPanel({
     (total, group) => total + group.expenseIds.length,
     0,
   );
-  const feedbackMessage = feedback ? feedbackMessages[feedback] : undefined;
+  const feedbackMessage = actionState.message;
+
+  useEffect(() => {
+    if (actionState.status !== "success") {
+      return;
+    }
+
+    router.refresh();
+  }, [actionState, router]);
 
   function toggleExpense(expenseId: string, checked: boolean) {
     setSelectedExpenseIds((current) =>
@@ -193,7 +208,7 @@ export function ReimbursementSettlementPanel({
       {feedbackMessage ? (
         <Alert
           className="mt-3"
-          variant={feedback === "success" ? "default" : "destructive"}
+          variant={actionState.status === "success" ? "default" : "destructive"}
         >
           <AlertDescription>{feedbackMessage}</AlertDescription>
         </Alert>
@@ -208,9 +223,15 @@ export function ReimbursementSettlementPanel({
               {formatAmount(selectedTotalCents)}。
             </DialogDescription>
           </DialogHeader>
-          <form action={markExpensesReimbursedAction} className="grid gap-4">
+          <form
+            action={formAction}
+            className="grid gap-4"
+            onSubmit={() => {
+              setIsConfirmOpen(false);
+              setSelectedExpenseIds([]);
+            }}
+          >
             <input name="month" type="hidden" value={month} />
-            <input name="returnTo" type="hidden" value={returnTo} />
             {selectedExpenseIds.map((expenseId) => (
               <input
                 key={expenseId}
@@ -235,15 +256,6 @@ export function ReimbursementSettlementPanel({
     </section>
   );
 }
-
-const feedbackMessages: Record<ReimbursementFeedback, string> = {
-  success: "已完成退款。",
-  permission_denied: "你沒有執行退款的權限。",
-  empty_selection: "請先選擇要退款的支出。",
-  expense_not_found: "找不到其中一筆退款支出，請重新整理後再試。",
-  not_refundable: "其中一筆支出目前不可退款，請重新整理後再試。",
-  already_reimbursed: "其中一筆支出已經退款，請重新整理後再試。",
-};
 
 function formatAmount(amountCents: number): string {
   return new Intl.NumberFormat("zh-TW", {
