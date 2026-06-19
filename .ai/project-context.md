@@ -120,7 +120,7 @@ reviewed_at: 2026-06-20
 
 - latest_completed_slice: admin-only category management, compressed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - active_change: admin-google-oauth-member-invitations
-- recommended_resume_gate: Verification for `admin-google-oauth-member-invitations`
-- recommended_next_skill: verification
-- required input: `.ai/implementation/admin-google-oauth-member-invitations.md`, `.ai/spec/admin-google-oauth-member-invitations.md`, `.ai/technical-design/admin-google-oauth-member-invitations.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
-- reason: TDD Implementation for admin Google OAuth and member invitations is ready for Verification after passing type-check, lint, focused unit/component tests, focused E2E, and build. Verification should include manual local real-Google invitation smoke where possible or record accepted risk if skipped.
+- recommended_resume_gate: Artifact Compression for `admin-google-oauth-member-invitations`
+- recommended_next_skill: artifact-compression
+- required input: `.ai/learning/admin-google-oauth-member-invitations.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/verification/admin-google-oauth-member-invitations.md`, `.ai/implementation/admin-google-oauth-member-invitations.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
+- reason: Learning Loop for admin Google OAuth and member invitations is complete for `local_dev`. Next gate should compress completed lifecycle artifacts and preserve traceability.

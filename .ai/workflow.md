@@ -29,6 +29,8 @@ trace_links:
   - .ai/spec/admin-google-oauth-member-invitations.md
   - .ai/technical-design/admin-google-oauth-member-invitations.md
   - .ai/implementation/admin-google-oauth-member-invitations.md
+  - .ai/verification/admin-google-oauth-member-invitations.md
+  - .ai/learning/admin-google-oauth-member-invitations.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -135,9 +137,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-google-oauth-member-invitations.
 - latest_completed_slice: recurring reminder confirmation UI.
-- current_stage: admin Google OAuth and member invitations TDD Implementation is ready for Verification; automated checks and build pass, with manual real-Google invitation smoke still to run or explicitly accept as risk during Verification.
-- recommended_resume_gate: Verification for admin-google-oauth-member-invitations.
-- recommended_next_skill: verification.
+- current_stage: admin Google OAuth and member invitations Learning Loop is complete for local_dev; manual tracking signals and follow-up criteria are recorded.
+- recommended_resume_gate: Artifact Compression for admin-google-oauth-member-invitations.
+- recommended_next_skill: artifact-compression.
 
 ## Artifact Inventory
 
@@ -164,5 +166,5 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - Assumptions: project defaults remain `delivery_profile: mvp` and `release_target: local_dev` because existing artifacts consistently use those values.
 - Open questions: production target, hosting environment, monitoring provider, analytics provider, and feedback channels are not yet selected.
 - Deferred cleanup: production deployment slicing remains blocked until target environment is selected.
-- Smallest next path: start Verification for `admin-google-oauth-member-invitations`, including manual local real-Google invitation smoke where possible.
+- Smallest next path: run Artifact Compression for `admin-google-oauth-member-invitations`.
 - Archive notes: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were pruned by explicit manual `artifact-prune` approval. Admin-only category management prune candidates are listed in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` but have not been pruned. Do not delete maintained intent, domain, foundation, workflow, project context, migration, release readiness, archive summaries, or active backlog artifacts.
