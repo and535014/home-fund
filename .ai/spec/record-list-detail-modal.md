@@ -52,7 +52,7 @@ reviewed_at: 2026-06-20
 - Preserve the current selected-month data source and recent-five-record limit.
 - Preserve existing ledger, reimbursement, category, auth, permission, and persistence behavior.
 - Use Traditional Chinese UI copy and existing dark-theme item/dialog primitives.
-- Keep create-record terminology aligned with the detail view: the member/source field label is `支付者`.
+- Keep create-record terminology aligned with the detail view: the member/source field is labeled `支付者`.
 
 ## Non-Goals
 
@@ -74,7 +74,7 @@ reviewed_at: 2026-06-20
 | AC6 | Record item title and description typography use shared `ItemTitle` and `ItemDescription`; descriptions use caption styling. |
 | AC7 | List item amount is displayed as an absolute currency value; income and expense are distinguished by semantic color only. |
 | AC8 | List item date is displayed as `YYYY/MM/DD`. |
-| AC9 | List item payer/source label displays only the actor: member-paid and income records show the member display name, fund-paid records show `基金`, and unknown members fall back to `成員`. |
+| AC9 | List item payer label displays only the actor: member-paid and income records show the member display name, fund-paid records show `基金`, and unknown members fall back to `成員`. |
 | AC10 | Activating a record item opens a read-only dialog for that exact selected record without changing the route or selected month. |
 | AC11 | The detail dialog has a title equal to the record name and no `DialogDescription` or footer action row. |
 | AC12 | The detail dialog shows absolute amount, formatted date, category, status, payer, and note or `沒有備註。`. |
@@ -83,7 +83,7 @@ reviewed_at: 2026-06-20
 | AC15 | Keyboard users can tab to a record item, press Enter or Space, open the detail dialog, and close it. |
 | AC16 | For a month with no records, the records card shows `這個月份尚無紀錄。` and exposes no record detail buttons. |
 | AC17 | The large dashboard arrangement uses Tailwind default `lg` breakpoint and wider `xl` ratio so 11-inch iPad landscape and MacBook 1280 x 832 keep the desktop layout. |
-| AC18 | The create-record dialog copy and member/source select label use `支付者`, not `成員`, for the payer/source field. |
+| AC18 | The create-record dialog copy and member/source select label use `支付者`, not `成員`, for that actor field. |
 
 ## BDD Scenarios
 
@@ -92,7 +92,7 @@ reviewed_at: 2026-06-20
 Given an authenticated household member opens `/` for `2026-06`  
 When the dashboard renders the records area  
 Then the records are shown as item buttons rather than a table  
-And each item shows category, name, absolute amount, payer/source, and `YYYY/MM/DD` date  
+And each item shows category, name, absolute amount, payer, and `YYYY/MM/DD` date  
 And the existing `/records` navigation remains absent.
 
 ### Scenario: Member opens a selected record detail dialog
@@ -149,7 +149,7 @@ And records remain in the right-side full-height card.
 | Selectors | Use `page.getByRole("button", { name: /查看.*詳情/u })`, `page.getByRole("dialog")`, dialog headings, and visible text for amount/date/category/payer/status. Avoid brittle class selectors. |
 | Table removal | Assert table column headers such as `日期`, `分類`, `狀態`, `金額` are not present as table headers in the records area; prefer role-based absence if table role is available. |
 | Detail open | Activate a known record button and assert dialog title equals that record name. |
-| Detail fields | Assert formatted date uses slash format, amount has no explicit plus/minus sign, payer uses member display name or `基金`, and income status uses `---`. |
+| Detail fields | Assert there is no `DialogDescription` or footer action row; formatted date uses slash format; amount has no explicit plus/minus sign; payer uses member display name or `基金`; income status uses `---`. |
 | Close behavior | Use built-in close button or Escape and assert dialog hidden, URL remains `/` with `month=2026-06`. |
 | Keyboard | Focus first record detail button, press Enter, close; repeat with Space if practical in one test or cover one key per scenario. |
 | Empty state | Visit a no-record month and assert empty copy plus no record detail buttons. |

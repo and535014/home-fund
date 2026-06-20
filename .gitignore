@@ -10,3 +10,4 @@ playwright-report/
 dist/
 tsconfig.tsbuildinfo
 src/generated/
+.vscode/
