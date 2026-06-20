@@ -5,6 +5,12 @@ import {
   type CategoryCommandPrismaClient,
 } from "@/modules/categorization/category-command";
 import type { Category } from "@/modules/categorization/category-catalog";
+import {
+  DEFAULT_CATEGORY_COLOR,
+  DEFAULT_CATEGORY_ICON,
+  isCategoryColorKey,
+  isCategoryIconKey,
+} from "@/modules/categorization/category-visual-options";
 import type { AppSearchParams } from "./route-search-params";
 
 export type CategoryWithReferenceCount = Category & {
@@ -48,8 +54,12 @@ async function listCategoriesWithReferenceCounts(
       id: true,
       type: true,
       name: true,
+      color: true,
+      icon: true,
+      sortOrder: true,
       status: true,
     },
+    orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
   const referenceCounts = await getCategoryReferenceCounts({
     categoryIds: categories.map((category) => category.id),
@@ -58,6 +68,10 @@ async function listCategoriesWithReferenceCounts(
 
   return categories.map((category) => ({
     ...category,
+    color: isCategoryColorKey(category.color)
+      ? category.color
+      : DEFAULT_CATEGORY_COLOR,
+    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
     recordCount: referenceCounts.get(category.id) ?? 0,
   }));
 }

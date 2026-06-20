@@ -315,7 +315,7 @@ function CategoryField({ categories }: { categories: Category[] }) {
               value={category.id}
             />
             <CategoryVisualMark
-              className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-2 peer-checked:ring-ring"
+              className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
               color={visual.color}
               icon={visual.icon}
               size="lg"

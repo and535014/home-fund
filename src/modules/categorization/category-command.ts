@@ -1,16 +1,31 @@
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
+  DEFAULT_CATEGORY_COLOR,
+  DEFAULT_CATEGORY_ICON,
+  isCategoryColorKey,
+  isCategoryIconKey,
+} from "./category-visual-options";
+import {
   archiveCategory,
   createCategory,
   renameCategory,
+  reorderCategories,
+  updateCategory,
   type ArchiveCategoryCommand,
   type Category,
   type CategoryCatalogResult,
   type CreateCategoryCommand,
+  type ReorderCategoriesCommand,
   type RenameCategoryCommand,
+  type UpdateCategoryCommand,
 } from "./category-catalog";
 
 const DEFAULT_HOUSEHOLD_ID = "household-demo";
+
+type PrismaCategoryRow = Omit<Category, "color" | "icon"> & {
+  color: string;
+  icon: string;
+};
 
 export type CategoryCommandPrismaClient = {
   category: {
@@ -22,15 +37,26 @@ export type CategoryCommandPrismaClient = {
         id: true;
         type: true;
         name: true;
+        color: true;
+        icon: true;
+        sortOrder: true;
         status: true;
       };
-    }): Promise<Category[]>;
+      orderBy?: Array<
+        | { type: "asc" }
+        | { sortOrder: "asc" }
+        | { name: "asc" }
+      >;
+    }): Promise<PrismaCategoryRow[]>;
     create(args: {
       data: {
         id: string;
         householdId: string;
         type: Category["type"];
         name: string;
+        color: Category["color"];
+        icon: Category["icon"];
+        sortOrder: number;
         status: Category["status"];
       };
     }): Promise<unknown>;
@@ -38,9 +64,10 @@ export type CategoryCommandPrismaClient = {
       where: {
         id: string;
       };
-      data: Partial<Pick<Category, "name" | "status">>;
+      data: Partial<Pick<Category, "color" | "icon" | "name" | "sortOrder" | "status">>;
     }): Promise<unknown>;
   };
+  $transaction?<T>(callback: (transaction: CategoryCommandPrismaClient) => Promise<T>): Promise<T>;
   ledgerRecord: {
     groupBy(args: {
       by: ["categoryId"];
@@ -114,6 +141,33 @@ export async function renameCategoryInDatabase(
   return result;
 }
 
+export async function updateCategoryInDatabase(
+  actor: AuthenticatedMember,
+  command: UpdateCategoryCommand,
+  context: CategoryCommandDatabaseContext,
+): Promise<CategoryCatalogResult> {
+  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const categories = await loadCategories(context.prisma, householdId);
+  const result = updateCategory(actor, command, { categories });
+
+  if (!result.ok) {
+    return result;
+  }
+
+  await context.prisma.category.update({
+    where: {
+      id: result.category.id,
+    },
+    data: {
+      color: result.category.color,
+      icon: result.category.icon,
+      name: result.category.name,
+    },
+  });
+
+  return result;
+}
+
 export async function archiveCategoryInDatabase(
   actor: AuthenticatedMember,
   command: ArchiveCategoryCommand,
@@ -137,6 +191,43 @@ export async function archiveCategoryInDatabase(
   });
 
   return result;
+}
+
+export async function reorderCategoriesInDatabase(
+  actor: AuthenticatedMember,
+  command: ReorderCategoriesCommand,
+  context: CategoryCommandDatabaseContext,
+): Promise<CategoryCatalogResult> {
+  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const runTransaction = context.prisma.$transaction
+    ? (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
+        context.prisma.$transaction!(callback)
+    : (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
+        callback(context.prisma);
+
+  return runTransaction(async (prisma) => {
+    const categories = await loadCategories(prisma, householdId);
+    const result = reorderCategories(actor, command, { categories });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    await Promise.all(
+      command.orderedCategoryIds.map((categoryId, index) =>
+        prisma.category.update({
+          where: {
+            id: categoryId,
+          },
+          data: {
+            sortOrder: (index + 1) * 10,
+          },
+        }),
+      ),
+    );
+
+    return result;
+  });
 }
 
 export async function getCategoryReferenceCounts({
@@ -186,7 +277,20 @@ function loadCategories(
       id: true,
       type: true,
       name: true,
+      color: true,
+      icon: true,
+      sortOrder: true,
       status: true,
     },
-  });
+  }).then((categories) => categories.map(mapPrismaCategoryToCategory));
+}
+
+function mapPrismaCategoryToCategory(category: PrismaCategoryRow): Category {
+  return {
+    ...category,
+    color: isCategoryColorKey(category.color)
+      ? category.color
+      : DEFAULT_CATEGORY_COLOR,
+    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
+  };
 }

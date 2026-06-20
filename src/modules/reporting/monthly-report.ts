@@ -1,4 +1,10 @@
 import type { Category } from "../categorization/category-catalog";
+import {
+  DEFAULT_CATEGORY_COLOR,
+  DEFAULT_CATEGORY_ICON,
+  type CategoryColorKey,
+  type CategoryIconKey,
+} from "../categorization/category-visual-options";
 import type { LedgerRecord, LedgerRecordType } from "../fund-ledger/ledger-records";
 import type { MonthlyReimbursementTable } from "../reimbursement/reimbursement-table";
 
@@ -10,7 +16,10 @@ export type MonthlyReportTotals = {
 
 export type MonthlyCategorySummary = {
   categoryId: string;
+  categoryColor: CategoryColorKey;
+  categoryIcon: CategoryIconKey;
   categoryName: string;
+  categorySortOrder: number;
   type: LedgerRecordType;
   totalAmountCents: number;
   recordIds: string[];
@@ -77,15 +86,19 @@ function buildCategorySummaries(
   records: LedgerRecord[],
   categories: Category[],
 ): MonthlyCategorySummary[] {
-  const categoryNameById = new Map(
-    categories.map((category) => [category.id, category.name] as const),
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category] as const),
   );
   const summariesByCategoryId = new Map<string, MonthlyCategorySummary>();
 
   for (const record of records) {
+    const category = categoryById.get(record.categoryId);
     const summary = summariesByCategoryId.get(record.categoryId) ?? {
       categoryId: record.categoryId,
-      categoryName: categoryNameById.get(record.categoryId) ?? record.categoryId,
+      categoryColor: category?.color ?? DEFAULT_CATEGORY_COLOR,
+      categoryIcon: category?.icon ?? DEFAULT_CATEGORY_ICON,
+      categoryName: category?.name ?? record.categoryId,
+      categorySortOrder: category?.sortOrder ?? 0,
       type: record.type,
       totalAmountCents: 0,
       recordIds: [],
@@ -100,7 +113,11 @@ function buildCategorySummaries(
     const byType = left.type.localeCompare(right.type);
 
     if (byType !== 0) {
-      return byType;
+    return byType;
+  }
+
+    if (left.categorySortOrder !== right.categorySortOrder) {
+      return left.categorySortOrder - right.categorySortOrder;
     }
 
     return left.categoryName.localeCompare(right.categoryName);

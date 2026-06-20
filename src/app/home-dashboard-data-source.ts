@@ -1,4 +1,10 @@
 import type { Category } from "../modules/categorization/category-catalog";
+import {
+  DEFAULT_CATEGORY_COLOR,
+  DEFAULT_CATEGORY_ICON,
+  isCategoryColorKey,
+  isCategoryIconKey,
+} from "../modules/categorization/category-visual-options";
 import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
 import { mapPrismaMemberToHouseholdMember } from "../auth/current-member-data-source";
@@ -15,6 +21,9 @@ type PrismaCategoryRow = {
   id: string;
   type: Category["type"];
   name: string;
+  color: string;
+  icon: string;
+  sortOrder: number;
   status: Category["status"];
 };
 
@@ -65,9 +74,12 @@ export type HomeDashboardPrismaClient = {
         id: true;
         type: true;
         name: true;
+        color: true;
+        icon: true;
+        sortOrder: true;
         status: true;
       };
-      orderBy: [{ type: "asc" }, { name: "asc" }];
+      orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }];
     }): Promise<PrismaCategoryRow[]>;
   };
   ledgerRecord: {
@@ -132,9 +144,12 @@ export function createHomeDashboardDataSource(
               id: true,
               type: true,
               name: true,
+              color: true,
+              icon: true,
+              sortOrder: true,
               status: true,
             },
-            orderBy: [{ type: "asc" }, { name: "asc" }],
+            orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
           }),
           prisma.ledgerRecord.findMany({
             where: {
@@ -206,6 +221,11 @@ function mapPrismaCategoryToCategory(category: PrismaCategoryRow): Category {
     id: category.id,
     type: category.type,
     name: category.name,
+    color: isCategoryColorKey(category.color)
+      ? category.color
+      : DEFAULT_CATEGORY_COLOR,
+    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
+    sortOrder: category.sortOrder,
     status: category.status,
   };
 }

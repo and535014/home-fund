@@ -37,8 +37,24 @@ const householdMembers: HouseholdMemberAccount[] = [
 ];
 
 const categories: Category[] = [
-  { id: "income-rent", type: "income", name: "房租", status: "active" },
-  { id: "expense-grocery", type: "expense", name: "日用品", status: "active" },
+  {
+    id: "income-rent",
+    type: "income",
+    name: "房租",
+    color: "blue",
+    icon: "home",
+    sortOrder: 10,
+    status: "active",
+  },
+  {
+    id: "expense-grocery",
+    type: "expense",
+    name: "日用品",
+    color: "gold",
+    icon: "shopping-cart",
+    sortOrder: 10,
+    status: "active",
+  },
 ];
 
 const records: LedgerRecord[] = [

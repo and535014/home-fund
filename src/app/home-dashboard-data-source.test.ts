@@ -23,6 +23,9 @@ describe("createHomeDashboardDataSource", () => {
         id: "expense-grocery",
         type: "expense" as const,
         name: "日用品",
+        color: "gold" as const,
+        icon: "shopping-cart" as const,
+        sortOrder: 10,
         status: "active" as const,
       },
     ]);
@@ -66,6 +69,9 @@ describe("createHomeDashboardDataSource", () => {
           id: "expense-grocery",
           type: "expense",
           name: "日用品",
+          color: "gold",
+          icon: "shopping-cart",
+          sortOrder: 10,
           status: "active",
         },
       ],
@@ -93,6 +99,18 @@ describe("createHomeDashboardDataSource", () => {
         },
       },
     }));
+    expect(categoryFindMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        type: true,
+        name: true,
+        color: true,
+        icon: true,
+        sortOrder: true,
+        status: true,
+      },
+      orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+    });
   });
 });
 

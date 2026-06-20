@@ -25,14 +25,15 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { RecordCategoryLabel } from "@/app/record-category-label";
+import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export function RecordListDetail({
-  categoryNames,
+  categoriesById,
   memberNames,
   records,
 }: {
-  categoryNames: Record<string, string>;
+  categoriesById: Record<string, Category>;
   memberNames: Record<string, string>;
   records: LedgerRecord[];
 }) {
@@ -51,7 +52,7 @@ export function RecordListDetail({
         <ItemGroup className="h-full overflow-y-auto divide-y divide-border">
           {records.map((record) => (
             <RecordListItem
-              categoryName={categoryNames[record.categoryId] ?? record.categoryId}
+              category={categoriesById[record.categoryId]}
               key={record.id}
               memberNames={memberNames}
               onOpen={(trigger) => {
@@ -78,7 +79,7 @@ export function RecordListDetail({
         {selectedRecord ? (
           <RecordDetailDialog
             categoryName={
-              categoryNames[selectedRecord.categoryId] ?? selectedRecord.categoryId
+              categoriesById[selectedRecord.categoryId]?.name ?? selectedRecord.categoryId
             }
             memberNames={memberNames}
             record={selectedRecord}
@@ -90,12 +91,12 @@ export function RecordListDetail({
 }
 
 function RecordListItem({
-  categoryName,
+  category,
   memberNames,
   onOpen,
   record,
 }: {
-  categoryName: string;
+  category?: Category;
   memberNames: Record<string, string>;
   onOpen: (trigger: HTMLButtonElement) => void;
   record: LedgerRecord;
@@ -114,8 +115,8 @@ function RecordListItem({
         onClick={(event) => onOpen(event.currentTarget)}
         type="button"
       >
-        <ItemMedia className="self-center group-has-[[data-slot=item-description]]/item:translate-y-0 group-has-[[data-slot=item-description]]/item:self-center">
-          <RecordCategoryLabel name={categoryName} />
+        <ItemMedia className="self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
+          {category ? <RecordCategoryLabel category={category} /> : null}
         </ItemMedia>
 
         <ItemContent className="min-w-0">

@@ -5,6 +5,8 @@ import {
   createCategoryInDatabase,
   getCategoryReferenceCounts,
   renameCategoryInDatabase,
+  reorderCategoriesInDatabase,
+  updateCategoryInDatabase,
   type CategoryCommandPrismaClient,
 } from "./category-command";
 
@@ -25,12 +27,27 @@ const categories = [
     id: "category-income-rent",
     type: "income" as const,
     name: "房租",
+    color: "blue" as const,
+    icon: "home" as const,
+    sortOrder: 10,
     status: "active" as const,
   },
   {
     id: "category-expense-grocery",
     type: "expense" as const,
     name: "日用品",
+    color: "gold" as const,
+    icon: "shopping-cart" as const,
+    sortOrder: 10,
+    status: "active" as const,
+  },
+  {
+    id: "category-expense-internet",
+    type: "expense" as const,
+    name: "網路費",
+    color: "violet" as const,
+    icon: "wifi" as const,
+    sortOrder: 20,
     status: "active" as const,
   },
 ];
@@ -58,7 +75,9 @@ describe("category command database adapter", () => {
 
     const result = await createCategoryInDatabase(admin, {
       type: "expense",
-      name: "網路費",
+      name: "水電費",
+      color: "blue",
+      icon: "home",
     }, {
       prisma,
       generateId: () => "category-expense-internet",
@@ -69,7 +88,7 @@ describe("category command database adapter", () => {
       category: {
         id: "category-expense-internet",
         type: "expense",
-        name: "網路費",
+        name: "水電費",
         status: "active",
       },
     });
@@ -78,7 +97,10 @@ describe("category command database adapter", () => {
         id: "category-expense-internet",
         householdId: "household-demo",
         type: "expense",
-        name: "網路費",
+        name: "水電費",
+        color: "blue",
+        icon: "home",
+        sortOrder: 30,
         status: "active",
       },
     });
@@ -125,6 +147,37 @@ describe("category command database adapter", () => {
     });
   });
 
+  it("updates category name and visual identity in the database", async () => {
+    const prisma = createPrismaStub();
+
+    const result = await updateCategoryInDatabase(admin, {
+      categoryId: "category-expense-grocery",
+      color: "teal",
+      icon: "home",
+      name: "家庭用品",
+    }, { prisma });
+
+    expect(result).toMatchObject({
+      ok: true,
+      category: {
+        id: "category-expense-grocery",
+        color: "teal",
+        icon: "home",
+        name: "家庭用品",
+      },
+    });
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: {
+        id: "category-expense-grocery",
+      },
+      data: {
+        color: "teal",
+        icon: "home",
+        name: "家庭用品",
+      },
+    });
+  });
+
   it("archives categories by updating status", async () => {
     const prisma = createPrismaStub();
 
@@ -165,5 +218,40 @@ describe("category command database adapter", () => {
       ["category-expense-grocery", 2],
       ["category-income-rent", 0],
     ]));
+  });
+
+  it("reorders active categories transactionally within the requested type", async () => {
+    const prisma = createPrismaStub({
+      $transaction: vi.fn(async (callback) => callback(prisma)),
+    } as Partial<CategoryCommandPrismaClient>);
+
+    const result = await reorderCategoriesInDatabase(admin, {
+      type: "expense",
+      orderedCategoryIds: [
+        "category-expense-internet",
+        "category-expense-grocery",
+      ],
+    }, { prisma });
+
+    expect(result).toMatchObject({
+      ok: true,
+      events: ["Category updated"],
+    });
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: {
+        id: "category-expense-internet",
+      },
+      data: {
+        sortOrder: 10,
+      },
+    });
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: {
+        id: "category-expense-grocery",
+      },
+      data: {
+        sortOrder: 20,
+      },
+    });
   });
 });

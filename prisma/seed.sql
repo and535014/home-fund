@@ -215,13 +215,17 @@ INSERT INTO "MemberRoleAssignment" ("memberId", "role")
 VALUES ('member-admin', 'admin')
 ON CONFLICT ("memberId", "role") DO NOTHING;
 
-INSERT INTO "Category" ("id", "householdId", "type", "name", "status", "updatedAt")
+INSERT INTO "Category" ("id", "householdId", "type", "name", "color", "icon", "sortOrder", "status", "updatedAt")
 VALUES
-  ('income-rent', 'household-demo', 'income', '房租', 'active', CURRENT_TIMESTAMP),
-  ('income-living', 'household-demo', 'income', '生活費', 'active', CURRENT_TIMESTAMP),
-  ('expense-grocery', 'household-demo', 'expense', '日用品', 'active', CURRENT_TIMESTAMP),
-  ('expense-internet', 'household-demo', 'expense', '網路費', 'active', CURRENT_TIMESTAMP)
+  ('income-rent', 'household-demo', 'income', '房租', 'blue', 'home', 10, 'active', CURRENT_TIMESTAMP),
+  ('income-living', 'household-demo', 'income', '生活費', 'teal', 'piggy-bank', 20, 'active', CURRENT_TIMESTAMP),
+  ('expense-grocery', 'household-demo', 'expense', '日用品', 'gold', 'shopping-cart', 10, 'active', CURRENT_TIMESTAMP),
+  ('expense-internet', 'household-demo', 'expense', '網路費', 'violet', 'wifi', 20, 'active', CURRENT_TIMESTAMP),
+  ('expense-dining', 'household-demo', 'expense', '餐飲', 'rose', 'utensils', 30, 'active', CURRENT_TIMESTAMP)
 ON CONFLICT ("id") DO UPDATE
 SET "name" = EXCLUDED."name",
+    "color" = EXCLUDED."color",
+    "icon" = EXCLUDED."icon",
+    "sortOrder" = EXCLUDED."sortOrder",
     "status" = EXCLUDED."status",
     "updatedAt" = CURRENT_TIMESTAMP;

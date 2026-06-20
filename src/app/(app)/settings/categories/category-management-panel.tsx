@@ -7,16 +7,27 @@ import {
   Tags,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
+import { initialActionState } from "@/app/action-state";
+import {
+  archiveCategoryAction,
+  createCategoryAction,
+  reorderCategoriesAction,
+  updateCategoryAction,
+  type ArchiveCategoryActionState,
+  type CreateCategoryActionState,
+  type ReorderCategoryActionState,
+  type UpdateCategoryActionState,
+} from "@/app/category-actions";
 import {
   CATEGORY_COLOR_OPTIONS,
   CATEGORY_ICON_OPTIONS,
   CategoryVisualLabel,
   compareCategoryVisualOrder,
-  getCategoryVisual,
   type CategoryIconKey,
 } from "@/app/category-visuals";
+import type { CategoryColorKey } from "@/modules/categorization/category-visual-options";
 import type { Category } from "@/modules/categorization/category-catalog";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,10 +59,7 @@ import { cn } from "@/lib/utils";
 type CategoryType = Category["type"];
 
 type EditableCategory = Category & {
-  color?: string;
-  icon?: CategoryIconKey;
   recordCount: number;
-  sortOrder?: number;
 };
 
 type CategoryManagementPanelProps = {
@@ -85,19 +93,18 @@ export function AddCategoryHeaderButton({
 export function CategoryManagementPanel({ categories }: CategoryManagementPanelProps) {
   const [newType, setNewType] = useState<CategoryType>("expense");
   const [newName, setNewName] = useState("");
-  const [newColor, setNewColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0].value);
+  const [newColor, setNewColor] = useState<CategoryColorKey>(CATEGORY_COLOR_OPTIONS[0].value);
   const [newIcon, setNewIcon] = useState<CategoryIconKey>("tags");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [editingColor, setEditingColor] = useState<string>(
+  const [editingColor, setEditingColor] = useState<CategoryColorKey>(
     CATEGORY_COLOR_OPTIONS[0].value,
   );
   const [editingIcon, setEditingIcon] = useState<CategoryIconKey>("tags");
   const [archivingId, setArchivingId] = useState<string | null>(null);
-  const [displayedCategories, setDisplayedCategories] = useState(() =>
-    hydrateVisualCategories(categories),
-  );
+  const [displayedCategories, setDisplayedCategories] = useState(categories);
+  const [isPending, startTransition] = useTransition();
 
   const activeCategories = displayedCategories
     .filter((category) => category.status === "active")
@@ -127,6 +134,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedName = newName.trim();
+    const formData = new FormData(event.currentTarget);
 
     if (!normalizedName) {
       toast.error("請輸入分類名稱。");
@@ -138,43 +146,46 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
       return;
     }
 
-    const nextSortOrder =
-      Math.max(
-        0,
-        ...displayedCategories
-          .filter(
-            (category) => category.type === newType && category.status === "active",
-          )
-          .map((category) => category.sortOrder ?? 0),
-      ) + 10;
+    startTransition(async () => {
+      const result = await createCategoryAction(
+        initialActionState() as CreateCategoryActionState,
+        formData,
+      );
 
-    setDisplayedCategories((current) => [
-      ...current,
-      {
-        color: newColor,
-        icon: newIcon,
-        id: `local-${newType}-${Date.now()}`,
-        name: normalizedName,
-        recordCount: 0,
-        sortOrder: nextSortOrder,
-        status: "active",
-        type: newType,
-      },
-    ]);
-    setNewName("");
-    setIsCreateDialogOpen(false);
-    toast.success("分類已新增", {
-      description: "已加入啟用分類。",
-      id: "category-created-local",
+      if (result.status === "error") {
+        toast.error(result.message ?? "分類新增失敗。");
+        return;
+      }
+
+      const data = result.data;
+
+      if (data) {
+        setDisplayedCategories((current) => [
+          ...current,
+          {
+            color: data.color,
+            icon: data.icon,
+            id: data.categoryId,
+            name: data.name,
+            recordCount: 0,
+            sortOrder: data.sortOrder,
+            status: "active",
+            type: data.type,
+          },
+        ]);
+      }
+
+      setNewName("");
+      setIsCreateDialogOpen(false);
+      toast.success(result.message ?? "分類已新增");
     });
   }
 
   function startRename(category: EditableCategory) {
-    const visual = getCategoryVisual(category);
     setEditingId(category.id);
     setEditingName(category.name);
-    setEditingColor(category.color ?? visual.color);
-    setEditingIcon(category.icon ?? visual.icon);
+    setEditingColor(category.color);
+    setEditingIcon(category.icon);
   }
 
   function submitRenameCategory(
@@ -183,6 +194,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   ) {
     event.preventDefault();
     const normalizedName = editingName.trim();
+    const formData = new FormData(event.currentTarget);
 
     if (!normalizedName) {
       toast.error("請輸入分類名稱。");
@@ -200,22 +212,31 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
       return;
     }
 
-    setDisplayedCategories((current) =>
-      current.map((candidate) =>
-        candidate.id === category.id
-          ? {
-              ...candidate,
-              color: editingColor,
-              icon: editingIcon,
-              name: normalizedName,
-            }
-          : candidate,
-      ),
-    );
-    setEditingId(null);
-    toast.success("分類已更新", {
-      description: "已更新分類名稱、顏色與 icon。",
-      id: "category-renamed-local",
+    startTransition(async () => {
+      const result = await updateCategoryAction(
+        initialActionState() as UpdateCategoryActionState,
+        formData,
+      );
+
+      if (result.status === "error") {
+        toast.error(result.message ?? "分類更新失敗。");
+        return;
+      }
+
+      setDisplayedCategories((current) =>
+        current.map((candidate) =>
+          candidate.id === category.id && result.data
+            ? {
+                ...candidate,
+                color: result.data.color,
+                icon: result.data.icon,
+                name: result.data.name,
+              }
+            : candidate,
+        ),
+      );
+      setEditingId(null);
+      toast.success(result.message ?? "分類已更新");
     });
   }
 
@@ -225,21 +246,55 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
 
   function confirmArchiveCategory() {
     if (archivingCategory) {
-      setDisplayedCategories((current) =>
-        current.map((category) =>
-          category.id === archivingCategory.id
-            ? { ...category, status: "archived" }
-            : category,
-        ),
-      );
-      toast.success("分類已封存", {
-        description: "既有紀錄仍會保留原分類。",
-        id: "category-archived-local",
-      });
-    }
+      const formData = new FormData();
+      formData.set("categoryId", archivingCategory.id);
 
-    setEditingId(null);
-    setArchivingId(null);
+      startTransition(async () => {
+        const result = await archiveCategoryAction(
+          initialActionState() as ArchiveCategoryActionState,
+          formData,
+        );
+
+        if (result.status === "error") {
+          toast.error(result.message ?? "分類封存失敗。");
+          return;
+        }
+
+        setDisplayedCategories((current) =>
+          current.map((category) =>
+            category.id === archivingCategory.id
+              ? { ...category, status: "archived" }
+              : category,
+          ),
+        );
+        setEditingId(null);
+        setArchivingId(null);
+        toast.success(result.message ?? "分類已封存");
+      });
+    } else {
+      setEditingId(null);
+      setArchivingId(null);
+    }
+  }
+
+  function persistCategoryOrder(type: CategoryType, orderedCategories: EditableCategory[]) {
+    const formData = new FormData();
+    formData.set("type", type);
+    orderedCategories.forEach((category) => {
+      formData.append("categoryIds", category.id);
+    });
+
+    startTransition(async () => {
+      const result = await reorderCategoriesAction(
+        initialActionState() as ReorderCategoryActionState,
+        formData,
+      );
+
+      if (result.status === "error") {
+        toast.error(result.message ?? "分類排序更新失敗。");
+        setDisplayedCategories(categories);
+      }
+    });
   }
 
   function reorderCategory({
@@ -282,6 +337,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
         return sortOrder ? { ...candidate, sortOrder } : candidate;
       }),
     );
+    persistCategoryOrder(type, reordered);
   }
 
   return (
@@ -300,6 +356,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onArchive={startArchive}
               onEdit={startRename}
               onReorder={reorderCategory}
+              pending={isPending}
               type="expense"
             />
           )}
@@ -314,6 +371,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onArchive={startArchive}
               onEdit={startRename}
               onReorder={reorderCategory}
+              pending={isPending}
               type="income"
             />
           )}
@@ -394,6 +452,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   onClick={() => setArchivingId(null)}
+                  disabled={isPending}
                   type="button"
                   variant="outline"
                 >
@@ -402,7 +461,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
                 <form onSubmit={(event) => event.preventDefault()}>
                   <div className="grid gap-2">
                     <input name="categoryId" type="hidden" value={archivingCategory.id} />
-                    <Button onClick={confirmArchiveCategory} type="button" variant="destructive">
+                    <Button disabled={isPending} onClick={confirmArchiveCategory} type="button" variant="destructive">
                       <Archive aria-hidden="true" />
                       確認封存
                     </Button>
@@ -465,11 +524,11 @@ function CategoryForm({
   typeDisabled = false,
 }: {
   categoryId?: string;
-  color: string;
+  color: CategoryColorKey;
   fieldError?: string;
   icon: CategoryIconKey;
   name: string;
-  onColorChange: (color: string) => void;
+  onColorChange: (color: CategoryColorKey) => void;
   onIconChange: (icon: CategoryIconKey) => void;
   onNameChange: (name: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -481,6 +540,8 @@ function CategoryForm({
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
+      <input name="color" type="hidden" value={color} />
+      <input name="icon" type="hidden" value={icon} />
       <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
@@ -529,7 +590,7 @@ function CategoryForm({
                 >
                   <span
                     className="size-5 rounded-full"
-                    style={{ backgroundColor: option.value }}
+                    style={{ backgroundColor: option.cssColor }}
                   />
                 </button>
               ))}
@@ -572,6 +633,7 @@ function CategoryList({
   onArchive,
   onEdit,
   onReorder,
+  pending,
   type,
 }: {
   categories: EditableCategory[];
@@ -583,6 +645,7 @@ function CategoryList({
     targetCategoryId: string;
     type: CategoryType;
   }) => void;
+  pending?: boolean;
   type: CategoryType;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -633,6 +696,25 @@ function CategoryList({
           onDragStart={(draggedCategory) => {
             setDraggingId(draggedCategory.id);
           }}
+          onMove={(direction) => {
+            const currentIndex = categories.findIndex(
+              (candidate) => candidate.id === category.id,
+            );
+            const targetCategory = categories[
+              direction === "up" ? currentIndex - 1 : currentIndex + 1
+            ];
+
+            if (!targetCategory) {
+              return;
+            }
+
+            onReorder({
+              draggedCategoryId: category.id,
+              targetCategoryId: targetCategory.id,
+              type,
+            });
+          }}
+          pending={pending}
         />
       ))}
     </div>
@@ -647,6 +729,8 @@ function CategoryItem({
   onDragEnd,
   onDragEnter,
   onDragStart,
+  onMove,
+  pending = false,
 }: {
   actions?: ReactNode;
   category: EditableCategory;
@@ -655,6 +739,8 @@ function CategoryItem({
   onDragEnd?: () => void;
   onDragEnter?: (category: EditableCategory) => void;
   onDragStart?: (category: EditableCategory) => void;
+  onMove?: (direction: "down" | "up") => void;
+  pending?: boolean;
 }) {
   const canReorder = Boolean(onDragStart);
 
@@ -679,11 +765,23 @@ function CategoryItem({
         <button
           aria-label={`排序 ${category.name}`}
           className="grid size-8 shrink-0 cursor-grab place-items-center rounded-input text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing"
+          disabled={pending}
           draggable
           onDragStart={(event) => {
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", category.id);
             onDragStart?.(category);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              onMove?.("up");
+            }
+
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              onMove?.("down");
+            }
           }}
           type="button"
         >
@@ -713,7 +811,6 @@ function seedEditableCategories(
 
   return categories.map((category) => ({
     ...category,
-    ...getCategoryVisual(category),
     recordCount: recordCounts.get(category.id) ?? 0,
   }));
 }
@@ -723,13 +820,6 @@ export function buildEditableCategories(
   records: { categoryId: string }[],
 ): EditableCategory[] {
   return seedEditableCategories(categories, records);
-}
-
-function hydrateVisualCategories(categories: EditableCategory[]): EditableCategory[] {
-  return categories.map((category) => ({
-    ...category,
-    ...getCategoryVisual(category),
-  }));
 }
 
 function hasDuplicateActiveName(

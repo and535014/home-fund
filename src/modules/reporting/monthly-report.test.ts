@@ -4,9 +4,33 @@ import type { LedgerRecord } from "../fund-ledger/ledger-records";
 import { buildMonthlyReport } from "./monthly-report";
 
 const categories: Category[] = [
-  { id: "income-rent", type: "income", name: "房租", status: "active" },
-  { id: "expense-grocery", type: "expense", name: "日用品", status: "active" },
-  { id: "expense-internet", type: "expense", name: "網路費", status: "active" },
+  {
+    id: "income-rent",
+    type: "income",
+    name: "房租",
+    color: "blue",
+    icon: "home",
+    sortOrder: 10,
+    status: "active",
+  },
+  {
+    id: "expense-grocery",
+    type: "expense",
+    name: "日用品",
+    color: "gold",
+    icon: "shopping-cart",
+    sortOrder: 20,
+    status: "active",
+  },
+  {
+    id: "expense-internet",
+    type: "expense",
+    name: "網路費",
+    color: "violet",
+    icon: "wifi",
+    sortOrder: 10,
+    status: "active",
+  },
 ];
 
 const records: LedgerRecord[] = [
@@ -101,22 +125,31 @@ describe("buildMonthlyReport", () => {
       ],
       categorySummaries: [
         {
-          categoryId: "expense-grocery",
-          categoryName: "日用品",
-          type: "expense",
-          totalAmountCents: 3_200,
-          recordIds: ["expense-grocery-june"],
-        },
-        {
           categoryId: "expense-internet",
+          categoryColor: "violet",
+          categoryIcon: "wifi",
           categoryName: "網路費",
+          categorySortOrder: 10,
           type: "expense",
           totalAmountCents: 899,
           recordIds: ["expense-internet-june"],
         },
         {
+          categoryId: "expense-grocery",
+          categoryColor: "gold",
+          categoryIcon: "shopping-cart",
+          categoryName: "日用品",
+          categorySortOrder: 20,
+          type: "expense",
+          totalAmountCents: 3_200,
+          recordIds: ["expense-grocery-june"],
+        },
+        {
           categoryId: "income-rent",
+          categoryColor: "blue",
+          categoryIcon: "home",
           categoryName: "房租",
+          categorySortOrder: 10,
           type: "income",
           totalAmountCents: 120_000,
           recordIds: ["income-june-rent"],

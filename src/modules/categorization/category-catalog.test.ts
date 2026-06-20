@@ -5,6 +5,8 @@ import {
   createCategory,
   listAvailableCategories,
   renameCategory,
+  reorderCategories,
+  updateCategory,
   type Category,
 } from "./category-catalog";
 
@@ -32,18 +34,36 @@ const categories: Category[] = [
     id: "category-income-rent",
     type: "income",
     name: "房租",
+    color: "blue",
+    icon: "home",
+    sortOrder: 20,
     status: "active",
   },
   {
     id: "category-expense-grocery",
     type: "expense",
     name: "日用品",
+    color: "gold",
+    icon: "shopping-cart",
+    sortOrder: 20,
+    status: "active",
+  },
+  {
+    id: "category-expense-internet",
+    type: "expense",
+    name: "網路費",
+    color: "violet",
+    icon: "wifi",
+    sortOrder: 10,
     status: "active",
   },
   {
     id: "category-expense-archived",
     type: "expense",
     name: "舊分類",
+    color: "rose",
+    icon: "tags",
+    sortOrder: 30,
     status: "archived",
   },
 ];
@@ -52,17 +72,22 @@ describe("category catalog", () => {
   it("allows admins to create income and expense categories", () => {
     expect(createCategory(admin, {
       type: "expense",
-      name: "網路費",
+      name: "水電費",
+      color: "blue",
+      icon: "home",
     }, { categories, generateId: () => "category-expense-internet" }))
       .toEqual({
         ok: true,
-        category: {
-          id: "category-expense-internet",
-          type: "expense",
-          name: "網路費",
-          status: "active",
-        },
-        events: ["Category created"],
+      category: {
+        id: "category-expense-internet",
+        type: "expense",
+        name: "水電費",
+        color: "blue",
+        icon: "home",
+        sortOrder: 30,
+        status: "active",
+      },
+      events: ["Category created"],
       });
   });
 
@@ -112,9 +137,11 @@ describe("category catalog", () => {
       .toMatchObject({ ok: true });
   });
 
-  it("renames active categories without changing historical ids", () => {
-    expect(renameCategory(admin, {
+  it("updates active category names and visual identity without changing historical ids", () => {
+    expect(updateCategory(admin, {
       categoryId: "category-expense-grocery",
+      color: "teal",
+      icon: "home",
       name: "家庭用品",
     }, { categories })).toEqual({
       ok: true,
@@ -122,9 +149,48 @@ describe("category catalog", () => {
         id: "category-expense-grocery",
         type: "expense",
         name: "家庭用品",
+        color: "teal",
+        icon: "home",
+        sortOrder: 20,
         status: "active",
       },
       events: ["Category updated"],
+    });
+  });
+
+  it("rejects invalid color and icon values", () => {
+    expect(createCategory(admin, {
+      type: "expense",
+      name: "水電費",
+      color: "not-a-color",
+      icon: "home",
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "invalid_color",
+    });
+
+    expect(updateCategory(admin, {
+      categoryId: "category-expense-grocery",
+      color: "blue",
+      icon: "not-an-icon",
+      name: "日用品",
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "invalid_icon",
+    });
+  });
+
+  it("keeps the old rename command as a name-only compatibility path", () => {
+    expect(renameCategory(admin, {
+      categoryId: "category-expense-grocery",
+      name: "家庭用品",
+    }, { categories })).toMatchObject({
+      ok: true,
+      category: {
+        color: "gold",
+        icon: "shopping-cart",
+        name: "家庭用品",
+      },
     });
   });
 
@@ -137,6 +203,9 @@ describe("category catalog", () => {
         id: "category-expense-grocery",
         type: "expense",
         name: "日用品",
+        color: "gold",
+        icon: "shopping-cart",
+        sortOrder: 20,
         status: "archived",
       },
       events: ["Category updated"],
@@ -146,11 +215,60 @@ describe("category catalog", () => {
   it("lists only active categories for new income or expense records", () => {
     expect(listAvailableCategories(categories, "expense")).toEqual([
       {
+        id: "category-expense-internet",
+        type: "expense",
+        name: "網路費",
+        color: "violet",
+        icon: "wifi",
+        sortOrder: 10,
+        status: "active",
+      },
+      {
         id: "category-expense-grocery",
         type: "expense",
         name: "日用品",
+        color: "gold",
+        icon: "shopping-cart",
+        sortOrder: 20,
         status: "active",
       },
     ]);
+  });
+
+  it("rejects invalid reorder payloads", () => {
+    expect(reorderCategories(admin, {
+      type: "expense",
+      orderedCategoryIds: [
+        "category-expense-grocery",
+        "category-expense-grocery",
+      ],
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "invalid_order",
+    });
+
+    expect(reorderCategories(admin, {
+      type: "expense",
+      orderedCategoryIds: [
+        "category-expense-grocery",
+        "category-income-rent",
+      ],
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "invalid_order",
+    });
+  });
+
+  it("accepts valid same-type active reorder", () => {
+    expect(reorderCategories(admin, {
+      type: "expense",
+      orderedCategoryIds: [
+        "category-expense-grocery",
+        "category-expense-internet",
+      ],
+    }, { categories })).toMatchObject({
+      ok: true,
+      events: ["Category updated"],
+    });
   });
 });

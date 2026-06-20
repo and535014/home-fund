@@ -5,7 +5,10 @@ import {
 } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { formatAmount, SummaryMetric } from "@/app/dashboard-widgets";
-import { CategoryVisualLabel, getCategoryVisual } from "@/app/category-visuals";
+import {
+	CategoryVisualLabel,
+	getCategoryColorCssColor,
+} from "@/app/category-visuals";
 import { MonthSwitcher } from "@/app/month-switcher";
 import { RecordListDetail } from "@/app/record-list-detail";
 import {
@@ -13,6 +16,10 @@ import {
 	type MonthlyTrendPoint,
 } from "@/app/dashboard-charts";
 import { cn } from "@/lib/utils";
+import type {
+	CategoryColorKey,
+	CategoryIconKey,
+} from "@/modules/categorization/category-visual-options";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { ReactNode } from "react";
 
@@ -25,8 +32,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 	const { dashboardData, homeView, month } = context;
 	const { reimbursementTable, report } = homeView;
-	const categoryNames = Object.fromEntries(
-		dashboardData.categories.map((category) => [category.id, category.name]),
+	const categoriesById = Object.fromEntries(
+		dashboardData.categories.map((category) => [category.id, category]),
 	);
 	const memberNames = Object.fromEntries(
 		dashboardData.householdMembers.map((member) => [
@@ -99,7 +106,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 					title="紀錄"
 				>
 					<RecordListDetail
-						categoryNames={categoryNames}
+						categoriesById={categoriesById}
 						memberNames={memberNames}
 						records={recentRecords}
 					/>
@@ -183,7 +190,10 @@ function CategoryStatsPanel({
 }: {
 	summaries: {
 		categoryId: string;
+		categoryColor: CategoryColorKey;
+		categoryIcon: CategoryIconKey;
 		categoryName: string;
+		categorySortOrder: number;
 		totalAmountCents: number;
 		type: "expense" | "income";
 	}[];
@@ -227,16 +237,14 @@ function CategoryStatRow({
 	maxAmountCents: number;
 	summary: {
 		categoryId: string;
+		categoryColor: CategoryColorKey;
+		categoryIcon: CategoryIconKey;
 		categoryName: string;
+		categorySortOrder: number;
 		totalAmountCents: number;
 		type: "expense" | "income";
 	};
 }) {
-	const visual = getCategoryVisual({
-		id: summary.categoryId,
-		name: summary.categoryName,
-		type: summary.type,
-	});
 	const percent =
 		maxAmountCents > 0
 			? Math.round((summary.totalAmountCents / maxAmountCents) * 100)
@@ -247,7 +255,11 @@ function CategoryStatRow({
 			<CategoryVisualLabel
 				category={{
 					id: summary.categoryId,
+					color: summary.categoryColor,
+					icon: summary.categoryIcon,
 					name: summary.categoryName,
+					sortOrder: summary.categorySortOrder,
+					status: "active",
 					type: summary.type,
 				}}
 				compact
@@ -257,7 +269,7 @@ function CategoryStatRow({
 					aria-hidden="true"
 					className="h-full rounded-full"
 					style={{
-						backgroundColor: visual.color,
+						backgroundColor: getCategoryColorCssColor(summary.categoryColor),
 						width: `${Math.max(percent, 2)}%`,
 					}}
 				/>

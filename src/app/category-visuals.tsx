@@ -15,64 +15,47 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  CATEGORY_COLOR_OPTIONS,
+  CATEGORY_ICON_OPTIONS as CATEGORY_ICON_OPTION_DEFINITIONS,
+  DEFAULT_CATEGORY_COLOR,
+  DEFAULT_CATEGORY_ICON,
+  getCategoryColorCssColor,
+  type CategoryColorKey,
+  type CategoryIconKey,
+} from "@/modules/categorization/category-visual-options";
+
+export {
+  CATEGORY_COLOR_OPTIONS,
+  getCategoryColorCssColor,
+  type CategoryColorKey,
+  type CategoryIconKey,
+};
 
 type CategoryLike = {
-  color?: string;
+  color: CategoryColorKey;
   id?: string;
-  icon?: CategoryIconKey;
+  icon: CategoryIconKey;
   name: string;
-  sortOrder?: number;
+  sortOrder: number;
+  status?: "active" | "archived";
   type?: "income" | "expense";
 };
 
-export type CategoryIconKey =
-  | "badge-dollar-sign"
-  | "briefcase-business"
-  | "bus"
-  | "graduation-cap"
-  | "heart-pulse"
-  | "home"
-  | "piggy-bank"
-  | "shapes"
-  | "shopping-cart"
-  | "sparkles"
-  | "tags"
-  | "utensils"
-  | "wifi";
-
 export type CategoryVisual = {
-  color: string;
+  color: CategoryColorKey;
   icon: CategoryIconKey;
   sortOrder: number;
 };
-
-export const CATEGORY_COLOR_OPTIONS = [
-  { label: "松綠", value: "#2dd4bf" },
-  { label: "藍", value: "#60a5fa" },
-  { label: "紫", value: "#a78bfa" },
-  { label: "玫瑰", value: "#fb7185" },
-  { label: "金", value: "#fbbf24" },
-  { label: "萊姆", value: "#a3e635" },
-] as const;
 
 export const CATEGORY_ICON_OPTIONS: Array<{
   Icon: LucideIcon;
   key: CategoryIconKey;
   label: string;
-}> = [
-  { Icon: ShoppingCart, key: "shopping-cart", label: "購物" },
-  { Icon: Utensils, key: "utensils", label: "餐飲" },
-  { Icon: Wifi, key: "wifi", label: "通訊" },
-  { Icon: Bus, key: "bus", label: "交通" },
-  { Icon: Home, key: "home", label: "住家" },
-  { Icon: HeartPulse, key: "heart-pulse", label: "醫療" },
-  { Icon: GraduationCap, key: "graduation-cap", label: "教育" },
-  { Icon: PiggyBank, key: "piggy-bank", label: "儲蓄" },
-  { Icon: BadgeDollarSign, key: "badge-dollar-sign", label: "收入" },
-  { Icon: BriefcaseBusiness, key: "briefcase-business", label: "工作" },
-  { Icon: Sparkles, key: "sparkles", label: "其他" },
-  { Icon: Tags, key: "tags", label: "分類" },
-];
+}> = CATEGORY_ICON_OPTION_DEFINITIONS.map((option) => ({
+  ...option,
+  Icon: getIconComponent(option.key),
+}));
 
 const ICON_BY_KEY = new Map(
   [
@@ -81,44 +64,11 @@ const ICON_BY_KEY = new Map(
   ].map((option) => [option.key, option] as const),
 );
 
-const VISUAL_BY_NAME = new Map<string, CategoryVisual>([
-  ["房租", { color: "#60a5fa", icon: "home", sortOrder: 10 }],
-  ["薪資", { color: "#2dd4bf", icon: "badge-dollar-sign", sortOrder: 20 }],
-  ["日用品", { color: "#fbbf24", icon: "shopping-cart", sortOrder: 10 }],
-  ["網路費", { color: "#a78bfa", icon: "wifi", sortOrder: 20 }],
-  ["網路", { color: "#a78bfa", icon: "wifi", sortOrder: 20 }],
-  ["餐飲", { color: "#fb7185", icon: "utensils", sortOrder: 30 }],
-  ["交通", { color: "#a3e635", icon: "bus", sortOrder: 40 }],
-  ["水電費", { color: "#60a5fa", icon: "home", sortOrder: 50 }],
-]);
-
-const FALLBACK_COLORS = CATEGORY_COLOR_OPTIONS.map((option) => option.value);
-const FALLBACK_ICONS = CATEGORY_ICON_OPTIONS.map((option) => option.key);
-
 export function getCategoryVisual(category: CategoryLike): CategoryVisual {
-  if (category.color && category.icon && category.sortOrder !== undefined) {
-    return {
-      color: category.color,
-      icon: category.icon,
-      sortOrder: category.sortOrder,
-    };
-  }
-
-  const knownVisual = VISUAL_BY_NAME.get(category.name);
-
-  if (knownVisual) {
-    return {
-      color: category.color ?? knownVisual.color,
-      icon: category.icon ?? knownVisual.icon,
-      sortOrder: category.sortOrder ?? knownVisual.sortOrder,
-    };
-  }
-
-  const seed = hashCategory(category.id ?? category.name);
   return {
-    color: category.color ?? FALLBACK_COLORS[seed % FALLBACK_COLORS.length],
-    icon: category.icon ?? FALLBACK_ICONS[seed % FALLBACK_ICONS.length],
-    sortOrder: category.sortOrder ?? 100 + seed,
+    color: category.color ?? DEFAULT_CATEGORY_COLOR,
+    icon: category.icon ?? DEFAULT_CATEGORY_ICON,
+    sortOrder: category.sortOrder ?? 0,
   };
 }
 
@@ -147,7 +97,7 @@ export function CategoryVisualMark({
   size = "default",
 }: {
   className?: string;
-  color: string;
+  color: CategoryColorKey;
   icon: CategoryIconKey;
   size?: "sm" | "default" | "lg";
 }) {
@@ -163,7 +113,7 @@ export function CategoryVisualMark({
         size === "lg" && "size-14",
         className,
       )}
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: getCategoryColorCssColor(color) }}
     >
       <Icon
         size={size === "sm" ? 15 : size === "lg" ? 24 : 18}
@@ -212,8 +162,22 @@ export function CategoryVisualLabel({
   );
 }
 
-function hashCategory(value: string): number {
-  return [...value].reduce((hash, character) => {
-    return (hash * 31 + character.charCodeAt(0)) % 997;
-  }, 7);
+function getIconComponent(icon: CategoryIconKey): LucideIcon {
+  const icons: Record<CategoryIconKey, LucideIcon> = {
+    "badge-dollar-sign": BadgeDollarSign,
+    "briefcase-business": BriefcaseBusiness,
+    bus: Bus,
+    "graduation-cap": GraduationCap,
+    "heart-pulse": HeartPulse,
+    home: Home,
+    "piggy-bank": PiggyBank,
+    shapes: Shapes,
+    "shopping-cart": ShoppingCart,
+    sparkles: Sparkles,
+    tags: Tags,
+    utensils: Utensils,
+    wifi: Wifi,
+  };
+
+  return icons[icon];
 }

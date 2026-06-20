@@ -156,6 +156,9 @@ model Category {
   householdId String
   type        CategoryType
   name        String
+  color       String         @default("gold")
+  icon        String         @default("tags")
+  sortOrder   Int            @default(0)
   status      CategoryStatus @default(active)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -166,6 +169,7 @@ model Category {
 
   @@index([householdId, type, name])
   @@index([householdId, type, status])
+  @@index([householdId, type, status, sortOrder])
 }
 
 model LedgerRecord {
