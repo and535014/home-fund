@@ -44,8 +44,10 @@ import {
 } from "@/components/ui/item";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -442,14 +444,16 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
             </DialogDescription>
           </DialogHeader>
           {archivingCategory ? (
-            <div className="grid gap-4">
+            <>
+              <DialogBody>
               <div className="rounded-card border border-border bg-muted/40 p-3">
                 <CategoryVisualLabel category={archivingCategory} />
                 <p className="mt-1 text-caption text-muted-foreground">
                   目前有 {archivingCategory.recordCount} 筆歷史紀錄使用這個分類；封存後既有紀錄仍會保留原分類。
                 </p>
               </div>
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              </DialogBody>
+              <DialogFooter>
                 <Button
                   onClick={() => setArchivingId(null)}
                   disabled={isPending}
@@ -467,8 +471,8 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
                     </Button>
                   </div>
                 </form>
-              </div>
-            </div>
+              </DialogFooter>
+            </>
           ) : null}
         </DialogContent>
       </Dialog>
@@ -538,11 +542,12 @@ function CategoryForm({
   typeDisabled?: boolean;
 }) {
   return (
-    <form className="grid gap-4" onSubmit={onSubmit}>
+    <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={onSubmit}>
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
       <input name="color" type="hidden" value={color} />
       <input name="icon" type="hidden" value={icon} />
-      <FieldGroup>
+      <DialogBody>
+        <FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="category-type">類型</FieldLabel>
@@ -618,11 +623,14 @@ function CategoryForm({
             </div>
           </Field>
         </div>
-      </FieldGroup>
+        </FieldGroup>
+      </DialogBody>
+      <DialogFooter>
       <Button type="submit">
         <Tags aria-hidden="true" />
         {submitLabel}
       </Button>
+      </DialogFooter>
     </form>
   );
 }

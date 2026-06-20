@@ -186,7 +186,7 @@ test("keeps dashboard visual panels inside the fixed-height page", async ({
   expect((await categoryRegion.getByText("日用品").boundingBox())!.y).toBeLessThan(
     categoryBox!.y + categoryBox!.height / 2,
   );
-  await expect(categoryRegion.locator("svg")).toHaveCount(0);
+  await expect(categoryRegion.locator("svg")).toHaveCount(2);
   await expect(categoryRegion.getByText("日用品")).toBeVisible();
   await expect(categoryRegion.getByText("網路")).toBeVisible();
   await expect(categoryRegion.getByText("$8,300")).toBeVisible();

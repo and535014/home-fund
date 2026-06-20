@@ -26,11 +26,11 @@ import {
 } from "./record-create-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 
 const RECORD_ENTRY_MODE = {
   expense: "expense",
@@ -197,10 +197,13 @@ function RecordEntryFormShell({
   }, [actionState.status, onRecordCreated]);
 
   return (
-    <section aria-label="新增紀錄表單" className="scroll-mt-32">
+    <section
+      aria-label="新增紀錄表單"
+      className="flex min-h-0 flex-1 flex-col scroll-mt-32"
+    >
       {feedbackMessage ? (
         <Alert
-          className="mb-3"
+          className="mb-3 shrink-0"
           role={feedbackMessage.tone === "error" ? "alert" : "status"}
           variant={feedbackMessage.tone === "success" ? "default" : "destructive"}
         >
@@ -208,31 +211,33 @@ function RecordEntryFormShell({
         </Alert>
       ) : null}
 
-      <form action={formAction}>
+      <form action={formAction} className="flex min-h-0 flex-1 flex-col">
         <input name="recordType" type="hidden" value={recordType} />
         <input name="paymentSource" type="hidden" value={paymentSource} />
-        <FieldGroup>
+        <DialogBody>
+          <FieldGroup>
           <RecordKindTabs
             entryKind={entryKind}
             onEntryKindChange={onEntryKindChange}
           />
           {children}
-          <div className="mt-2 flex justify-end gap-2">
-            <Button
-              onClick={close}
-              type="button"
-              variant="secondary"
-            >
-              取消
-            </Button>
-            <Button
-              disabled={!hasCategories || isPending}
-              type="submit"
-            >
-              <span>{isPending ? "新增中..." : submitLabel}</span>
-            </Button>
-          </div>
-        </FieldGroup>
+          </FieldGroup>
+        </DialogBody>
+        <DialogFooter className="mt-4">
+          <Button
+            onClick={close}
+            type="button"
+            variant="secondary"
+          >
+            取消
+          </Button>
+          <Button
+            disabled={!hasCategories || isPending}
+            type="submit"
+          >
+            <span>{isPending ? "新增中..." : submitLabel}</span>
+          </Button>
+        </DialogFooter>
       </form>
     </section>
   );
@@ -409,7 +414,7 @@ function NoteField() {
   return (
     <Field>
       <FieldLabel>備註</FieldLabel>
-      <Textarea className="min-h-24 resize-none" name="note" placeholder="可留空" />
+      <Input name="note" placeholder="可留空" type="text" />
     </Field>
   );
 }

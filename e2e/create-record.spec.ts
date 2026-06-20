@@ -48,6 +48,8 @@ test("creates a fund-paid expense without adding reimbursement", async ({
   await dialog.locator('input[name="name"]').fill("E2E 基金支出");
   await dialog.locator('input[name="amountTwd"]').fill("765");
   await dialog.locator('input[name="occurredOn"]').fill("2026-06-18");
+  await expect(dialog.locator('textarea[name="note"]')).toHaveCount(0);
+  await dialog.locator('input[name="note"]').fill("E2E 單行備註");
   await selectCategory(dialog, "日用品");
 
   await dialog.getByRole("button", { name: "新增" }).click();
@@ -65,6 +67,7 @@ test("creates a fund-paid expense without adding reimbursement", async ({
   await expect(detailDialog).toContainText("765");
   await expect(detailDialog).toContainText("不需退款");
   await expect(detailDialog).toContainText("基金");
+  await expect(detailDialog).toContainText("E2E 單行備註");
 });
 
 test("creates a member-paid expense and adds reimbursement", async ({

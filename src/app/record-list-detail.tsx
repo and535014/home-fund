@@ -12,6 +12,7 @@ import { useRef, useState } from "react";
 
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -164,6 +165,7 @@ function RecordDetailDialog({
         <DialogTitle>{record.name}</DialogTitle>
       </DialogHeader>
 
+      <DialogBody className="grid gap-4">
       <div className="rounded-card border border-border bg-secondary/30 p-4">
         <p className="text-caption text-muted-foreground">金額</p>
         <p
@@ -207,6 +209,7 @@ function RecordDetailDialog({
           {record.note?.trim() || "沒有備註。"}
         </p>
       </div>
+      </DialogBody>
     </DialogContent>
   );
 }

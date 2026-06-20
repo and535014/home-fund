@@ -86,7 +86,7 @@ test("allows a finance manager to create income for another member", async ({
   await dialog.locator('input[name="amountTwd"]').fill("2222");
   await dialog.locator('input[name="occurredOn"]').fill("2026-06-23");
   await selectCategory(dialog, "生活費");
-  await selectFieldOption(page, "成員", "Kai");
+  await dialog.getByLabel("支付者").selectOption({ label: "Kai" });
 
   await dialog.getByRole("button", { name: "新增" }).click();
 
@@ -117,14 +117,6 @@ async function selectCategory(locator: Locator, name: string) {
   await locator.getByRole("radiogroup", { name: "分類" }).getByText(name, {
     exact: true,
   }).click();
-}
-
-async function selectFieldOption(page: Page, label: string, option: string) {
-  await page
-    .getByText(label, { exact: true })
-    .locator("..")
-    .getByRole("combobox")
-    .selectOption({ label: option });
 }
 
 async function setFormValue(

@@ -13,8 +13,10 @@ test("admin can open category management from the sidebar", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "分類" })).toBeVisible();
   await expect(page.getByRole("button", { name: "登出" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /啟用分類/u })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /封存分類/u })).toBeVisible();
+  await expect(page.getByRole("region", { name: "支出分類" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "收入分類" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /啟用分類/u })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: /封存分類/u })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "新增收入" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "新增支出" })).toHaveCount(0);
 });
@@ -57,7 +59,9 @@ test("admin creates a category without using URL state to open the modal", async
   await dialog.getByRole("button", { name: "新增分類" }).click();
 
   await expect(page.getByText("分類已新增")).toBeVisible();
-  await expect(page.getByText("水電費")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "支出分類" }).getByText("水電費"),
+  ).toBeVisible();
 });
 
 test("admin duplicate category names are rejected with toast feedback", async ({
@@ -87,8 +91,9 @@ test("admin archives a category after confirmation", async ({ page }) => {
   await dialog.getByRole("button", { name: "確認封存" }).click();
 
   await expect(page.getByText("分類已封存")).toBeVisible();
-  await page.getByRole("tab", { name: /封存分類/u }).click();
-  await expect(page.getByText("日用品")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "支出分類" }).getByText("日用品"),
+  ).toHaveCount(0);
 
   await page.goto("/?month=2026-06");
   await pressCreateRecordButton(page);
