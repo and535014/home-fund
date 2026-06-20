@@ -16,6 +16,7 @@ outputs:
 trace_links:
   commit:
     - 7ff09c4 Refactor homepage record creation
+    - e9303a3 Cover mobile record creation entry
   tests:
     - src/app/dashboard-navigation.test.ts
     - src/app/ledger-record-form.test.ts
@@ -31,7 +32,7 @@ reviewed_at: 2026-06-20
 
 - result: pass
 - supported_release_target: local_dev
-- verified_commit: `7ff09c4 Refactor homepage record creation`
+- verified_commits: `7ff09c4 Refactor homepage record creation`, `e9303a3 Cover mobile record creation entry`
 - scope: IA and form-state change only; no schema, auth provider, OAuth callback, or production operations change.
 
 The implemented behavior matches the approved product direction: create-record entry is homepage-only, modal state is client-local instead of URL-driven, `/records` and `/records/new` resolve through the default not-found page, and record creation still uses the existing ledger domain command and authorization rules.
@@ -111,7 +112,7 @@ Known command note: parallel `prisma generate` through simultaneous pnpm checks 
 - acceptance_signals:
   - Homepage create flows pass browser tests for income, fund-paid expense, member-paid expense, validation error, reload close, route not-found, homepage-only entry, and mobile footer action open behavior.
   - Type-check and lint pass.
-  - Worktree was clean after commit `7ff09c4`.
+  - Worktree was clean after commit `e9303a3`.
 - residual_risks:
   - Manual focus-return and mobile visual scan were not performed in this verification pass.
 - recommended_next_gate:

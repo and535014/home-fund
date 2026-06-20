@@ -38,6 +38,7 @@ trace_links:
   - .ai/technical-design/remove-standalone-create-record-entry.md
   - .ai/implementation/remove-standalone-create-record-entry.md
   - .ai/verification/remove-standalone-create-record-entry.md
+  - .ai/release/remove-standalone-create-record-entry-local-dev-readiness.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -144,9 +145,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: remove-standalone-create-record-entry.
 - latest_completed_slice: admin Google OAuth and member invitations.
-- current_stage: remove standalone create-record entry Verification is complete in `.ai/verification/remove-standalone-create-record-entry.md`.
-- recommended_resume_gate: Target-Aware Release for `local_dev` if preparing handoff, or Intent Intake for the next product adjustment.
-- recommended_next_skill: target-aware-release after approval; artifact-prune only if explicitly requested.
+- current_stage: remove standalone create-record entry Target-Aware Release is complete in `.ai/release/remove-standalone-create-record-entry-local-dev-readiness.md`.
+- recommended_resume_gate: Learning Loop if this local_dev change needs feedback planning, Artifact Compression if closing the slice, or Intent Intake for the next product adjustment.
+- recommended_next_skill: learning-loop or artifact-compression after approval; artifact-prune only if explicitly requested.
 
 ## Artifact Inventory
 
@@ -161,9 +162,10 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - behavior specs: active remove standalone create-record entry spec is drafted at `.ai/spec/remove-standalone-create-record-entry.md`; completed admin Google OAuth and member invitations spec is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management spec is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; remaining story specs stay active for future slice selection.
 - implementation: active remove standalone create-record entry implementation is drafted at `.ai/implementation/remove-standalone-create-record-entry.md`; completed admin Google OAuth and member invitations implementation is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - verification: active remove standalone create-record entry verification is complete at `.ai/verification/remove-standalone-create-record-entry.md` and supports `local_dev`; completed admin Google OAuth and member invitations verification is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md` and supports `local_dev`; completed admin-only category management verification is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md` and supports `local_dev`; completed prior verification reports are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- release: active remove standalone create-record entry local_dev release readiness is complete at `.ai/release/remove-standalone-create-record-entry-local-dev-readiness.md`; v2 local_dev release readiness at `.ai/release/home-family-fund-local-dev-readiness.md` includes prior admin-only category management and admin Google OAuth/member invitations work and supports `local_dev`.
 - reviews: completed workflow reviews are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - v2 scaffold: `.ai/intent/`, `.ai/domain/`, `.ai/domain-impact/`, `.ai/foundation-architecture/`, `.ai/foundation-implementation/`, `.ai/prototype/`, `.ai/spec/`, `.ai/technical-design/`, `.ai/implementation/`, `.ai/verification/`, `.ai/release/`, `.ai/learning/`, `.ai/workflow-migration/`, and `.ai/archive/` are present.
-- deploy/release: v2 local_dev release readiness at `.ai/release/home-family-fund-local-dev-readiness.md` includes admin-only category management and supports `local_dev`; production deploy readiness is not assessed.
+- deploy/release: active remove standalone create-record entry readiness is at `.ai/release/remove-standalone-create-record-entry-local-dev-readiness.md`; v2 local_dev release readiness at `.ai/release/home-family-fund-local-dev-readiness.md` includes prior local_dev slices and supports `local_dev`; production deploy readiness is not assessed.
 - release/learning: v2 `.ai/release/` has refreshed local_dev readiness; completed admin Google OAuth and member invitations learning signals are summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management learning signals are summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - archive: `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` summarizes the completed local_dev MVP hardening iteration and v2 migration; `.ai/archive/archive-admin-only-category-management-2026-06-19.md` summarizes completed admin-only category management; `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md` summarizes completed admin Google OAuth and member invitations.
 - prune: completed intermediate artifacts listed in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md` were manually pruned after compression; use the archive summary and git history for full trace.
