@@ -44,6 +44,7 @@ trace_links:
   - .ai/intent/desktop-product-structure-layout-redesign.md
   - .ai/prototype/desktop-product-structure-layout-redesign.md
   - .ai/spec/desktop-product-structure-layout-redesign.md
+  - .ai/technical-design/desktop-product-structure-layout-redesign.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -150,9 +151,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: desktop-product-structure-layout-redesign
 - latest_completed_slice: remove standalone create-record entry.
-- current_stage: Behavior Spec / BDD / E2E drafted for `.ai/spec/desktop-product-structure-layout-redesign.md`.
-- recommended_resume_gate: Review and approve the desktop product structure behavior spec.
-- recommended_next_skill: feature-technical-design after spec approval.
+- current_stage: Feature Technical Design drafted for `.ai/technical-design/desktop-product-structure-layout-redesign.md`.
+- recommended_resume_gate: Review and approve the desktop product structure technical design.
+- recommended_next_skill: tdd-implementation after technical design approval.
 
 ## Artifact Inventory
 

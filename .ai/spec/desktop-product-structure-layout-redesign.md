@@ -1,7 +1,7 @@
 ---
 id: desktop-product-structure-layout-redesign
 stage: behavior-spec
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -242,7 +242,7 @@ And submitting the form uses `paymentSource=fund` without a member payer.
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approved
 - reviewer_focus:
   - Confirm AC covers the accepted desktop prototype and the later user-directed refinements.
   - Confirm recurring removal is scoped to app/module/test and not Prisma migration.
@@ -251,3 +251,5 @@ And submitting the form uses `paymentSource=fund` without a member payer.
   - None for Feature Technical Design if this spec is approved.
 - recommended_next_gate:
   - Feature Technical Design
+- approval_evidence:
+  - User requested commit and next step after reviewing the drafted behavior spec.
