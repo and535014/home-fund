@@ -41,6 +41,9 @@ trace_links:
   - .ai/release/remove-standalone-create-record-entry-local-dev-readiness.md
   - .ai/learning/remove-standalone-create-record-entry.md
   - .ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md
+  - .ai/intent/desktop-product-structure-layout-redesign.md
+  - .ai/prototype/desktop-product-structure-layout-redesign.md
+  - .ai/spec/desktop-product-structure-layout-redesign.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -145,11 +148,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: desktop-product-structure-layout-redesign
 - latest_completed_slice: remove standalone create-record entry.
-- current_stage: remove standalone create-record entry is compressed in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`.
-- recommended_resume_gate: Optional explicit artifact-prune, production release intent, or Intent Intake for the next product adjustment.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change.
+- current_stage: Behavior Spec / BDD / E2E drafted for `.ai/spec/desktop-product-structure-layout-redesign.md`.
+- recommended_resume_gate: Review and approve the desktop product structure behavior spec.
+- recommended_next_skill: feature-technical-design after spec approval.
 
 ## Artifact Inventory
 

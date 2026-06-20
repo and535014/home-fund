@@ -1,7 +1,7 @@
 ---
 id: desktop-product-structure-layout-redesign
 stage: experience-prototype
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -119,7 +119,7 @@ This prototype updates the real authenticated Next.js app surfaces for the appro
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approved
 - reviewer_focus:
   - Confirm the desktop sidebar IA and settings nesting.
   - Confirm dashboard region placement before BDD/E2E locking.
@@ -132,3 +132,6 @@ This prototype updates the real authenticated Next.js app surfaces for the appro
   - None for moving to Behavior Spec / BDD / E2E after review approval.
 - next_step:
   - Behavior Spec / BDD / E2E
+- approval_evidence:
+  - User reviewed iterative desktop prototype changes and requested commit.
+  - Commit `d8fb50a Refine desktop app layout prototype` captured the accepted prototype direction.
