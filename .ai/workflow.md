@@ -49,6 +49,7 @@ trace_links:
   - .ai/verification/desktop-product-structure-layout-redesign.md
   - .ai/release/desktop-product-structure-layout-redesign-local-dev-readiness.md
   - .ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md
+  - .ai/intent/record-list-detail-modal.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -153,15 +154,16 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: record-list-detail-modal
 - latest_completed_slice: desktop product structure layout redesign, compressed in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`.
-- current_stage: Desktop product structure layout redesign is complete, local_dev ready, and compressed.
-- recommended_resume_gate: Optional artifact-prune, next product Intent Intake, or stricter-target release readiness if a preview/staging/production target is selected.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake or target-aware-release depending on next request.
+- current_stage: Record list detail modal Intent Intake is drafted and awaiting review.
+- recommended_resume_gate: Experience Prototype after explicit approval of `.ai/intent/record-list-detail-modal.md`.
+- recommended_next_skill: experience-prototype after approval; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
 
 ## Artifact Inventory
 
 - idea: maintained `.ai/intent/home-family-fund.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
+- active intent: `.ai/intent/record-list-detail-modal.md` captures the requested dashboard records item list and detail modal slice and is awaiting approval.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
 - domain-impact: completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
