@@ -31,6 +31,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const categoryNames = new Map(
     dashboardData.categories.map((category) => [category.id, category.name]),
   );
+  const memberNames = new Map(
+    dashboardData.householdMembers.map((member) => [
+      member.id,
+      member.displayName,
+    ]),
+  );
   const monthRecords = dashboardData.records.filter((record) =>
     record.occurredOn.startsWith(`${month}-`),
   );
@@ -102,7 +108,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               紀錄
             </h3>
           </div>
-          <RecordsTable categoryNames={categoryNames} records={recentRecords} />
+          <RecordsTable
+            categoryNames={categoryNames}
+            memberNames={memberNames}
+            records={recentRecords}
+          />
         </section>
       </div>
     </PageLayout>
