@@ -6,10 +6,10 @@ import {
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import {
   formatAmount,
-  RecordsTable,
   SummaryMetric,
 } from "@/app/dashboard-widgets";
 import { MonthSwitcher } from "@/app/month-switcher";
+import { RecordListDetail } from "@/app/record-list-detail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ExpenseCategoryPieChart,
@@ -28,10 +28,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const { dashboardData, homeView, month } = context;
   const { reimbursementTable, report } = homeView;
-  const categoryNames = new Map(
+  const categoryNames = Object.fromEntries(
     dashboardData.categories.map((category) => [category.id, category.name]),
   );
-  const memberNames = new Map(
+  const memberNames = Object.fromEntries(
     dashboardData.householdMembers.map((member) => [
       member.id,
       member.displayName,
@@ -57,7 +57,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         />
       }
     >
-      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(22rem,0.92fr)]">
+      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(18rem,0.85fr)] xl:grid-cols-[minmax(0,2fr)_minmax(22rem,0.92fr)]">
         <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_minmax(0,1.15fr)] gap-4">
           <section
             aria-label="月報摘要"
@@ -100,19 +100,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
 
         <section
-          aria-labelledby="month-records-title"
+          aria-label="紀錄"
           className="flex min-h-0 min-w-0 flex-col overflow-hidden"
         >
-          <div className="mb-3">
-            <h3 id="month-records-title" className="text-subheading">
-              紀錄
-            </h3>
-          </div>
-          <RecordsTable
-            categoryNames={categoryNames}
-            memberNames={memberNames}
-            records={recentRecords}
-          />
+          <Card className="h-full min-h-0 overflow-hidden">
+            <RecordListDetail
+              categoryNames={categoryNames}
+              memberNames={memberNames}
+              records={recentRecords}
+            />
+          </Card>
         </section>
       </div>
     </PageLayout>

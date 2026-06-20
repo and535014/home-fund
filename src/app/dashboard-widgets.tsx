@@ -1,6 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-import { RecordListDetail } from "@/app/record-list-detail";
 
 export function SummaryMetric({
   label,
@@ -25,24 +23,6 @@ export function SummaryMetric({
         <p className={`mt-2 text-heading ${valueColor}`}>{value}</p>
       </CardContent>
     </Card>
-  );
-}
-
-export function RecordsTable({
-  categoryNames,
-  memberNames,
-  records,
-}: {
-  categoryNames: Map<string, string>;
-  memberNames: Map<string, string>;
-  records: LedgerRecord[];
-}) {
-  return (
-    <RecordListDetail
-      categoryNames={Object.fromEntries(categoryNames)}
-      memberNames={Object.fromEntries(memberNames)}
-      records={records}
-    />
   );
 }
 

@@ -32,7 +32,7 @@ export function CreateRecordDialog({
             {mode === "income" ? "新增收入" : "新增紀錄"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            依序選擇紀錄類型、分類、金額、名稱、成員、日期與備註。
+            依序選擇紀錄類型、分類、金額、名稱、支付者、日期與備註。
           </DialogDescription>
         </DialogHeader>
         {children}

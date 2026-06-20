@@ -1,10 +1,7 @@
 "use client";
 
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   CalendarDays,
-  ChevronRight,
   ReceiptText,
   StickyNote,
   UserRound,
@@ -13,26 +10,21 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Item,
-  ItemActions,
   ItemContent,
   ItemDescription,
   ItemGroup,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { RecordCategoryLabel } from "@/app/record-category-label";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export function RecordListDetail({
@@ -50,25 +42,23 @@ export function RecordListDetail({
 
   return (
     <>
-      <Card className="min-h-0 overflow-hidden">
-        {records.length === 0 ? (
-          <div className="px-4 py-8 text-center text-muted-foreground">
-            這個月份尚無紀錄。
-          </div>
-        ) : (
-          <ItemGroup className="divide-y divide-border">
-            {records.map((record) => (
-              <RecordListItem
-                categoryName={categoryNames[record.categoryId] ?? record.categoryId}
-                key={record.id}
-                memberNames={memberNames}
-                onOpen={() => setSelectedRecordId(record.id)}
-                record={record}
-              />
-            ))}
-          </ItemGroup>
-        )}
-      </Card>
+      {records.length === 0 ? (
+        <div className="flex h-full items-center justify-center px-4 py-8 text-center text-muted-foreground">
+          這個月份尚無紀錄。
+        </div>
+      ) : (
+        <ItemGroup className="h-full overflow-y-auto divide-y divide-border">
+          {records.map((record) => (
+            <RecordListItem
+              categoryName={categoryNames[record.categoryId] ?? record.categoryId}
+              key={record.id}
+              memberNames={memberNames}
+              onOpen={() => setSelectedRecordId(record.id)}
+              record={record}
+            />
+          ))}
+        </ItemGroup>
+      )}
 
       <Dialog
         open={Boolean(selectedRecord)}
@@ -104,7 +94,6 @@ function RecordListItem({
   record: LedgerRecord;
 }) {
   const isIncome = record.type === "income";
-  const signedAmount = `${isIncome ? "+" : "-"}${formatAmount(record.amountCents)}`;
 
   return (
     <Item
@@ -118,34 +107,33 @@ function RecordListItem({
         onClick={onOpen}
         type="button"
       >
-        <ItemMedia
-          className={isIncome ? "text-income" : "text-expense"}
-          variant="icon"
-        >
-          {isIncome ? <ArrowUpRight /> : <ArrowDownRight />}
+        <ItemMedia className="self-center">
+          <RecordCategoryLabel name={categoryName} />
         </ItemMedia>
+
         <ItemContent className="min-w-0">
           <ItemTitle className="max-w-full">
             <span className="truncate">{record.name}</span>
           </ItemTitle>
+
           <ItemDescription className="truncate">
-            {record.occurredOn} · {categoryName} ·{" "}
             {recordActorLabel(record, memberNames)}
           </ItemDescription>
         </ItemContent>
-        <ItemActions className="ml-auto shrink-0">
-          <div className="text-right">
-            <p
-              className={`text-body-strong ${
-                isIncome ? "text-income" : "text-expense"
-              }`}
-            >
-              {signedAmount}
-            </p>
-            <Badge className="mt-1">{ledgerRecordStatusLabel(record)}</Badge>
-          </div>
-          <ChevronRight className="size-4 text-muted-foreground" />
-        </ItemActions>
+
+        <ItemContent className="min-w-0 flex-none items-end text-right">
+          <ItemTitle
+            className={`max-w-full justify-end ${
+              isIncome ? "text-income" : "text-expense"
+            }`}
+          >
+            <span className="truncate">{formatAmount(record.amountCents)}</span>
+          </ItemTitle>
+
+          <ItemDescription className="truncate">
+            {formatDate(record.occurredOn)}
+          </ItemDescription>
+        </ItemContent>
       </button>
     </Item>
   );
@@ -166,9 +154,6 @@ function RecordDetailDialog({
     <DialogContent className="max-w-xl">
       <DialogHeader>
         <DialogTitle>{record.name}</DialogTitle>
-        <DialogDescription>
-          {isIncome ? "收入紀錄" : "支出紀錄"} · {record.occurredOn}
-        </DialogDescription>
       </DialogHeader>
 
       <div className="rounded-card border border-border bg-secondary/30 p-4">
@@ -178,7 +163,6 @@ function RecordDetailDialog({
             isIncome ? "text-income" : "text-expense"
           }`}
         >
-          {isIncome ? "+" : "-"}
           {formatAmount(record.amountCents)}
         </p>
       </div>
@@ -187,7 +171,7 @@ function RecordDetailDialog({
         <DetailField
           icon={<CalendarDays />}
           label="日期"
-          value={record.occurredOn}
+          value={formatDate(record.occurredOn)}
         />
         <DetailField
           icon={<ReceiptText />}
@@ -201,7 +185,7 @@ function RecordDetailDialog({
         />
         <DetailField
           icon={<UserRound />}
-          label={isIncome ? "來源成員" : "付款方式"}
+          label="支付者"
           value={recordActorLabel(record, memberNames)}
         />
       </div>
@@ -214,12 +198,6 @@ function RecordDetailDialog({
         <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">
           {record.note?.trim() || "沒有備註。"}
         </p>
-      </div>
-
-      <div className="flex justify-end">
-        <DialogClose asChild>
-          <Button variant="outline">關閉</Button>
-        </DialogClose>
       </div>
     </DialogContent>
   );
@@ -250,21 +228,19 @@ function recordActorLabel(
   memberNames: Record<string, string>,
 ): string {
   if (record.type === "income") {
-    return memberNames[record.sourceMemberId] ?? "家庭成員收入";
+    return memberNames[record.sourceMemberId] ?? "成員";
   }
 
   if (record.paymentSource === "member") {
-    return record.payerMemberId
-      ? `${memberNames[record.payerMemberId] ?? "成員"}代墊`
-      : "成員代墊";
+    return memberNames[record.payerMemberId ?? ""] ?? "成員";
   }
 
-  return "基金支出";
+  return "基金";
 }
 
 function ledgerRecordStatusLabel(record: LedgerRecord): string {
   if (record.type === "income") {
-    return "已入帳";
+    return "---";
   }
 
   const reimbursementStatusLabels: Record<
@@ -286,4 +262,8 @@ function formatAmount(amountCents: number): string {
     currency: "TWD",
     maximumFractionDigits: 0,
   }).format(amountCents / 100);
+}
+
+function formatDate(date: string): string {
+  return date.replaceAll("-", "/");
 }

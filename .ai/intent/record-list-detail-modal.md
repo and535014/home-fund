@@ -57,7 +57,7 @@ reviewed_at: 2026-06-20
 | Surface | Impact |
 |---|---|
 | Homepage / `總覽` | Replace the current recent-records table in the `紀錄` panel with a scannable item list. |
-| Record list component | `RecordsTable` in `src/app/dashboard-widgets.tsx` should become a list-style component or be replaced by a new component with item rows/cards. |
+| Record list component | The previous `RecordsTable` wrapper should be replaced by direct `RecordListDetail` usage because the UI is no longer table-based. |
 | Record detail interaction | Each record item should be clickable or keyboard-activatable and open a modal/dialog with full record details. |
 | Detail content | Modal should show the selected record's name, type, amount, date, category, status, payment/source member where available, and note where available. |
 | Accessibility | List items need clear button semantics, focus states, keyboard activation, dialog title, close behavior, and focus return. |
@@ -66,9 +66,9 @@ reviewed_at: 2026-06-20
 
 ## Current Code Signals
 
-- `src/app/(app)/page.tsx` computes `recentRecords` from the selected month and renders `<RecordsTable categoryNames={categoryNames} records={recentRecords} />` inside the `紀錄` dashboard panel.
-- `src/app/dashboard-widgets.tsx` currently renders a `Card` containing shadcn-style `Table`, `TableHeader`, `TableBody`, `TableRow`, and `TableCell` elements.
-- `RecordsTable` currently exposes date, category/name/payment source, reimbursement status, and amount in table columns.
+- `src/app/(app)/page.tsx` computes `recentRecords` from the selected month and should render `RecordListDetail` inside the dashboard records area.
+- `src/app/dashboard-widgets.tsx` previously rendered table markup through `RecordsTable`, but that wrapper should not remain once the list/detail component exists.
+- `RecordListDetail` owns list rendering, selected record state, and the read-only detail modal.
 - `LedgerRecord` already contains the likely modal data fields: `id`, `type`, `name`, `amountCents`, `occurredOn`, `categoryId`, source/payment member fields, `reimbursementStatus`, and optional `note`.
 - Existing desktop layout redesign keeps `紀錄` as a dashboard panel rather than a standalone `/records` route.
 - Existing create-record modal work uses client-side dialog patterns; this slice should reuse local dialog primitives instead of adding a new modal library.
@@ -148,7 +148,7 @@ reviewed_at: 2026-06-20
 
 - required: true
 - timing: after Behavior Spec / BDD / E2E
-- reason: The slice needs a small design decision on client/server component boundaries, record detail data shape, dialog ownership, test selectors, and whether the existing `RecordsTable` export is renamed or replaced.
+- reason: The slice needs a small design decision on client/server component boundaries, record detail data shape, dialog ownership, and test selectors. The table wrapper decision is resolved: render `RecordListDetail` directly.
 
 ## Release And Learning Need
 

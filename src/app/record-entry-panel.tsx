@@ -112,7 +112,7 @@ function RecordEntryForm({
   const memberFieldName = recordType === RECORD_ENTRY_MODE.income
     ? "sourceMemberId"
     : "payerMemberId";
-  const memberFieldLabel = "成員";
+  const memberFieldLabel = "支付者";
   const activeCategories = useActiveCategories(
     categories,
     recordType,
