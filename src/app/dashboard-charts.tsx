@@ -34,7 +34,7 @@ export type ExpenseCategoryPoint = {
 
 export function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
   return (
-    <MeasuredChart minHeight={180}>
+    <MeasuredChart>
       {({ height, width }) => (
       <ComposedChart
         data={data}
@@ -134,7 +134,7 @@ export function ExpenseCategoryPieChart({
   }
 
   return (
-    <MeasuredChart minHeight={288}>
+    <MeasuredChart>
       {({ height, width }) => (
       <PieChart
         height={height}
@@ -181,10 +181,8 @@ export function ExpenseCategoryPieChart({
 
 function MeasuredChart({
   children,
-  minHeight,
 }: {
   children: (size: { height: number; width: number }) => ReactNode;
-  minHeight: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ height: number; width: number } | null>(
@@ -201,7 +199,7 @@ function MeasuredChart({
     const updateSize = () => {
       const rect = element.getBoundingClientRect();
       const width = Math.floor(rect.width);
-      const height = Math.max(minHeight, Math.floor(rect.height));
+      const height = Math.floor(rect.height);
 
       if (width > 0 && height > 0) {
         setSize((current) =>
@@ -219,7 +217,7 @@ function MeasuredChart({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [minHeight]);
+  }, []);
 
   return (
     <div ref={ref} className="h-full min-h-full min-w-0">

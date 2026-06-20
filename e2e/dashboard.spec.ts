@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
 test.beforeEach(async ({ page }) => {
@@ -21,7 +22,10 @@ test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await expect(page.getByText("補充用品代墊")).toBeVisible();
   await expect(page.getByText("待退款").first()).toBeVisible();
   await expect(page.getByText("支出分類")).toBeVisible();
-  await expect(page.getByText("收支趨勢")).toBeVisible();
+  await expect(page.getByText("收支趨勢")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "收支趨勢" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "紀錄" })).toBeVisible();
+  await expect(page.locator('[data-slot="card"]')).toHaveCount(3);
   await expect(page.getByRole("link", { name: "紀錄頁" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "紀錄" })).toHaveCount(0);
   await expect(page.getByRole("button", {
@@ -121,12 +125,84 @@ test("keeps the dashboard desktop arrangement on tablet landscape", async ({
   await page.goto("/?month=2026-06");
 
   const recordsBox = await page.getByRole("region", { name: "紀錄" }).boundingBox();
-  const trendBox = await page.getByText("收支趨勢").boundingBox();
+  const trendBox = await page
+    .getByRole("region", { name: "收支趨勢" })
+    .boundingBox();
 
   expect(recordsBox).not.toBeNull();
   expect(trendBox).not.toBeNull();
   expect(recordsBox!.x).toBeGreaterThan(trendBox!.x);
   expect(recordsBox!.y).toBeLessThan(trendBox!.y + trendBox!.height);
+});
+
+test("keeps dashboard visual panels inside the fixed-height page", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/?month=2026-06");
+
+  const scrollMetrics = await page.locator("header").evaluate((header) => {
+    const scroller = header.nextElementSibling as HTMLElement | null;
+
+    return {
+      clientHeight: scroller?.clientHeight ?? 0,
+      scrollHeight: scroller?.scrollHeight ?? 0,
+    };
+  });
+
+  expect(scrollMetrics.scrollHeight).toBeLessThanOrEqual(
+    scrollMetrics.clientHeight + 1,
+  );
+
+  const trendRegion = page.getByRole("region", { name: "收支趨勢" });
+  const trendBox = await trendRegion.boundingBox();
+  const trendSvgBox = await trendRegion.locator("svg").boundingBox();
+
+  expect(trendBox).not.toBeNull();
+  expect(trendSvgBox).not.toBeNull();
+  expect(trendSvgBox!.y).toBeGreaterThanOrEqual(trendBox!.y);
+  expect(trendSvgBox!.y + trendSvgBox!.height).toBeLessThanOrEqual(
+    trendBox!.y + trendBox!.height + 1,
+  );
+
+  const categoryRegion = page.getByRole("region", { name: "支出分類" });
+  const reimbursementRegion = page.getByRole("region", { name: "待退款" });
+  const recordsRegion = page.getByRole("region", { name: "紀錄" });
+  const categoryBox = await categoryRegion.boundingBox();
+  const reimbursementBox = await reimbursementRegion.boundingBox();
+  const recordsBox = await recordsRegion.boundingBox();
+
+  expect(categoryBox).not.toBeNull();
+  expect(reimbursementBox).not.toBeNull();
+  expect(recordsBox).not.toBeNull();
+  expect(reimbursementBox!.height).toBeCloseTo(categoryBox!.height, 1);
+  expect(reimbursementBox!.width).toBeGreaterThan(0);
+  expect(categoryBox!.width).toBeGreaterThan(0);
+  expect(recordsBox!.width).toBeGreaterThan(0);
+  await expectPanelTopLayout(reimbursementRegion, "待退款");
+  await expectPanelTopLayout(categoryRegion, "支出分類");
+  await expectPanelTopLayout(recordsRegion, "紀錄");
+  await expect(recordsRegion).toHaveCSS("border-left-width", "1px");
+  expect((await categoryRegion.getByText("日用品").boundingBox())!.y).toBeLessThan(
+    categoryBox!.y + categoryBox!.height / 2,
+  );
+  await expect(categoryRegion.locator("svg")).toHaveCount(0);
+  await expect(categoryRegion.getByText("日用品")).toBeVisible();
+  await expect(categoryRegion.getByText("網路")).toBeVisible();
+  await expect(categoryRegion.getByText("$8,300")).toBeVisible();
+  await expect(categoryRegion.getByText("$899")).toBeVisible();
+  await expect(categoryRegion.getByText("90%")).toBeVisible();
+  await expect(categoryRegion.getByText("10%")).toBeVisible();
+  await expect(
+    page.locator('[data-slot="card"]').filter({ hasText: "收支趨勢" }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-slot="card"]').filter({ hasText: "支出分類" }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-slot="card"]').filter({ hasText: "待退款" }),
+  ).toHaveCount(0);
+  await expect(page.locator('[data-slot="card"]')).toHaveCount(3);
 });
 
 test("renders reimbursement as a permission-gated placeholder", async ({ page }) => {
@@ -146,3 +222,23 @@ test("blocks general members from reimbursement", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/u);
   await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
 });
+
+async function expectPanelTopLayout(
+  panel: Locator,
+  title: string,
+) {
+  const panelBox = await panel.boundingBox();
+  const titleBox = await panel.getByRole("heading", { name: title }).boundingBox();
+  const contentBox = await panel.locator(":scope > div").first().boundingBox();
+
+  expect(panelBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(contentBox).not.toBeNull();
+  expect(titleBox!.y).toBeLessThan(panelBox!.y + panelBox!.height / 3);
+  expect(
+    contentBox!.y - (titleBox!.y + titleBox!.height),
+  ).toBeGreaterThanOrEqual(12);
+  expect(
+    contentBox!.y - (titleBox!.y + titleBox!.height),
+  ).toBeLessThanOrEqual(16);
+}
