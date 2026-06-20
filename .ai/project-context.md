@@ -83,7 +83,7 @@ reviewed_at: 2026-06-20
 
 ## Existing System Signals
 
-- entry points: `src/app/page.tsx`, `src/app/api/auth/[...all]/route.ts`, `src/app/auth/google/route.ts`, `src/app/records/new/page.tsx`, `e2e/dashboard.spec.ts`, `e2e/recurring-reminder-confirmation.spec.ts`.
+- entry points: `src/app/(app)/page.tsx`, `src/app/api/auth/[...all]/route.ts`, `src/app/auth/google/route.ts`, `src/app/record-create.tsx`, `src/app/create-record-dialog.tsx`, `e2e/create-record.spec.ts`, `e2e/dashboard.spec.ts`, `e2e/recurring-reminder-confirmation.spec.ts`.
 - modules or bounded context candidates: `identity-access`, `fund-ledger`, `categorization`, `recurring-schedule`, `reimbursement`, `reporting`.
 - data stores: PostgreSQL through Prisma; local Docker Compose database is documented for development.
 - integrations: Google OAuth through Better Auth, Prisma PostgreSQL adapter, local Playwright browser automation.
@@ -118,9 +118,9 @@ reviewed_at: 2026-06-20
 
 ## Next Step
 
-- latest_completed_slice: admin Google OAuth and member invitations, compressed in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`.
+- latest_completed_slice: remove standalone create-record entry, compressed in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`.
 - active_change: none
 - recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake
 - recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change
-- required input: `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
-- reason: The admin Google OAuth and member invitations lifecycle is complete and compressed. Future work should start from the archive summary and maintained project/domain/release artifacts rather than restarting completed gates.
+- required input: `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
+- reason: The remove standalone create-record entry lifecycle is complete and compressed. Future work should start from the archive summary and maintained project/domain/release artifacts rather than restarting completed gates.
