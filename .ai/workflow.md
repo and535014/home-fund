@@ -46,6 +46,7 @@ trace_links:
   - .ai/spec/desktop-product-structure-layout-redesign.md
   - .ai/technical-design/desktop-product-structure-layout-redesign.md
   - .ai/implementation/desktop-product-structure-layout-redesign.md
+  - .ai/verification/desktop-product-structure-layout-redesign.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -152,9 +153,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: desktop-product-structure-layout-redesign
 - latest_completed_slice: remove standalone create-record entry.
-- current_stage: TDD Implementation evidence drafted for `.ai/implementation/desktop-product-structure-layout-redesign.md`.
-- recommended_resume_gate: Review and approve the desktop product structure implementation evidence.
-- recommended_next_skill: verification after implementation approval.
+- current_stage: Verification passed for `.ai/verification/desktop-product-structure-layout-redesign.md`; full Playwright E2E is 29/29 passing for local_dev.
+- recommended_resume_gate: Review and approve local_dev verification evidence.
+- recommended_next_skill: target-aware-release after verification approval.
 
 ## Artifact Inventory
 

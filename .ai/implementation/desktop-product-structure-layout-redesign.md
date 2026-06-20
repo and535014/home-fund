@@ -1,7 +1,7 @@
 ---
 id: desktop-product-structure-layout-redesign
 stage: tdd-implementation
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -57,7 +57,7 @@ Implemented behavior:
 
 - This slice had iterative production-stack prototype changes before the formal spec/design artifacts were backfilled.
 - Test hardening happened during the implementation iteration and is recorded here as accepted risk for this migrated workflow sequence.
-- No additional production code changes were made in this gate after `1470e88`; the gate verified the existing committed implementation against the finalized spec/design.
+- Follow-up implementation after the failed verification pass updated stale E2E coverage, fixed chart measurement to avoid browser-level Recharts sizing warnings, and aligned the create-record member field label with the approved copy.
 
 ## Verification Commands
 
@@ -67,6 +67,8 @@ Commands run after `1470e88`:
 corepack pnpm lint
 corepack pnpm type-check
 corepack pnpm test src/app/dashboard-navigation.test.ts src/components/layout/shared-layout.test.tsx src/app/ledger-record-form.test.ts src/app/home-dashboard-data-source.test.ts src/app/home-access.test.ts src/modules/reporting/monthly-report.test.ts src/modules/identity-access/access-hints.test.ts src/modules/identity-access/authorization.test.ts src/modules/identity-access/member-management.test.ts src/auth/current-member-data-source.test.ts
+corepack pnpm exec playwright test e2e/admin-category-management.spec.ts e2e/create-record.spec.ts e2e/permission-matrix.spec.ts --reporter=line
+corepack pnpm test:e2e
 ```
 
 Results:
@@ -74,6 +76,8 @@ Results:
 - `corepack pnpm lint`: passed.
 - `corepack pnpm type-check`: passed.
 - focused Vitest suite: 10 files passed, 43 tests passed.
+- targeted Playwright run for updated admin category, create-record, and permission specs: 16 passed.
+- full Playwright E2E suite: 29 passed.
 
 ## Acceptance Mapping
 
@@ -90,7 +94,6 @@ Results:
 
 ## Known Gaps
 
-- Playwright browser/E2E verification has not been rerun in this gate.
 - Visual screenshot review is still manual.
 - Prisma schema/migrations/seed still contain recurring objects and need a separate migration slice if database cleanup is desired.
 - Reimbursement settlement workflow is intentionally deferred.
@@ -98,7 +101,7 @@ Results:
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approved
 - reviewer_focus:
   - Confirm the committed prototype is acceptable as this slice's implementation baseline.
   - Confirm the verification evidence is sufficient before moving to Verification gate.
@@ -107,3 +110,5 @@ Results:
   - None for Verification after approval.
 - recommended_next_gate:
   - Verification
+- approval_evidence:
+  - User requested commit and next step after implementation evidence was drafted.

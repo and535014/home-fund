@@ -111,12 +111,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 function MonthlyTrendCard({ data }: { data: MonthlyTrendPoint[] }) {
   return (
-    <Card className="min-h-0">
+    <Card className="min-h-0 min-w-0 overflow-hidden">
       <CardHeader>
         <CardTitle>收支趨勢</CardTitle>
       </CardHeader>
-      <CardContent className="min-h-64 min-w-120 flex-1">
-        <MonthlyTrendChart data={data} />
+      <CardContent className="min-h-64 min-w-0 flex-1">
+        <div className="h-full min-h-64 min-w-0">
+          <MonthlyTrendChart data={data} />
+        </div>
       </CardContent>
     </Card>
   );
@@ -174,17 +176,19 @@ function CategoryPieCard({
   );
 
   return (
-    <Card className="min-h-0 overflow-hidden">
+    <Card className="min-h-0 min-w-0 overflow-hidden">
       <CardHeader>
         <CardTitle>支出分類</CardTitle>
       </CardHeader>
-      <CardContent className="flex min-h-72 min-w-80 flex-1">
+      <CardContent className="flex min-h-72 min-w-0 flex-1">
         {totalExpenseCents > 0 ? (
-          <ExpenseCategoryPieChart
-            centerLabel={formatChartAmount(totalExpenseCents)}
-            data={pieData}
-            totalValue={totalExpenseCents}
-          />
+          <div className="h-full min-h-72 min-w-0 flex-1">
+            <ExpenseCategoryPieChart
+              centerLabel={formatChartAmount(totalExpenseCents)}
+              data={pieData}
+              totalValue={totalExpenseCents}
+            />
+          </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-caption text-muted-foreground">
             尚無支出分類資料

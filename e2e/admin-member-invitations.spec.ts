@@ -26,13 +26,12 @@ test("admin member preview uses shared page layout without record actions", asyn
   page,
 }) => {
   await signInAsAdmin(page);
-  await page.goto("/members");
+  await page.goto("/settings/members");
 
   await expect(page.getByRole("heading", { name: "成員" })).toBeVisible();
   await expect(page.getByRole("button", { name: "邀請成員" })).toBeVisible();
   await expect(page.getByRole("button", { name: "登出" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "新增收入" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "新增支出" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "新增紀錄" })).toBeVisible();
   await expect(page.getByText("Google：")).toHaveCount(0);
 
   const firstRow = page
@@ -61,7 +60,7 @@ test("admin creates an expiring invitation link and copies it automatically", as
 }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await signInAsAdmin(page);
-  await page.goto("/members");
+  await page.goto("/settings/members");
 
   await page.getByRole("button", { name: "邀請成員" }).click();
   await page.getByRole("button", { name: "建立邀請連結" }).click();
@@ -84,7 +83,7 @@ test("admin creates an expiring invitation link and copies it automatically", as
 
 test("admin display-name changes persist after reload", async ({ page }) => {
   await signInAsAdmin(page);
-  await page.goto("/members");
+  await page.goto("/settings/members");
 
   await page.getByRole("button", { name: "修改 Admin 的顯示名稱" }).click();
   const dialog = page.getByRole("dialog", { name: "修改顯示名稱" });
@@ -101,7 +100,7 @@ test("admin display-name changes persist after reload", async ({ page }) => {
 
 test("non-admin members are redirected away from member management", async ({ page }) => {
   await signInAsGeneralMember(page);
-  await page.goto("/members");
+  await page.goto("/settings/members");
 
   await expect(page).toHaveURL(/\/$/u);
   await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();

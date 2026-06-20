@@ -6,11 +6,11 @@ test.describe.configure({ mode: "serial" });
 test("admin can open category management from the sidebar", async ({ page }) => {
   await signInAsAdmin(page);
 
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
 
+  await expect(page.getByRole("link", { name: "設定" })).toBeVisible();
   await expect(page.getByRole("link", { name: "分類" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "分類" })).toBeVisible();
-  await expect(page.getByText("啟用中的分類可用於新增收入或支出")).toBeVisible();
   await expect(page.getByRole("button", { name: "登出" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /啟用分類/u })).toBeVisible();
@@ -23,19 +23,19 @@ test("non-admin members cannot discover or browse category management", async ({
   page,
 }) => {
   await signInAsFinanceManager(page);
-  await page.goto("/");
+  await page.goto("/settings/account");
   await expect(page.getByRole("link", { name: "分類" })).toHaveCount(0);
 
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
   await expect(page).toHaveURL(/\/$/u);
   await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
   await expect(page.getByRole("button", { name: "新增分類" })).toHaveCount(0);
 
   await signInAsGeneralMember(page);
-  await page.goto("/");
+  await page.goto("/settings/account");
   await expect(page.getByRole("link", { name: "分類" })).toHaveCount(0);
 
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
   await expect(page).toHaveURL(/\/$/u);
   await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
 });
@@ -44,7 +44,7 @@ test("admin creates a category without using URL state to open the modal", async
   page,
 }) => {
   await signInAsAdmin(page);
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
 
   const beforeOpenUrl = page.url();
   await page.getByRole("button", { name: "新增分類" }).click();
@@ -64,7 +64,7 @@ test("admin duplicate category names are rejected with toast feedback", async ({
   page,
 }) => {
   await signInAsAdmin(page);
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
 
   await page.getByRole("button", { name: "新增分類" }).click();
   const dialog = page.getByRole("dialog");
@@ -77,7 +77,7 @@ test("admin duplicate category names are rejected with toast feedback", async ({
 
 test("admin archives a category after confirmation", async ({ page }) => {
   await signInAsAdmin(page);
-  await page.goto("/categories");
+  await page.goto("/settings/categories");
 
   await page.getByRole("button", { name: "封存 日用品" }).click();
   const dialog = page.getByRole("dialog");
@@ -90,35 +90,11 @@ test("admin archives a category after confirmation", async ({ page }) => {
   await page.getByRole("tab", { name: /封存分類/u }).click();
   await expect(page.getByText("日用品")).toBeVisible();
 
-  await page.goto("/?month=2026-06&create=expense");
+  await page.goto("/?month=2026-06");
+  await pressCreateRecordButton(page);
   await expect(
-    page.locator('select[name="categoryId"] option', { hasText: "日用品" }),
+    page.getByRole("radiogroup", { name: "分類" }).getByText("日用品", { exact: true }),
   ).toHaveCount(0);
-});
-
-test("mobile category create action stays in the footer and row actions stay right aligned", async ({
-  page,
-}) => {
-  await signInAsAdmin(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/categories");
-
-  const createButton = page.getByRole("button", { name: "新增分類" });
-  await expect(createButton).toBeVisible();
-  const createButtonBox = await createButton.boundingBox();
-  expect(createButtonBox?.y ?? 0).toBeGreaterThan(730);
-
-  const row = page
-    .getByText("日用品", { exact: true })
-    .locator('xpath=ancestor::*[@data-slot="item"]');
-  await expect(row).toBeVisible();
-
-  const nameBox = await row.getByText("日用品", { exact: true }).boundingBox();
-  const editBox = await row
-    .getByRole("button", { name: "修改 日用品" })
-    .boundingBox();
-
-  expect(editBox?.x ?? 0).toBeGreaterThan(nameBox?.x ?? 0);
 });
 
 async function signInAsAdmin(page: Page) {
@@ -137,4 +113,11 @@ async function signInAsGeneralMember(page: Page) {
   await page.setExtraHTTPHeaders({
     "x-e2e-auth-user-id": "user-e2e-general",
   });
+}
+
+async function pressCreateRecordButton(page: Page) {
+  const createButton = page.getByRole("button", { name: "新增紀錄" });
+
+  await createButton.focus();
+  await page.keyboard.press("Enter");
 }

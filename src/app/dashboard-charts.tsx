@@ -1,6 +1,12 @@
 "use client";
 
 import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
   Bar,
   Cell,
   ComposedChart,
@@ -8,7 +14,6 @@ import {
   Pie,
   PieChart,
   Line,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -29,8 +34,14 @@ export type ExpenseCategoryPoint = {
 
 export function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
   return (
-    <ResponsiveContainer height="100%" minHeight={180} width="100%">
-      <ComposedChart data={data} margin={{ bottom: 8, left: 0, right: 12, top: 8 }}>
+    <MeasuredChart minHeight={180}>
+      {({ height, width }) => (
+      <ComposedChart
+        data={data}
+        height={height}
+        margin={{ bottom: 8, left: 0, right: 12, top: 8 }}
+        width={width}
+      >
         <CartesianGrid stroke="var(--border)" strokeDasharray="4 8" vertical={false} />
         <XAxis
           axisLine={false}
@@ -97,7 +108,8 @@ export function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
           yAxisId="balance"
         />
       </ComposedChart>
-    </ResponsiveContainer>
+      )}
+    </MeasuredChart>
   );
 }
 
@@ -122,8 +134,13 @@ export function ExpenseCategoryPieChart({
   }
 
   return (
-    <ResponsiveContainer height="100%" width="100%">
-      <PieChart margin={{ bottom: 12, left: 24, right: 24, top: 12 }}>
+    <MeasuredChart minHeight={288}>
+      {({ height, width }) => (
+      <PieChart
+        height={height}
+        margin={{ bottom: 12, left: 24, right: 24, top: 12 }}
+        width={width}
+      >
         <Pie
           cx="50%"
           cy="50%"
@@ -157,7 +174,57 @@ export function ExpenseCategoryPieChart({
           )}
         />
       </PieChart>
-    </ResponsiveContainer>
+      )}
+    </MeasuredChart>
+  );
+}
+
+function MeasuredChart({
+  children,
+  minHeight,
+}: {
+  children: (size: { height: number; width: number }) => ReactNode;
+  minHeight: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ height: number; width: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const element = ref.current;
+
+    if (!element) {
+      return;
+    }
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect();
+      const width = Math.floor(rect.width);
+      const height = Math.max(minHeight, Math.floor(rect.height));
+
+      if (width > 0 && height > 0) {
+        setSize((current) =>
+          current?.width === width && current.height === height
+            ? current
+            : { height, width },
+        );
+      }
+    };
+    const resizeObserver = new ResizeObserver(updateSize);
+
+    updateSize();
+    resizeObserver.observe(element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [minHeight]);
+
+  return (
+    <div ref={ref} className="h-full min-h-full min-w-0">
+      {size ? children(size) : null}
+    </div>
   );
 }
 
