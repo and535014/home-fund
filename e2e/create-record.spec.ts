@@ -16,6 +16,7 @@ test("creates an income record through the browser", async ({ page }) => {
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增紀錄" })).toBeVisible();
+  await expect(dialog.getByLabel("支付者")).toBeVisible();
   await expectNoCreateParams(page);
   await dialog.locator('input[name="name"]').fill("E2E 新增收入");
   await dialog.locator('input[name="amountTwd"]').fill("3210");
@@ -41,6 +42,8 @@ test("creates a fund-paid expense without adding reimbursement", async ({
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增紀錄" })).toBeVisible();
+  await expect(dialog.getByText("支付者", { exact: true })).toBeVisible();
+  await expect(dialog.locator('input[value="基金"]')).toBeVisible();
   await expectNoCreateParams(page);
   await dialog.locator('input[name="name"]').fill("E2E 基金支出");
   await dialog.locator('input[name="amountTwd"]').fill("765");
@@ -52,9 +55,16 @@ test("creates a fund-paid expense without adding reimbursement", async ({
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("E2E 基金支出")).toBeVisible();
   await expectNoCreateParams(page);
-  await expect(page.getByRole("row", {
-    name: /E2E 基金支出 .* 不需退款/u,
+
+  await page.getByRole("button", { name: "查看E2E 基金支出詳情" }).click();
+
+  const detailDialog = page.getByRole("dialog");
+  await expect(detailDialog.getByRole("heading", {
+    name: "E2E 基金支出",
   })).toBeVisible();
+  await expect(detailDialog).toContainText("765");
+  await expect(detailDialog).toContainText("不需退款");
+  await expect(detailDialog).toContainText("基金");
 });
 
 test("creates a member-paid expense and adds reimbursement", async ({
@@ -65,6 +75,7 @@ test("creates a member-paid expense and adds reimbursement", async ({
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "新增紀錄" })).toBeVisible();
+  await expect(dialog.getByLabel("支付者")).toBeVisible();
   await expectNoCreateParams(page);
   await dialog.locator('input[name="name"]').fill("E2E 成員代墊");
   await dialog.locator('input[name="amountTwd"]').fill("888");

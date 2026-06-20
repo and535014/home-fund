@@ -8,7 +8,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Dialog,
@@ -37,6 +37,7 @@ export function RecordListDetail({
   records: LedgerRecord[];
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ?? null;
 
@@ -53,7 +54,10 @@ export function RecordListDetail({
               categoryName={categoryNames[record.categoryId] ?? record.categoryId}
               key={record.id}
               memberNames={memberNames}
-              onOpen={() => setSelectedRecordId(record.id)}
+              onOpen={(trigger) => {
+                selectedRecordTriggerRef.current = trigger;
+                setSelectedRecordId(record.id);
+              }}
               record={record}
             />
           ))}
@@ -65,6 +69,9 @@ export function RecordListDetail({
         onOpenChange={(open) => {
           if (!open) {
             setSelectedRecordId(null);
+            window.requestAnimationFrame(() => {
+              selectedRecordTriggerRef.current?.focus();
+            });
           }
         }}
       >
@@ -90,7 +97,7 @@ function RecordListItem({
 }: {
   categoryName: string;
   memberNames: Record<string, string>;
-  onOpen: () => void;
+  onOpen: (trigger: HTMLButtonElement) => void;
   record: LedgerRecord;
 }) {
   const isIncome = record.type === "income";
@@ -104,7 +111,7 @@ function RecordListItem({
       <button
         aria-label={`查看${record.name}詳情`}
         className="w-full text-left"
-        onClick={onOpen}
+        onClick={(event) => onOpen(event.currentTarget)}
         type="button"
       >
         <ItemMedia className="self-center">
@@ -151,7 +158,7 @@ function RecordDetailDialog({
   const isIncome = record.type === "income";
 
   return (
-    <DialogContent className="max-w-xl">
+    <DialogContent aria-describedby={undefined} className="max-w-xl">
       <DialogHeader>
         <DialogTitle>{record.name}</DialogTitle>
       </DialogHeader>
