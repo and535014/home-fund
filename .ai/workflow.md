@@ -55,6 +55,7 @@ trace_links:
   - .ai/technical-design/record-list-detail-modal.md
   - .ai/implementation/record-list-detail-modal.md
   - .ai/verification/record-list-detail-modal.md
+  - .ai/release/record-list-detail-modal-local-dev-readiness.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -161,9 +162,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: record-list-detail-modal
 - latest_completed_slice: desktop product structure layout redesign, compressed in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`.
-- current_stage: Record list detail modal Verification is complete and passed for `local_dev`.
-- recommended_resume_gate: Target-Aware Release for local_dev readiness refresh.
-- recommended_next_skill: target-aware-release for local_dev; artifact-prune only if explicitly requested; learning-loop after release readiness if useful.
+- current_stage: Record list detail modal Target-Aware Release is complete and ready for `local_dev` review.
+- recommended_resume_gate: Learning Loop for local-dev dashboard UX signals, or Artifact Compression if learning is explicitly skipped.
+- recommended_next_skill: learning-loop unless skipped; artifact-compression after learning/skip decision; artifact-prune only if explicitly requested.
 
 ## Artifact Inventory
 
@@ -174,6 +175,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - active technical design: `.ai/technical-design/record-list-detail-modal.md` captures component boundaries, data/state ownership, helper ownership, and E2E mapping for the record list detail modal slice.
 - active implementation: `.ai/implementation/record-list-detail-modal.md` captures the completed TDD implementation, e2e updates, focus restoration fix, and local verification evidence.
 - active verification: `.ai/verification/record-list-detail-modal.md` verifies the record list detail modal and dashboard panel refinements for `local_dev` and recommends Target-Aware Release.
+- active release: `.ai/release/record-list-detail-modal-local-dev-readiness.md` marks the record list detail modal and dashboard panel refinements ready for local development review; production readiness is not assessed.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
 - domain-impact: completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
