@@ -54,6 +54,7 @@ describe("getVisibleDashboardNavigationItems", () => {
     expect(navigation).toContainEqual(
       expect.objectContaining({
         href: "/",
+        icon: "home",
         label: "總覽",
       }),
     );
@@ -95,6 +96,28 @@ describe("getVisibleDashboardNavigationItems", () => {
     expect(navigation).not.toContainEqual(
       expect.objectContaining({
         label: "成員",
+      }),
+    );
+  });
+
+  it("keeps reimbursements visible only for finance managers and admins", () => {
+    const generalNavigation = getVisibleDashboardNavigationItems(
+      buildAccessHints(members[0]),
+    );
+    const financeNavigation = getVisibleDashboardNavigationItems(
+      buildAccessHints(members[1]),
+    );
+
+    expect(generalNavigation).not.toContainEqual(
+      expect.objectContaining({
+        href: "/reimbursements",
+        label: "退款",
+      }),
+    );
+    expect(financeNavigation).toContainEqual(
+      expect.objectContaining({
+        href: "/reimbursements",
+        label: "退款",
       }),
     );
   });

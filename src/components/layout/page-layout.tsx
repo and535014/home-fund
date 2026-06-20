@@ -15,12 +15,12 @@ export function PageLayout({
   header,
 }: PageLayoutProps) {
   return (
-    <div className="flex h-svh min-h-0 flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {header}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div
           className={cn(
-            "mx-auto w-full max-w-7xl px-4 py-5 pb-28 sm:px-6 md:pb-5 lg:px-8",
+            "w-full px-5 py-5 pb-28 md:pb-5 lg:px-6",
             contentClassName,
           )}
         >
@@ -47,7 +47,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header className="shrink-0 border-b border-border bg-background/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {eyebrow ? (
             <p className="text-label text-muted-foreground">{eyebrow}</p>

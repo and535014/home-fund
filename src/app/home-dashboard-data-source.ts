@@ -1,29 +1,12 @@
 import type { Category } from "../modules/categorization/category-catalog";
 import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
-import type { RecurringOccurrence } from "../modules/recurring-schedule/recurring-rules";
 import { mapPrismaMemberToHouseholdMember } from "../auth/current-member-data-source";
 
 export type HomeDashboardData = {
   householdMembers: HouseholdMemberAccount[];
   categories: Category[];
   records: LedgerRecord[];
-  pendingOccurrences: RecurringOccurrence[];
-  pendingRecurringReminders: PendingRecurringReminderData[];
-};
-
-export type PendingRecurringReminderData = {
-  id: string;
-  recurringRuleId: string;
-  month: string;
-  status: "pending";
-  type: "income" | "expense";
-  name: string;
-  amountCents: number;
-  expectedOn: string;
-  categoryId: string;
-  categoryName: string;
-  targetMemberId: string;
 };
 
 type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0];
@@ -48,28 +31,6 @@ type PrismaLedgerRecordRow = {
   payerMemberId: string | null;
   reimbursementStatus: LedgerRecord["reimbursementStatus"];
   note: string | null;
-};
-
-type PrismaRecurringOccurrenceRow = {
-  id: string;
-  recurringRuleId: string;
-  month: string;
-  status: RecurringOccurrence["status"] | "skipped";
-  ledgerRecordId: string | null;
-  recurringRule: {
-    id: string;
-    type: "income" | "expense";
-    amountCents: number;
-    categoryId: string;
-    sourceMemberId: string | null;
-    paymentSource: "fund" | "member" | null;
-    payerMemberId: string | null;
-    dayOfMonth: number;
-    note: string | null;
-    category: {
-      name: string;
-    };
-  };
 };
 
 export type HomeDashboardPrismaClient = {
@@ -134,42 +95,6 @@ export type HomeDashboardPrismaClient = {
       orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }];
     }): Promise<PrismaLedgerRecordRow[]>;
   };
-  recurringOccurrence: {
-    findMany(args: {
-      where: {
-        month: string;
-        status: "pending";
-      };
-      select: {
-        id: true;
-        recurringRuleId: true;
-        month: true;
-        status: true;
-        ledgerRecordId: true;
-        recurringRule: {
-          select: {
-            id: true;
-            type: true;
-            amountCents: true;
-            categoryId: true;
-            sourceMemberId: true;
-            paymentSource: true;
-            payerMemberId: true;
-            dayOfMonth: true;
-            note: true;
-            category: {
-              select: {
-                name: true;
-              };
-            };
-          };
-        };
-      };
-      orderBy: {
-        createdAt: "asc";
-      };
-    }): Promise<PrismaRecurringOccurrenceRow[]>;
-  };
 };
 
 export function createHomeDashboardDataSource(
@@ -177,7 +102,7 @@ export function createHomeDashboardDataSource(
 ) {
   return {
     async getMonthlyDashboardData(month: string): Promise<HomeDashboardData> {
-      const [householdMembers, categories, records, pendingOccurrences] =
+      const [householdMembers, categories, records] =
         await Promise.all([
           prisma.member.findMany({
             select: {
@@ -231,52 +156,12 @@ export function createHomeDashboardDataSource(
             },
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
           }),
-          prisma.recurringOccurrence.findMany({
-            where: {
-              month,
-              status: "pending",
-            },
-            select: {
-              id: true,
-              recurringRuleId: true,
-              month: true,
-              status: true,
-              ledgerRecordId: true,
-              recurringRule: {
-                select: {
-                  id: true,
-                  type: true,
-                  amountCents: true,
-                  categoryId: true,
-                  sourceMemberId: true,
-                  paymentSource: true,
-                  payerMemberId: true,
-                  dayOfMonth: true,
-                  note: true,
-                  category: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
-          }),
         ]);
 
       return {
         householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
         categories: categories.map(mapPrismaCategoryToCategory),
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
-        pendingOccurrences: pendingOccurrences.map(
-          mapPrismaRecurringOccurrenceToRecurringOccurrence,
-        ),
-        pendingRecurringReminders: pendingOccurrences.map(
-          mapPrismaRecurringOccurrenceToPendingReminder,
-        ),
       };
     },
   };
@@ -322,45 +207,6 @@ function mapPrismaCategoryToCategory(category: PrismaCategoryRow): Category {
     type: category.type,
     name: category.name,
     status: category.status,
-  };
-}
-
-function mapPrismaRecurringOccurrenceToRecurringOccurrence(
-  occurrence: PrismaRecurringOccurrenceRow,
-): RecurringOccurrence {
-  return {
-    id: occurrence.id,
-    recurringRuleId: occurrence.recurringRuleId,
-    month: occurrence.month,
-    status: occurrence.status === "posted" ? "posted" : "pending",
-    ...(occurrence.ledgerRecordId
-      ? { ledgerRecordId: occurrence.ledgerRecordId }
-      : {}),
-  };
-}
-
-function mapPrismaRecurringOccurrenceToPendingReminder(
-  occurrence: PrismaRecurringOccurrenceRow,
-): PendingRecurringReminderData {
-  const rule = occurrence.recurringRule;
-
-  return {
-    id: occurrence.id,
-    recurringRuleId: occurrence.recurringRuleId,
-    month: occurrence.month,
-    status: "pending",
-    type: rule.type,
-    name: rule.note?.trim() || (rule.type === "income" ? "週期收入" : "週期支出"),
-    amountCents: rule.amountCents,
-    expectedOn: `${occurrence.month}-${String(rule.dayOfMonth).padStart(2, "0")}`,
-    categoryId: rule.categoryId,
-    categoryName: rule.category.name,
-    targetMemberId:
-      rule.type === "income"
-        ? rule.sourceMemberId ?? ""
-        : rule.paymentSource === "member"
-          ? rule.payerMemberId ?? ""
-          : "",
   };
 }
 

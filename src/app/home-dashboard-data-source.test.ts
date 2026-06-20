@@ -42,34 +42,10 @@ describe("createHomeDashboardDataSource", () => {
         note: "日用品代墊",
       },
     ]);
-    const recurringOccurrenceFindMany = vi.fn(async () => [
-      {
-        id: "occurrence-living-kai",
-        recurringRuleId: "rule-living-kai",
-        month: "2026-06",
-        status: "pending" as const,
-        ledgerRecordId: null,
-        recurringRule: {
-          id: "rule-living-kai",
-          type: "income" as const,
-          amountCents: 8_000_000,
-          categoryId: "income-living",
-          sourceMemberId: "member-kai",
-          paymentSource: null,
-          payerMemberId: null,
-          dayOfMonth: 10,
-          note: "Kai 每月生活費提醒",
-          category: {
-            name: "生活費",
-          },
-        },
-      },
-    ]);
     const dataSource = createHomeDashboardDataSource({
       member: { findMany: memberFindMany },
       category: { findMany: categoryFindMany },
       ledgerRecord: { findMany: ledgerRecordFindMany },
-      recurringOccurrence: { findMany: recurringOccurrenceFindMany },
     });
 
     await expect(dataSource.getMonthlyDashboardData("2026-06")).resolves.toEqual({
@@ -108,29 +84,6 @@ describe("createHomeDashboardDataSource", () => {
           note: "日用品代墊",
         },
       ],
-      pendingOccurrences: [
-        {
-          id: "occurrence-living-kai",
-          recurringRuleId: "rule-living-kai",
-          month: "2026-06",
-          status: "pending",
-        },
-      ],
-      pendingRecurringReminders: [
-        {
-          id: "occurrence-living-kai",
-          recurringRuleId: "rule-living-kai",
-          month: "2026-06",
-          status: "pending",
-          type: "income",
-          name: "Kai 每月生活費提醒",
-          amountCents: 8_000_000,
-          expectedOn: "2026-06-10",
-          categoryId: "income-living",
-          categoryName: "生活費",
-          targetMemberId: "member-kai",
-        },
-      ],
     });
     expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
@@ -138,12 +91,6 @@ describe("createHomeDashboardDataSource", () => {
           gte: new Date("2026-06-01T00:00:00.000Z"),
           lt: new Date("2026-07-01T00:00:00.000Z"),
         },
-      },
-    }));
-    expect(recurringOccurrenceFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        month: "2026-06",
-        status: "pending",
       },
     }));
   });

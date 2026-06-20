@@ -45,7 +45,7 @@ export function RecordCreateScope({
     setMode(null);
     router.refresh();
     toast.success("紀錄已新增", {
-      description: "已更新本月紀錄與摘要。",
+      description: "已更新目前月份紀錄與摘要。",
       id: "create-record-success",
     });
   }, [router]);

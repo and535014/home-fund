@@ -88,13 +88,13 @@ describe("member management", () => {
     expect(updateMemberPermissions(admin, {
       memberId: "member-bo",
       roles: ["general_member", "finance_manager"],
-      capabilities: ["manage_categories", "manage_recurring"],
+      capabilities: ["manage_categories"],
     }, { members })).toEqual({
       ok: true,
       member: {
         ...members[1],
         roles: ["general_member", "finance_manager"],
-        capabilities: ["manage_categories", "manage_recurring"],
+        capabilities: ["manage_categories"],
       },
       events: ["Member permissions changed"],
     });

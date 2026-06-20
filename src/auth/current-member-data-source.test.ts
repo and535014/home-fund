@@ -53,9 +53,6 @@ describe("createCurrentMemberDataSource", () => {
           {
             capability: "manage_categories" as const,
           },
-          {
-            capability: "manage_recurring" as const,
-          },
         ],
       },
     ]);
@@ -73,7 +70,7 @@ describe("createCurrentMemberDataSource", () => {
         googleSubject: "google-mei",
         status: "active",
         roles: ["general_member"],
-        capabilities: ["manage_categories", "manage_recurring"],
+        capabilities: ["manage_categories"],
       },
     ]);
     expect(findMany).toHaveBeenCalledWith({

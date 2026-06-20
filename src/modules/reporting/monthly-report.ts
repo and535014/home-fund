@@ -1,6 +1,5 @@
 import type { Category } from "../categorization/category-catalog";
 import type { LedgerRecord, LedgerRecordType } from "../fund-ledger/ledger-records";
-import type { RecurringOccurrence } from "../recurring-schedule/recurring-rules";
 import type { MonthlyReimbursementTable } from "../reimbursement/reimbursement-table";
 
 export type MonthlyReportTotals = {
@@ -28,7 +27,6 @@ export type MonthlyReport = {
   totals: MonthlyReportTotals;
   recordIds: string[];
   categorySummaries: MonthlyCategorySummary[];
-  pendingRecurringItems: RecurringOccurrence[];
   reimbursementSummary: MonthlyReimbursementSummary;
   events: ["Monthly records viewed", "Monthly report generated"];
 };
@@ -37,7 +35,6 @@ export type BuildMonthlyReportInput = {
   month: string;
   records: LedgerRecord[];
   categories: Category[];
-  pendingOccurrences: RecurringOccurrence[];
   reimbursementTable: MonthlyReimbursementTable;
 };
 
@@ -52,9 +49,6 @@ export function buildMonthlyReport(input: BuildMonthlyReportInput): MonthlyRepor
     totals,
     recordIds: monthlyRecords.map((record) => record.id),
     categorySummaries: buildCategorySummaries(monthlyRecords, input.categories),
-    pendingRecurringItems: input.pendingOccurrences.filter(
-      (occurrence) => occurrence.month === input.month && occurrence.status === "pending",
-    ),
     reimbursementSummary: {
       refundableTotalCents: input.reimbursementTable.totalAmountCents,
       groupCount: input.reimbursementTable.groups.length,

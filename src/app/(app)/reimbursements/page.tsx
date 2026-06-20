@@ -1,9 +1,7 @@
 import { loadMonthlyWorkspaceContext } from "@/app/monthly-workspace-context";
 import type { AppSearchParams } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
-import { SummaryMetric, formatAmount } from "@/app/dashboard-widgets";
-import { MonthSwitcher } from "@/app/month-switcher";
-import { ReimbursementSettlementPanel } from "@/app/reimbursement-settlement-panel";
+import { redirect } from "next/navigation";
 
 type ReimbursementsPageProps = {
   searchParams?: AppSearchParams;
@@ -14,51 +12,15 @@ export default async function ReimbursementsPage({
 }: ReimbursementsPageProps) {
   const context = await loadMonthlyWorkspaceContext({ searchParams });
 
-  const { homeView, month } = context;
-  const reimbursementTable = homeView.reimbursementTable;
-  const pendingExpenseCount = reimbursementTable.groups.reduce(
-    (total, group) => total + group.expenseIds.length,
-    0,
-  );
+  const { homeView } = context;
+  if (!homeView.accessHints.actions.canPerformReimbursement) {
+    redirect("/");
+  }
 
   return (
-    <PageLayout
-      header={
-        <PageHeader
-          actions={<MonthSwitcher currentMonth={month} />}
-          title="退款"
-        />
-      }
-    >
-      <section
-        aria-label="退款摘要"
-        className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-      >
-        <SummaryMetric
-          label="待退款總額"
-          tone="default"
-          value={formatAmount(reimbursementTable.totalAmountCents)}
-        />
-        <SummaryMetric
-          label="待處理支出"
-          tone="default"
-          value={`${pendingExpenseCount} 筆`}
-        />
-        <SummaryMetric
-          label="涉及成員"
-          tone="default"
-          value={`${reimbursementTable.groups.length} 人`}
-        />
-      </section>
-
-      <div className="mt-5 max-w-3xl">
-        <ReimbursementSettlementPanel
-          canPerformReimbursement={
-            homeView.accessHints.actions.canPerformReimbursement
-          }
-          month={month}
-          reimbursementTable={reimbursementTable}
-        />
+    <PageLayout header={<PageHeader title="退款" />}>
+      <div className="grid min-h-88 place-items-center">
+        <p className="text-subheading text-muted-foreground">敬請期待</p>
       </div>
     </PageLayout>
   );

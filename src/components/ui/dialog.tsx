@@ -56,7 +56,7 @@ function DialogContent({
   showCloseButton?: boolean
 }) {
   return (
-    <>
+    <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
@@ -81,7 +81,7 @@ function DialogContent({
           </DialogPrimitive.Close>
         ) : null}
       </DialogPrimitive.Content>
-    </>
+    </DialogPortal>
   )
 }
 

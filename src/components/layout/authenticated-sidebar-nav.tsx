@@ -60,15 +60,17 @@ export function AuthenticatedSidebarNav({
           <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
-              className="h-10 rounded-button text-label"
+              className="size-11! justify-center rounded-button group-data-[collapsible=icon]:size-11!"
               isActive={active}
+              tooltip={item.label}
             >
               <a
                 aria-current={active ? "page" : undefined}
+                aria-label={item.label}
                 href={item.href}
+                title={item.label}
               >
                 <Icon aria-hidden="true" size={18} />
-                <span>{item.label}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

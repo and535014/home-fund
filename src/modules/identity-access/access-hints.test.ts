@@ -20,11 +20,11 @@ const admin: AuthenticatedMember = {
   roles: ["admin"],
 };
 
-const categoryAndRecurringManager: AuthenticatedMember = {
+const categoryManager: AuthenticatedMember = {
   id: "member-ops",
   googleAccountLinked: true,
   roles: ["general_member"],
-  capabilities: ["manage_categories", "manage_recurring"],
+  capabilities: ["manage_categories"],
 };
 
 describe("buildAccessHints", () => {
@@ -34,8 +34,7 @@ describe("buildAccessHints", () => {
         canOpenReports: true,
         canOpenRecords: true,
         canOpenCreateRecord: true,
-        canOpenReimbursements: true,
-        canOpenRecurring: false,
+        canOpenReimbursements: false,
         canOpenCategories: false,
         canOpenMembers: false,
       },
@@ -49,47 +48,48 @@ describe("buildAccessHints", () => {
         canPerformReimbursement: false,
         canManageMembers: false,
         canManageCategories: false,
-        canManageRecurring: false,
       },
     });
   });
 
   it("shows finance manager reimbursement and cross-member record actions without delete-other access", () => {
-    expect(buildAccessHints(financeManager).actions).toMatchObject({
+    expect(buildAccessHints(financeManager)).toMatchObject({
+      navigation: {
+        canOpenReimbursements: true,
+      },
+      actions: {
       canCreateRecordsForOthers: true,
       canEditRecordsForOthers: true,
       canDeleteRecordsForOthers: false,
       canPerformReimbursement: true,
+      },
     });
   });
 
   it("shows admin member and settings management actions", () => {
     expect(buildAccessHints(admin)).toMatchObject({
       navigation: {
+        canOpenReimbursements: true,
         canOpenMembers: true,
         canOpenCategories: true,
-        canOpenRecurring: true,
       },
       actions: {
         canManageMembers: true,
         canManageCategories: true,
-        canManageRecurring: true,
         canDeleteRecordsForOthers: true,
         canPerformReimbursement: true,
       },
     });
   });
 
-  it("keeps category management admin-only while preserving recurring capabilities", () => {
-    expect(buildAccessHints(categoryAndRecurringManager)).toMatchObject({
+  it("keeps category management admin-only", () => {
+    expect(buildAccessHints(categoryManager)).toMatchObject({
       navigation: {
         canOpenCategories: false,
-        canOpenRecurring: true,
         canOpenMembers: false,
       },
       actions: {
         canManageCategories: false,
-        canManageRecurring: true,
         canManageMembers: false,
       },
     });
@@ -105,7 +105,6 @@ describe("buildAccessHints", () => {
         canOpenRecords: false,
         canOpenCreateRecord: false,
         canOpenReimbursements: false,
-        canOpenRecurring: false,
         canOpenCategories: false,
         canOpenMembers: false,
       },
@@ -119,7 +118,6 @@ describe("buildAccessHints", () => {
         canPerformReimbursement: false,
         canManageMembers: false,
         canManageCategories: false,
-        canManageRecurring: false,
       },
     });
   });

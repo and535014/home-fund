@@ -48,8 +48,6 @@ export async function loadMonthlyWorkspaceContext({
     month,
     records: dashboardData.records,
     categories: dashboardData.categories,
-    pendingOccurrences: dashboardData.pendingOccurrences,
-    pendingRecurringReminders: dashboardData.pendingRecurringReminders,
   });
 
   if (homeView.kind !== "dashboard") {

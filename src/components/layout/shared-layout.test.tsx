@@ -36,7 +36,7 @@ describe("shared app layout", () => {
       layout,
     );
 
-    expect(html).toContain("家庭共用金");
+    expect(html).not.toContain("家庭共用金");
     expect(html).not.toContain("月報工作台");
     expect(html).not.toContain("目前使用者");
     expect(html).toContain("設定");
@@ -55,7 +55,6 @@ describe("shared app layout", () => {
         header={
           <PageHeader
             actions={<button type="button">邀請成員</button>}
-            description="邀請家庭成員、管理全站顯示名稱。"
             title="成員"
           />
         }
@@ -67,7 +66,7 @@ describe("shared app layout", () => {
       </PageLayout>,
     );
 
-    expect(html).toContain("邀請家庭成員、管理全站顯示名稱。");
+    expect(html).not.toContain("邀請家庭成員、管理全站顯示名稱。");
     expect(html).toContain("邀請成員");
     expect(html).toContain("member rows");
     expect(html).toContain("page status");

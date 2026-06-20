@@ -2,25 +2,21 @@ import { loadMemberManagementMembers } from "@/app/member-management-members";
 import {
   InviteMemberHeaderButton,
   MemberInviteDialog,
-} from "../../(admin)/members/member-invite-dialog";
-import { MemberList } from "../../(admin)/members/member-list";
+} from "./member-invite-dialog";
+import { MemberList } from "./member-list";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 
 export default async function MembersPage() {
   const members = await loadMemberManagementMembers();
 
   return (
-    <section className="grid gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-heading text-foreground">成員</h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            邀請家庭成員加入，並管理成員顯示名稱。
-          </p>
-        </div>
-        <InviteMemberHeaderButton />
-      </div>
+    <PageLayout
+      header={
+        <PageHeader actions={<InviteMemberHeaderButton />} title="成員" />
+      }
+    >
       <MemberList members={members} />
       <MemberInviteDialog />
-    </section>
+    </PageLayout>
   );
 }

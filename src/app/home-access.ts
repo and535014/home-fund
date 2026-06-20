@@ -1,7 +1,6 @@
 import type { Category } from "../modules/categorization/category-catalog";
 import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
 import { buildAccessHints, type AccessHints } from "../modules/identity-access/access-hints";
-import { authorize } from "../modules/identity-access/authorization";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
 import {
   resolveHouseholdAccess,
@@ -10,8 +9,6 @@ import {
   type ResolveHouseholdAccessResult,
 } from "../modules/identity-access/session-access";
 import { buildMonthlyReport, type MonthlyReport } from "../modules/reporting/monthly-report";
-import type { RecurringOccurrence } from "../modules/recurring-schedule/recurring-rules";
-import type { PendingRecurringReminderData } from "./home-dashboard-data-source";
 import {
   buildMonthlyReimbursementTable,
   type MonthlyReimbursementTable,
@@ -23,8 +20,6 @@ export type HomeAccessInput = {
   month: string;
   categories: Category[];
   records: LedgerRecord[];
-  pendingOccurrences: RecurringOccurrence[];
-  pendingRecurringReminders: PendingRecurringReminderData[];
 };
 
 export type ResolvedHomeAccessInput = Omit<
@@ -48,14 +43,8 @@ export type HomeDashboardView = {
   kind: "dashboard";
   profile: HouseholdAccessProfile;
   accessHints: AccessHints;
-  pendingRecurringReminders: PendingRecurringReminder[];
   reimbursementTable: MonthlyReimbursementTable;
   report: MonthlyReport;
-};
-
-export type PendingRecurringReminder = PendingRecurringReminderData & {
-  targetMemberName: string;
-  canConfirm: boolean;
 };
 
 export type HomeAccessView = HomeBlockedView | HomeDashboardView;
@@ -90,7 +79,6 @@ export function buildHomeAccessViewFromAccess(
     month: input.month,
     records: input.records,
     categories: input.categories,
-    pendingOccurrences: input.pendingOccurrences,
     reimbursementTable,
   });
 
@@ -98,11 +86,6 @@ export function buildHomeAccessViewFromAccess(
     kind: "dashboard",
     profile: access.profile,
     accessHints: buildAccessHints(access.member),
-    pendingRecurringReminders: buildPendingRecurringReminders(
-      input.pendingRecurringReminders,
-      input.householdMembers,
-      access.member,
-    ),
     reimbursementTable,
     report,
   };
@@ -113,37 +96,6 @@ export function buildHomeBlockedViewFromAccess(
   authError?: string,
 ): HomeBlockedView {
   return blockedViewFor(access.reason, authError);
-}
-
-function buildPendingRecurringReminders(
-  reminders: PendingRecurringReminderData[],
-  members: HouseholdMemberAccount[],
-  actor: Parameters<typeof authorize>[0],
-): PendingRecurringReminder[] {
-  const memberNameById = new Map(members.map((member) => [
-    member.id,
-    member.displayName,
-  ]));
-
-  return reminders.map((reminder) => {
-    const targetMemberId = reminder.targetMemberId || actor.id;
-    const authorization = authorize(actor, reminder.type === "income"
-      ? {
-          type: "create_income_record",
-          targetMemberId,
-        }
-      : {
-          type: "create_expense_record",
-          targetMemberId,
-        });
-
-    return {
-      ...reminder,
-      targetMemberId,
-      targetMemberName: memberNameById.get(targetMemberId) ?? targetMemberId,
-      canConfirm: authorization.allowed,
-    };
-  });
 }
 
 function blockedViewFor(

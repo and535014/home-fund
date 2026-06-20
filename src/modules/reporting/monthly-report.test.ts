@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Category } from "../categorization/category-catalog";
 import type { LedgerRecord } from "../fund-ledger/ledger-records";
-import type { RecurringOccurrence } from "../recurring-schedule/recurring-rules";
 import { buildMonthlyReport } from "./monthly-report";
 
 const categories: Category[] = [
@@ -58,28 +57,12 @@ const records: LedgerRecord[] = [
   },
 ];
 
-const pendingOccurrences: RecurringOccurrence[] = [
-  {
-    id: "occurrence-living-june",
-    recurringRuleId: "rule-living",
-    month: "2026-06",
-    status: "pending",
-  },
-  {
-    id: "occurrence-living-july",
-    recurringRuleId: "rule-living",
-    month: "2026-07",
-    status: "pending",
-  },
-];
-
 describe("buildMonthlyReport", () => {
-  it("derives monthly totals, category summaries, pending reminders, and reimbursement summary", () => {
+  it("derives monthly totals, category summaries, and reimbursement summary", () => {
     const report = buildMonthlyReport({
       month: "2026-06",
       records,
       categories,
-      pendingOccurrences,
       reimbursementTable: {
         month: "2026-06",
         totalAmountCents: 3_200,
@@ -139,14 +122,6 @@ describe("buildMonthlyReport", () => {
           recordIds: ["income-june-rent"],
         },
       ],
-      pendingRecurringItems: [
-        {
-          id: "occurrence-living-june",
-          recurringRuleId: "rule-living",
-          month: "2026-06",
-          status: "pending",
-        },
-      ],
       reimbursementSummary: {
         refundableTotalCents: 3_200,
         groupCount: 1,
@@ -161,7 +136,6 @@ describe("buildMonthlyReport", () => {
       month: "2026-08",
       records,
       categories,
-      pendingOccurrences,
       reimbursementTable: {
         month: "2026-08",
         totalAmountCents: 0,
@@ -177,7 +151,6 @@ describe("buildMonthlyReport", () => {
       },
       recordIds: [],
       categorySummaries: [],
-      pendingRecurringItems: [],
       reimbursementSummary: {
         refundableTotalCents: 0,
         groupCount: 0,

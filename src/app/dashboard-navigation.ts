@@ -13,7 +13,7 @@ export function getVisibleDashboardNavigationItems(
     {
       label: "總覽",
       href: "/",
-      icon: APP_NAVIGATION_ICONS.circleDollarSign,
+      icon: APP_NAVIGATION_ICONS.home,
       visible: accessHints.navigation.canOpenReports,
     },
     {

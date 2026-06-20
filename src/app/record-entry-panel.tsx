@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Shapes } from "lucide-react";
 import {
   useActionState,
   useEffect,
@@ -112,15 +112,12 @@ function RecordEntryForm({
   const memberFieldName = recordType === RECORD_ENTRY_MODE.income
     ? "sourceMemberId"
     : "payerMemberId";
-  const memberFieldLabel = recordType === RECORD_ENTRY_MODE.income
-    ? "收入來源"
-    : "代墊成員";
+  const memberFieldLabel = "支付者";
   const activeCategories = useActiveCategories(
     categories,
     recordType,
   );
   const activeMembers = useActiveMembers(members);
-  const showMemberField = entryKind !== RECORD_ENTRY_KIND.fundExpense;
 
   return (
     <RecordEntryFormShell
@@ -140,18 +137,17 @@ function RecordEntryForm({
           recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
         }
       />
-      <div className="grid gap-px bg-border sm:grid-cols-2">
-        {showMemberField ? (
-          <MemberSelectField
-            canSelectOthers={canSelectOthers}
-            defaultMemberId={profile.id}
-            label={memberFieldLabel}
-            members={activeMembers}
-            name={memberFieldName}
-          />
-        ) : (
-          <div className="bg-card p-4" aria-hidden="true" />
-        )}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <MemberSelectField
+          canSelectOthers={canSelectOthers}
+          defaultMemberId={profile.id}
+          disabledDisplayValue={
+            entryKind === RECORD_ENTRY_KIND.fundExpense ? "基金" : undefined
+          }
+          label={memberFieldLabel}
+          members={activeMembers}
+          name={memberFieldName}
+        />
         <DateField />
       </div>
       <NoteField />
@@ -211,27 +207,24 @@ function RecordEntryFormShell({
       <form action={formAction}>
         <input name="recordType" type="hidden" value={recordType} />
         <input name="paymentSource" type="hidden" value={paymentSource} />
-        <FieldGroup className="gap-0">
+        <FieldGroup>
           <RecordKindTabs
             entryKind={entryKind}
             onEntryKindChange={onEntryKindChange}
           />
           {children}
-          <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
+          <div className="mt-2 flex justify-end gap-2">
             <Button
-              className="h-14 rounded-none bg-card text-foreground hover:bg-secondary"
               onClick={close}
               type="button"
-              variant="ghost"
+              variant="secondary"
             >
               取消
             </Button>
             <Button
-              className="h-14 rounded-none"
               disabled={!hasCategories || isPending}
               type="submit"
             >
-              <Plus aria-hidden="true" size={18} />
               <span>{isPending ? "新增中..." : submitLabel}</span>
             </Button>
           </div>
@@ -256,15 +249,16 @@ function RecordKindTabs({
     >
       <TabsList
         aria-label="紀錄類型"
-        className="grid h-auto w-full grid-cols-3 rounded-none border-0 border-b border-border bg-card p-0"
+        className="w-full"
+        variant="line"
       >
-        <TabsTrigger className="h-14 rounded-none border-r border-border" value={RECORD_ENTRY_KIND.memberExpense}>
+        <TabsTrigger value={RECORD_ENTRY_KIND.memberExpense}>
           成員支出
         </TabsTrigger>
-        <TabsTrigger className="h-14 rounded-none border-r border-border" value={RECORD_ENTRY_KIND.income}>
+        <TabsTrigger value={RECORD_ENTRY_KIND.income}>
           收入
         </TabsTrigger>
-        <TabsTrigger className="h-14 rounded-none" value={RECORD_ENTRY_KIND.fundExpense}>
+        <TabsTrigger value={RECORD_ENTRY_KIND.fundExpense}>
           基金支出
         </TabsTrigger>
       </TabsList>
@@ -274,7 +268,7 @@ function RecordKindTabs({
 
 function DateField() {
   return (
-    <Field className="bg-card p-4">
+    <Field>
       <FieldLabel>日期</FieldLabel>
       <Input
         defaultValue={formatDateInputValue()}
@@ -288,25 +282,39 @@ function DateField() {
 
 function CategoryField({ categories }: { categories: Category[] }) {
   return (
-    <Field className="border-b border-border bg-card p-0">
-      <FieldLabel className="sr-only">分類</FieldLabel>
-      <div className="grid grid-cols-3 gap-px bg-border sm:grid-cols-4">
+    <Field>
+      {categories.length === 0 ? (
+        <p className="text-caption text-muted-foreground">
+          尚未建立可用分類。
+        </p>
+      ) : (
+        <div
+          aria-label="分類"
+          className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5"
+          role="radiogroup"
+        >
         {categories.map((category) => (
           <label
-            className="flex min-h-16 cursor-pointer items-center justify-center bg-card px-3 text-center text-subheading text-foreground has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
+            className="group grid cursor-pointer justify-items-center gap-2 text-center"
             key={category.id}
           >
             <input
-              className="sr-only"
+              className="peer sr-only"
               name="categoryId"
               required
               type="radio"
               value={category.id}
             />
-            <span className="truncate">{category.name}</span>
+            <span className="grid size-14 place-items-center rounded-full bg-secondary text-secondary-foreground transition-colors group-hover:bg-accent group-hover:text-accent-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:bg-primary peer-checked:text-primary-foreground">
+              <Shapes aria-hidden="true" size={24} />
+            </span>
+            <span className="max-w-20 truncate text-label text-muted-foreground peer-checked:text-foreground">
+              {category.name}
+            </span>
           </label>
         ))}
-      </div>
+        </div>
+      )}
     </Field>
   );
 }
@@ -314,18 +322,29 @@ function CategoryField({ categories }: { categories: Category[] }) {
 function MemberSelectField({
   canSelectOthers,
   defaultMemberId,
+  disabledDisplayValue,
   label,
   members,
   name,
 }: {
   canSelectOthers: boolean;
   defaultMemberId: string;
+  disabledDisplayValue?: string;
   label: string;
   members: Member[];
   name: "payerMemberId" | "sourceMemberId";
 }) {
+  if (disabledDisplayValue) {
+    return (
+      <Field>
+        <FieldLabel>{label}</FieldLabel>
+        <Input disabled value={disabledDisplayValue} />
+      </Field>
+    );
+  }
+
   return (
-    <Field className="bg-card p-4">
+    <Field>
       {!canSelectOthers ? (
         <input name={name} type="hidden" value={defaultMemberId} />
       ) : null}
@@ -349,7 +368,7 @@ function MemberSelectField({
 
 function AmountField() {
   return (
-    <Field className="border-b border-border bg-card p-4">
+    <Field>
       <FieldLabel>金額</FieldLabel>
       <Input
         inputMode="decimal"
@@ -366,7 +385,7 @@ function AmountField() {
 
 function NameField({ placeholder }: { placeholder: string }) {
   return (
-    <Field className="border-b border-border bg-card p-4">
+    <Field>
       <FieldLabel>名稱</FieldLabel>
       <Input name="name" placeholder={placeholder} required type="text" />
     </Field>
@@ -375,7 +394,7 @@ function NameField({ placeholder }: { placeholder: string }) {
 
 function NoteField() {
   return (
-    <Field className="min-h-32 bg-card p-4">
+    <Field>
       <FieldLabel>備註</FieldLabel>
       <Textarea className="min-h-24 resize-none" name="note" placeholder="可留空" />
     </Field>

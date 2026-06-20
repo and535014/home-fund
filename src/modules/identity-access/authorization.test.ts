@@ -30,13 +30,6 @@ const categoryManager: AuthenticatedMember = {
   capabilities: ["manage_categories"],
 };
 
-const recurringManager: AuthenticatedMember = {
-  id: "member-recurring",
-  googleAccountLinked: true,
-  roles: ["general_member"],
-  capabilities: ["manage_recurring"],
-};
-
 function command(
   type: AuthorizationCommand["type"],
   target: Omit<AuthorizationCommand, "type"> = {},
@@ -134,19 +127,6 @@ describe("authorize", () => {
     expect(authorize(generalMember, command("manage_categories"))).toEqual({
       allowed: false,
       reason: "admin_required",
-    });
-  });
-
-  it("allows admins and explicit recurring managers to manage recurring rules", () => {
-    expect(authorize(admin, command("manage_recurring"))).toEqual({
-      allowed: true,
-    });
-    expect(authorize(recurringManager, command("manage_recurring"))).toEqual({
-      allowed: true,
-    });
-    expect(authorize(generalMember, command("manage_recurring"))).toEqual({
-      allowed: false,
-      reason: "recurring_manager_required",
     });
   });
 });

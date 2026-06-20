@@ -70,7 +70,6 @@ export async function createLedgerRecordAction(
 
   revalidatePath("/");
   revalidatePath("/reimbursements");
-  revalidatePath("/recurring");
   return actionSuccess("紀錄已新增。", {
     recordId: result.record.id,
   });
