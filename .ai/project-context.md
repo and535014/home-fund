@@ -118,9 +118,9 @@ reviewed_at: 2026-06-20
 
 ## Next Step
 
-- latest_completed_slice: remove standalone create-record entry, compressed in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`.
+- latest_completed_slice: desktop product structure layout redesign, compressed in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`.
 - active_change: none
 - recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake
 - recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change
-- required input: `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
-- reason: The remove standalone create-record entry lifecycle is complete and compressed. Future work should start from the archive summary and maintained project/domain/release artifacts rather than restarting completed gates.
+- required input: `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`, `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
+- reason: The desktop product structure layout redesign lifecycle is complete and compressed. Future work should start from archive summaries and maintained project/domain/release artifacts rather than restarting completed gates.
