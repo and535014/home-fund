@@ -147,7 +147,7 @@ function readFormValue(formData: FormData, key: string): string | undefined {
 
 function revalidateCategoryPaths() {
   revalidatePath("/");
-  revalidatePath("/categories");
+  revalidatePath("/settings/categories");
 }
 
 function createCategoryError(

@@ -15,9 +15,9 @@ import {
 
 const navigationItems: AppNavigationItem[] = [
   {
-    href: "/members",
+    href: "/settings",
     icon: APP_NAVIGATION_ICONS.home,
-    label: "成員",
+    label: "設定",
   },
 ];
 
@@ -28,7 +28,7 @@ describe("shared app layout", () => {
       navigation: navigationItems,
       children: (
         <main>
-          <h2>成員</h2>
+          <h2>設定</h2>
         </main>
       ),
     });
@@ -39,10 +39,8 @@ describe("shared app layout", () => {
     expect(html).toContain("家庭共用金");
     expect(html).not.toContain("月報工作台");
     expect(html).not.toContain("目前使用者");
-    expect(html).toContain("Lin 管理者");
-    expect(html).toContain("成員");
-    expect(html).toContain("登出");
-    expect(html).toContain("/auth/logout");
+    expect(html).toContain("設定");
+    expect(html).toContain("/settings");
     expect(html).not.toContain("邀請家庭成員");
   });
 

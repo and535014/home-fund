@@ -22,15 +22,17 @@ export function CreateRecordDialog({
 }) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent disableOutsidePointerDown forceMount>
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "income" ? "新增收入" : "新增支出"}
+      <DialogContent
+        className="max-w-xl gap-0 overflow-hidden p-0"
+        disableOutsidePointerDown
+        forceMount
+      >
+        <DialogHeader className="border-b border-border px-6 py-6 pr-10 text-center">
+          <DialogTitle className="text-heading">
+            {mode === "income" ? "新增收入" : "新增紀錄"}
           </DialogTitle>
-          <DialogDescription>
-            {mode === "income"
-              ? "建立家庭成員繳交的房租、生活費或其他收入。"
-              : "建立基金直接支出，或成員先代墊的支出。"}
+          <DialogDescription className="sr-only">
+            依序選擇紀錄類型、分類、金額、名稱、成員、日期與備註。
           </DialogDescription>
         </DialogHeader>
         {children}

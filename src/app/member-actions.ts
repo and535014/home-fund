@@ -97,7 +97,7 @@ function readFormValue(formData: FormData, key: string): string | undefined {
 
 function revalidateMemberPaths() {
   revalidatePath("/");
-  revalidatePath("/members");
+  revalidatePath("/settings/members");
 }
 
 function readBaseUrl(): string | undefined {

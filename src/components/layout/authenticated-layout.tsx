@@ -1,11 +1,5 @@
-import { Home, LogOut } from "lucide-react";
+import { Home } from "lucide-react";
 import type { ReactNode } from "react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Sidebar,
@@ -19,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { AppNavigationIconName } from "./app-navigation-icons";
 import { AuthenticatedSidebarNav } from "./authenticated-sidebar-nav";
+import { RecordCreateSidebarButton } from "./record-create-sidebar-button";
 
 export type AppNavigationItem = {
   label: string;
@@ -35,6 +30,7 @@ export type AuthenticatedLayoutProps = {
     displayName: string;
     avatarUrl?: string;
   };
+  canCreateRecord?: boolean;
   children: ReactNode;
   navigation: AppNavigationItem[];
 };
@@ -42,6 +38,7 @@ export type AuthenticatedLayoutProps = {
 export async function AuthenticatedLayout({
   account,
   accountOverride,
+  canCreateRecord = false,
   children,
   navigation,
 }: AuthenticatedLayoutProps) {
@@ -50,8 +47,7 @@ export async function AuthenticatedLayout({
   return (
     <SidebarProvider className="min-h-screen bg-background text-foreground">
       <AuthenticatedSidebar
-        avatarUrl={resolvedAccount?.avatarUrl}
-        displayName={resolvedAccount?.displayName ?? ""}
+        canCreateRecord={canCreateRecord}
         navigationItems={navigation}
       />
       <SidebarInset className="min-w-0 pb-28 md:pb-0">
@@ -62,12 +58,10 @@ export async function AuthenticatedLayout({
 }
 
 function AuthenticatedSidebar({
-  avatarUrl,
-  displayName,
+  canCreateRecord,
   navigationItems,
 }: {
-  avatarUrl?: string;
-  displayName: string;
+  canCreateRecord: boolean;
   navigationItems: AppNavigationItem[];
 }) {
   return (
@@ -90,32 +84,8 @@ function AuthenticatedSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border px-4 py-4">
-        <div className="mb-3 flex min-w-0 items-center gap-3">
-          <Avatar className="size-8">
-            <AvatarImage alt={`${displayName} 的頭像`} src={avatarUrl} />
-            <AvatarFallback>{avatarFallbackFor(displayName)}</AvatarFallback>
-          </Avatar>
-          <p className="min-w-0 truncate text-label text-foreground">
-            {displayName}
-          </p>
-        </div>
-        <form action="/auth/logout" method="post">
-          <Button className="w-full justify-start" type="submit" variant="ghost">
-            <LogOut aria-hidden="true" size={18} />
-            登出
-          </Button>
-        </form>
+        {canCreateRecord ? <RecordCreateSidebarButton /> : null}
       </SidebarFooter>
     </Sidebar>
   );
-}
-
-function avatarFallbackFor(displayName: string): string {
-  const trimmed = displayName.trim();
-
-  if (!trimmed) {
-    return "?";
-  }
-
-  return trimmed.slice(0, 1).toUpperCase();
 }

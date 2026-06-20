@@ -26,6 +26,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 const RECORD_ENTRY_MODE = {
   expense: "expense",
@@ -43,6 +44,15 @@ const PAYMENT_SOURCE = {
 
 type PaymentSource = (typeof PAYMENT_SOURCE)[keyof typeof PAYMENT_SOURCE];
 
+const RECORD_ENTRY_KIND = {
+  fundExpense: "fund-expense",
+  income: "income",
+  memberExpense: "member-expense",
+} as const;
+
+type RecordEntryKind =
+  (typeof RECORD_ENTRY_KIND)[keyof typeof RECORD_ENTRY_KIND];
+
 type Category = RecordCreateData["categories"][number];
 type Member = RecordCreateData["members"][number];
 type Profile = RecordCreateData["profile"];
@@ -51,129 +61,99 @@ export function RecordEntryPanel() {
   const {
     canCreateRecordsForOthers,
     categories,
+    close,
     members,
     mode,
     profile,
     onRecordCreated,
   } = useRecordCreate();
 
-  if (mode === RECORD_ENTRY_MODE.income) {
-    return (
-      <IncomeRecordEntryForm
-        canSelectOthers={canCreateRecordsForOthers}
-        categories={categories}
-        members={members}
-        profile={profile}
-        onRecordCreated={onRecordCreated}
-      />
-    );
-  }
-
-  if (mode === RECORD_ENTRY_MODE.expense) {
-    return (
-      <ExpenseRecordEntryForm
-        canSelectOthers={canCreateRecordsForOthers}
-        categories={categories}
-        members={members}
-        profile={profile}
-        onRecordCreated={onRecordCreated}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <RecordEntryForm
+      canSelectOthers={canCreateRecordsForOthers}
+      categories={categories}
+      close={close}
+      initialMode={mode}
+      members={members}
+      profile={profile}
+      onRecordCreated={onRecordCreated}
+    />
+  );
 }
 
-function IncomeRecordEntryForm({
+function RecordEntryForm({
   canSelectOthers,
   categories,
+  close,
+  initialMode,
   members,
   profile,
   onRecordCreated,
 }: {
   canSelectOthers: boolean;
   categories: RecordCreateData["categories"];
+  close: () => void;
+  initialMode: RecordCreateMode | null;
   members: RecordCreateData["members"];
   profile: Profile;
   onRecordCreated: () => void;
 }) {
+  const [entryKind, setEntryKind] = useState<RecordEntryKind>(
+    initialMode === RECORD_ENTRY_MODE.income
+      ? RECORD_ENTRY_KIND.income
+      : RECORD_ENTRY_KIND.memberExpense,
+  );
+  const recordType = entryKind === RECORD_ENTRY_KIND.income
+    ? RECORD_ENTRY_MODE.income
+    : RECORD_ENTRY_MODE.expense;
+  const paymentSource = entryKind === RECORD_ENTRY_KIND.fundExpense
+    ? PAYMENT_SOURCE.fund
+    : PAYMENT_SOURCE.member;
+  const memberFieldName = recordType === RECORD_ENTRY_MODE.income
+    ? "sourceMemberId"
+    : "payerMemberId";
+  const memberFieldLabel = recordType === RECORD_ENTRY_MODE.income
+    ? "收入來源"
+    : "代墊成員";
   const activeCategories = useActiveCategories(
     categories,
-    RECORD_ENTRY_MODE.income,
+    recordType,
   );
   const activeMembers = useActiveMembers(members);
-  const defaultMemberId = profile.id;
+  const showMemberField = entryKind !== RECORD_ENTRY_KIND.fundExpense;
 
   return (
     <RecordEntryFormShell
+      entryKind={entryKind}
+      close={close}
       hasCategories={activeCategories.length > 0}
       onRecordCreated={onRecordCreated}
-      recordType={RECORD_ENTRY_MODE.income}
-      submitLabel="新增收入"
+      onEntryKindChange={setEntryKind}
+      paymentSource={paymentSource}
+      recordType={recordType}
+      submitLabel="新增"
     >
-      <DateField />
       <CategoryField categories={activeCategories} />
-      <MemberSelectField
-        canSelectOthers={canSelectOthers}
-        defaultMemberId={defaultMemberId}
-        label="收入來源"
-        members={activeMembers}
-        name="sourceMemberId"
-      />
       <AmountField />
-      <NameField placeholder="例如 六月房租" />
-      <NoteField />
-    </RecordEntryFormShell>
-  );
-}
-
-function ExpenseRecordEntryForm({
-  canSelectOthers,
-  categories,
-  members,
-  profile,
-  onRecordCreated,
-}: {
-  canSelectOthers: boolean;
-  categories: RecordCreateData["categories"];
-  members: RecordCreateData["members"];
-  profile: Profile;
-  onRecordCreated: () => void;
-}) {
-  const [paymentSource, setPaymentSource] = useState<PaymentSource>(
-    PAYMENT_SOURCE.member,
-  );
-  const activeCategories = useActiveCategories(
-    categories,
-    RECORD_ENTRY_MODE.expense,
-  );
-  const activeMembers = useActiveMembers(members);
-  const isMemberPaidExpense = paymentSource === PAYMENT_SOURCE.member;
-
-  return (
-    <RecordEntryFormShell
-      hasCategories={activeCategories.length > 0}
-      onRecordCreated={onRecordCreated}
-      recordType={RECORD_ENTRY_MODE.expense}
-      submitLabel="新增支出"
-    >
-      <ExpenseTypeField
-        onPaymentSourceChange={setPaymentSource}
-        paymentSource={paymentSource}
+      <NameField
+        placeholder={
+          recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
+        }
       />
-      <DateField />
-      <CategoryField categories={activeCategories} />
-      {isMemberPaidExpense ? (
-        <MemberSelectField
-          canSelectOthers={canSelectOthers}
-          defaultMemberId={profile.id}
-          label="代墊成員"
-          members={activeMembers}
-          name="payerMemberId"
-        />
-      ) : null}
-      <AmountField />
-      <NameField placeholder="例如 晚餐食材" />
+      <div className="grid gap-px bg-border sm:grid-cols-2">
+        {showMemberField ? (
+          <MemberSelectField
+            canSelectOthers={canSelectOthers}
+            defaultMemberId={profile.id}
+            label={memberFieldLabel}
+            members={activeMembers}
+            name={memberFieldName}
+          />
+        ) : (
+          <div className="bg-card p-4" aria-hidden="true" />
+        )}
+        <DateField />
+      </div>
       <NoteField />
     </RecordEntryFormShell>
   );
@@ -181,14 +161,22 @@ function ExpenseRecordEntryForm({
 
 function RecordEntryFormShell({
   children,
+  close,
+  entryKind,
   hasCategories,
+  onEntryKindChange,
   onRecordCreated,
+  paymentSource,
   recordType,
   submitLabel,
 }: {
   children: ReactNode;
+  close: () => void;
+  entryKind: RecordEntryKind;
   hasCategories: boolean;
+  onEntryKindChange: (entryKind: RecordEntryKind) => void;
   onRecordCreated: () => void;
+  paymentSource: PaymentSource;
   recordType: RecordEntryMode;
   submitLabel: string;
 }) {
@@ -222,25 +210,71 @@ function RecordEntryFormShell({
 
       <form action={formAction}>
         <input name="recordType" type="hidden" value={recordType} />
-        <FieldGroup>
+        <input name="paymentSource" type="hidden" value={paymentSource} />
+        <FieldGroup className="gap-0">
+          <RecordKindTabs
+            entryKind={entryKind}
+            onEntryKindChange={onEntryKindChange}
+          />
           {children}
-          <Button
-            className="mt-1 w-full"
-            disabled={!hasCategories || isPending}
-            type="submit"
-          >
-            <Plus aria-hidden="true" size={18} />
-            <span>{isPending ? "新增中..." : submitLabel}</span>
-          </Button>
+          <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
+            <Button
+              className="h-14 rounded-none bg-card text-foreground hover:bg-secondary"
+              onClick={close}
+              type="button"
+              variant="ghost"
+            >
+              取消
+            </Button>
+            <Button
+              className="h-14 rounded-none"
+              disabled={!hasCategories || isPending}
+              type="submit"
+            >
+              <Plus aria-hidden="true" size={18} />
+              <span>{isPending ? "新增中..." : submitLabel}</span>
+            </Button>
+          </div>
         </FieldGroup>
       </form>
     </section>
   );
 }
 
+function RecordKindTabs({
+  entryKind,
+  onEntryKindChange,
+}: {
+  entryKind: RecordEntryKind;
+  onEntryKindChange: (entryKind: RecordEntryKind) => void;
+}) {
+  return (
+    <Tabs
+      className="gap-0"
+      onValueChange={(nextValue) => onEntryKindChange(nextValue as RecordEntryKind)}
+      value={entryKind}
+    >
+      <TabsList
+        aria-label="紀錄類型"
+        className="grid h-auto w-full grid-cols-3 rounded-none border-0 border-b border-border bg-card p-0"
+      >
+        <TabsTrigger className="h-14 rounded-none border-r border-border" value={RECORD_ENTRY_KIND.memberExpense}>
+          成員支出
+        </TabsTrigger>
+        <TabsTrigger className="h-14 rounded-none border-r border-border" value={RECORD_ENTRY_KIND.income}>
+          收入
+        </TabsTrigger>
+        <TabsTrigger className="h-14 rounded-none" value={RECORD_ENTRY_KIND.fundExpense}>
+          基金支出
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+}
+
 function DateField() {
   return (
-    <Field>
+    <Field className="bg-card p-4">
       <FieldLabel>日期</FieldLabel>
       <Input
         defaultValue={formatDateInputValue()}
@@ -254,16 +288,25 @@ function DateField() {
 
 function CategoryField({ categories }: { categories: Category[] }) {
   return (
-    <Field>
-      <FieldLabel>分類</FieldLabel>
-      <NativeSelect aria-label="分類" defaultValue="" name="categoryId">
-        <option value="">選擇分類</option>
+    <Field className="border-b border-border bg-card p-0">
+      <FieldLabel className="sr-only">分類</FieldLabel>
+      <div className="grid grid-cols-3 gap-px bg-border sm:grid-cols-4">
         {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
+          <label
+            className="flex min-h-16 cursor-pointer items-center justify-center bg-card px-3 text-center text-subheading text-foreground has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
+            key={category.id}
+          >
+            <input
+              className="sr-only"
+              name="categoryId"
+              required
+              type="radio"
+              value={category.id}
+            />
+            <span className="truncate">{category.name}</span>
+          </label>
         ))}
-      </NativeSelect>
+      </div>
     </Field>
   );
 }
@@ -282,7 +325,7 @@ function MemberSelectField({
   name: "payerMemberId" | "sourceMemberId";
 }) {
   return (
-    <Field>
+    <Field className="bg-card p-4">
       {!canSelectOthers ? (
         <input name={name} type="hidden" value={defaultMemberId} />
       ) : null}
@@ -304,40 +347,9 @@ function MemberSelectField({
   );
 }
 
-function ExpenseTypeField({
-  onPaymentSourceChange,
-  paymentSource,
-}: {
-  onPaymentSourceChange: (paymentSource: PaymentSource) => void;
-  paymentSource: PaymentSource;
-}) {
-  return (
-    <Field>
-      <input name="paymentSource" type="hidden" value={paymentSource} />
-      <FieldLabel>支出類型</FieldLabel>
-      <Tabs
-        className="gap-0"
-        onValueChange={(nextValue) =>
-          onPaymentSourceChange(
-            nextValue === PAYMENT_SOURCE.fund
-              ? PAYMENT_SOURCE.fund
-              : PAYMENT_SOURCE.member,
-          )
-        }
-        value={paymentSource}
-      >
-        <TabsList aria-label="支出類型" className="w-full">
-          <TabsTrigger value={PAYMENT_SOURCE.member}>成員代墊</TabsTrigger>
-          <TabsTrigger value={PAYMENT_SOURCE.fund}>基金支出</TabsTrigger>
-        </TabsList>
-      </Tabs>
-    </Field>
-  );
-}
-
 function AmountField() {
   return (
-    <Field>
+    <Field className="border-b border-border bg-card p-4">
       <FieldLabel>金額</FieldLabel>
       <Input
         inputMode="decimal"
@@ -354,7 +366,7 @@ function AmountField() {
 
 function NameField({ placeholder }: { placeholder: string }) {
   return (
-    <Field>
+    <Field className="border-b border-border bg-card p-4">
       <FieldLabel>名稱</FieldLabel>
       <Input name="name" placeholder={placeholder} required type="text" />
     </Field>
@@ -363,9 +375,9 @@ function NameField({ placeholder }: { placeholder: string }) {
 
 function NoteField() {
   return (
-    <Field>
+    <Field className="min-h-32 bg-card p-4">
       <FieldLabel>備註</FieldLabel>
-      <Input name="note" placeholder="可留空" type="text" />
+      <Textarea className="min-h-24 resize-none" name="note" placeholder="可留空" />
     </Field>
   );
 }

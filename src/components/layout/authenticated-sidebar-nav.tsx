@@ -10,6 +10,8 @@ import {
   Plus,
   ReceiptText,
   Repeat,
+  Search,
+  Settings,
   Tags,
   Users,
   type LucideIcon,
@@ -31,6 +33,8 @@ const navigationIcons: Record<AppNavigationItem["icon"], LucideIcon> = {
   [APP_NAVIGATION_ICONS.plus]: Plus,
   [APP_NAVIGATION_ICONS.receiptText]: ReceiptText,
   [APP_NAVIGATION_ICONS.repeat]: Repeat,
+  [APP_NAVIGATION_ICONS.search]: Search,
+  [APP_NAVIGATION_ICONS.settings]: Settings,
   [APP_NAVIGATION_ICONS.tags]: Tags,
   [APP_NAVIGATION_ICONS.users]: Users,
 };
@@ -81,6 +85,10 @@ function isActiveNavigationItem(
 ): boolean {
   if (href.includes("?")) {
     return currentHref === href;
+  }
+
+  if (href !== "/" && pathname.startsWith(`${href}/`)) {
+    return true;
   }
 
   return pathname === href;

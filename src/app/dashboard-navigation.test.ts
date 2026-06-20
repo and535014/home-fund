@@ -64,4 +64,38 @@ describe("getVisibleDashboardNavigationItems", () => {
       }),
     );
   });
+
+  it("uses the desktop product structure navigation", () => {
+    const navigation = getVisibleDashboardNavigationItems(
+      buildAccessHints(members[2]),
+    );
+
+    expect(navigation.map((item) => item.label)).toEqual([
+      "總覽",
+      "搜尋",
+      "退款",
+      "設定",
+    ]);
+    expect(navigation).toContainEqual(
+      expect.objectContaining({
+        href: "/settings",
+        label: "設定",
+      }),
+    );
+    expect(navigation).not.toContainEqual(
+      expect.objectContaining({
+        label: "週期",
+      }),
+    );
+    expect(navigation).not.toContainEqual(
+      expect.objectContaining({
+        label: "分類",
+      }),
+    );
+    expect(navigation).not.toContainEqual(
+      expect.objectContaining({
+        label: "成員",
+      }),
+    );
+  });
 });

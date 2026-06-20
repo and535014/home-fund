@@ -17,28 +17,25 @@ export function getVisibleDashboardNavigationItems(
       visible: accessHints.navigation.canOpenReports,
     },
     {
+      label: "搜尋",
+      href: "/search",
+      icon: APP_NAVIGATION_ICONS.search,
+      visible: accessHints.navigation.canOpenReports,
+    },
+    {
       label: "退款",
       href: "/reimbursements",
       icon: APP_NAVIGATION_ICONS.handCoins,
       visible: accessHints.navigation.canOpenReimbursements,
     },
     {
-      label: "週期",
-      href: "/recurring",
-      icon: APP_NAVIGATION_ICONS.calendarClock,
-      visible: accessHints.navigation.canOpenRecurring,
-    },
-    {
-      label: "分類",
-      href: "/categories",
-      icon: APP_NAVIGATION_ICONS.tags,
-      visible: accessHints.navigation.canOpenCategories,
-    },
-    {
-      label: "成員",
-      href: "/members",
-      icon: APP_NAVIGATION_ICONS.users,
-      visible: accessHints.navigation.canOpenMembers,
+      label: "設定",
+      href: "/settings",
+      icon: APP_NAVIGATION_ICONS.settings,
+      visible:
+        accessHints.navigation.canOpenReports ||
+        accessHints.navigation.canOpenCategories ||
+        accessHints.navigation.canOpenMembers,
     },
   ] satisfies VisibleNavigationItem[];
 

@@ -7,6 +7,8 @@ export const APP_NAVIGATION_ICONS = {
   plus: "plus",
   receiptText: "receipt-text",
   repeat: "repeat",
+  search: "search",
+  settings: "settings",
   tags: "tags",
   users: "users",
 } as const;
