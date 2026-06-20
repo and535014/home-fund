@@ -1,7 +1,7 @@
 ---
 id: desktop-product-structure-layout-redesign
 stage: feature-technical-design
-status: draft
+status: accepted
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -213,7 +213,7 @@ Removed app/module surface:
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approved
 - reviewer_focus:
   - Confirm route/component ownership before TDD hardening.
   - Confirm no Prisma recurring migration in this slice.
@@ -222,3 +222,5 @@ Removed app/module surface:
   - None for TDD Implementation after approval.
 - recommended_next_gate:
   - TDD Implementation
+- approval_evidence:
+  - User requested commit and next step after technical design was drafted.
