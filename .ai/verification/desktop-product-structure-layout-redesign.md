@@ -99,11 +99,13 @@ Results:
 
 ## Review Gate
 
-- decision: awaiting_approval
+- decision: approved
 - reviewer_focus:
-  - Confirm the 29/29 E2E result is sufficient for local_dev verification.
-  - Confirm remaining visual/manual review risks are acceptable before Target-Aware Release.
+  - Confirmed: the 29/29 E2E result is sufficient for local_dev verification.
+  - Confirmed: screenshot visual verification and recurring DB cleanup are accepted as non-blocking local_dev risks.
 - unresolved_blockers:
   - None for local_dev verification.
 - recommended_next_gate:
   - Target-Aware Release
+- approval_evidence:
+  - User approved proceeding to Target-Aware Release after discussing residual visual and recurring-schema risks.

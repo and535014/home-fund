@@ -47,6 +47,7 @@ trace_links:
   - .ai/technical-design/desktop-product-structure-layout-redesign.md
   - .ai/implementation/desktop-product-structure-layout-redesign.md
   - .ai/verification/desktop-product-structure-layout-redesign.md
+  - .ai/release/desktop-product-structure-layout-redesign-local-dev-readiness.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -153,9 +154,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: desktop-product-structure-layout-redesign
 - latest_completed_slice: remove standalone create-record entry.
-- current_stage: Verification passed for `.ai/verification/desktop-product-structure-layout-redesign.md`; full Playwright E2E is 29/29 passing for local_dev.
-- recommended_resume_gate: Review and approve local_dev verification evidence.
-- recommended_next_skill: target-aware-release after verification approval.
+- current_stage: Target-Aware Release completed for `.ai/release/desktop-product-structure-layout-redesign-local-dev-readiness.md`; slice is ready for local_dev review only.
+- recommended_resume_gate: Learning Loop if this local_dev change will be reviewed for feedback; otherwise Artifact Compression.
+- recommended_next_skill: learning-loop or artifact-compression depending on whether feedback tracking is needed.
 
 ## Artifact Inventory
 
