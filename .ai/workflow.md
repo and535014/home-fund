@@ -61,6 +61,7 @@ trace_links:
   - .ai/learning/category-visual-identity.md
   - .ai/archive/archive-category-visual-identity-2026-06-21.md
   - .ai/intent/edit-delete-ledger-records.md
+  - .ai/domain-impact/edit-delete-ledger-records.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -167,16 +168,16 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: edit-delete-ledger-records
 - latest_completed_slice: category visual identity and ordering, compressed in `.ai/archive/archive-category-visual-identity-2026-06-21.md`.
-- current_stage: Intent Intake review for edit/delete ledger records.
-- recommended_resume_gate: Domain Discovery after explicit approval of `.ai/intent/edit-delete-ledger-records.md`.
-- recommended_next_skill: domain-discovery for the approved edit/delete ledger records change; target-aware-release only if a stricter release target is selected; artifact-prune only if explicitly requested.
+- current_stage: Domain Discovery review for edit/delete ledger records.
+- recommended_resume_gate: Experience Prototype after explicit approval of `.ai/domain-impact/edit-delete-ledger-records.md`.
+- recommended_next_skill: experience-prototype for the approved edit/delete ledger records change; target-aware-release only if a stricter release target is selected; artifact-prune only if explicitly requested.
 
 ## Artifact Inventory
 
 - idea: maintained `.ai/intent/home-family-fund.md`; active edit/delete ledger records intent is in `.ai/intent/edit-delete-ledger-records.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
 - completed record list detail modal: summarized in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`; source intent/prototype/spec/technical-design/implementation/verification/release artifacts were manually pruned after compression.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- domain-impact: active edit/delete ledger records impact is in `.ai/domain-impact/edit-delete-ledger-records.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
