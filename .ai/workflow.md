@@ -52,6 +52,7 @@ trace_links:
   - .ai/intent/record-list-detail-modal.md
   - .ai/prototype/record-list-detail-modal.md
   - .ai/spec/record-list-detail-modal.md
+  - .ai/technical-design/record-list-detail-modal.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -158,9 +159,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: record-list-detail-modal
 - latest_completed_slice: desktop product structure layout redesign, compressed in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`.
-- current_stage: Record list detail modal Behavior Spec / BDD / E2E is drafted and awaiting review.
-- recommended_resume_gate: Feature Technical Design after explicit approval of `.ai/spec/record-list-detail-modal.md`.
-- recommended_next_skill: feature-technical-design after approval; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
+- current_stage: Record list detail modal Feature Technical Design is drafted and awaiting review.
+- recommended_resume_gate: TDD Implementation after explicit approval of `.ai/technical-design/record-list-detail-modal.md`.
+- recommended_next_skill: tdd-implementation after approval; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
 
 ## Artifact Inventory
 
@@ -168,6 +169,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - active intent: `.ai/intent/record-list-detail-modal.md` captures the requested dashboard records item list and detail modal slice and is awaiting approval.
 - active prototype: `.ai/prototype/record-list-detail-modal.md` captures the production-stack records item list and detail modal prototype and is awaiting approval.
 - active spec: `.ai/spec/record-list-detail-modal.md` captures acceptance criteria, BDD scenarios, and E2E design for the record list detail modal slice and is awaiting approval.
+- active technical design: `.ai/technical-design/record-list-detail-modal.md` captures component boundaries, data/state ownership, helper ownership, and E2E mapping for the record list detail modal slice and is awaiting approval.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
 - domain-impact: completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
