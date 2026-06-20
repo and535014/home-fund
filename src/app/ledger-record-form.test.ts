@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseCreateLedgerRecordForm } from "./ledger-record-form";
+import {
+  parseCreateLedgerRecordForm,
+  parseUpdateLedgerRecordForm,
+  parseVoidLedgerRecordForm,
+} from "./ledger-record-form";
 
 describe("parseCreateLedgerRecordForm", () => {
   it("parses an income form into a ledger record command", () => {
@@ -75,6 +79,64 @@ describe("parseCreateLedgerRecordForm", () => {
     expect(parseCreateLedgerRecordForm(formData)).toEqual({
       ok: false,
       reason: "invalid_amount",
+    });
+  });
+});
+
+describe("parseUpdateLedgerRecordForm", () => {
+  it("parses an expense edit form into a ledger correction command", () => {
+    const formData = new FormData();
+    formData.set("recordId", "expense-1");
+    formData.set("recordType", "expense");
+    formData.set("name", "日用品補正");
+    formData.set("paymentSource", "member");
+    formData.set("amountTwd", "350");
+    formData.set("occurredOn", "2026-06-10");
+    formData.set("categoryId", "expense-grocery");
+    formData.set("payerMemberId", "member-mei");
+    formData.set("note", "補正");
+
+    expect(parseUpdateLedgerRecordForm(formData)).toEqual({
+      ok: true,
+      command: {
+        recordId: "expense-1",
+        name: "日用品補正",
+        amountCents: 35_000,
+        occurredOn: "2026-06-10",
+        categoryId: "expense-grocery",
+        paymentSource: "member",
+        payerMemberId: "member-mei",
+        note: "補正",
+      },
+    });
+  });
+
+  it("requires a record id before editing", () => {
+    const formData = new FormData();
+    formData.set("recordType", "income");
+    formData.set("name", "六月房租");
+    formData.set("amountTwd", "12000");
+    formData.set("occurredOn", "2026-06-05");
+    formData.set("categoryId", "income-rent");
+    formData.set("sourceMemberId", "member-mei");
+
+    expect(parseUpdateLedgerRecordForm(formData)).toEqual({
+      ok: false,
+      reason: "missing_record_id",
+    });
+  });
+});
+
+describe("parseVoidLedgerRecordForm", () => {
+  it("parses a delete form into a void command", () => {
+    const formData = new FormData();
+    formData.set("recordId", "expense-1");
+
+    expect(parseVoidLedgerRecordForm(formData)).toEqual({
+      ok: true,
+      command: {
+        recordId: "expense-1",
+      },
     });
   });
 });

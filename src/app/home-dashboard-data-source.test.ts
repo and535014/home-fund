@@ -42,6 +42,7 @@ describe("createHomeDashboardDataSource", () => {
         paymentSource: "member" as const,
         payerMemberId: "member-fin",
         reimbursementStatus: "refundable" as const,
+        status: "active" as const,
         note: "日用品代墊",
       },
     ]);
@@ -87,6 +88,7 @@ describe("createHomeDashboardDataSource", () => {
           paymentSource: "member",
           payerMemberId: "member-fin",
           reimbursementStatus: "refundable",
+          status: "active",
           note: "日用品代墊",
         },
       ],
@@ -97,6 +99,7 @@ describe("createHomeDashboardDataSource", () => {
           gte: new Date("2026-06-01T00:00:00.000Z"),
           lt: new Date("2026-07-01T00:00:00.000Z"),
         },
+        status: "active",
       },
     }));
     expect(categoryFindMany).toHaveBeenCalledWith({
@@ -128,6 +131,7 @@ describe("mapPrismaLedgerRecordToLedgerRecord", () => {
       paymentSource: null,
       payerMemberId: null,
       reimbursementStatus: "not_applicable",
+      status: "active",
       note: null,
     })).toEqual({
       id: "income-rent-june",
@@ -139,6 +143,7 @@ describe("mapPrismaLedgerRecordToLedgerRecord", () => {
       createdByMemberId: "member-mei",
       sourceMemberId: "member-mei",
       reimbursementStatus: "not_applicable",
+      status: "active",
     });
   });
 });

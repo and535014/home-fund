@@ -11,6 +11,7 @@ import type {
 } from "./ledger-records";
 
 export type UpdateLedgerRecordCommand = {
+  name?: string;
   amountCents?: number;
   occurredOn?: string;
   categoryId?: string;
@@ -35,8 +36,8 @@ export type UpdateLedgerRecordResult =
 export type DeleteLedgerRecordResult =
   | {
       ok: true;
-      deletedRecordId: string;
-      events: ["Ledger record deleted"];
+      record: LedgerRecord;
+      events: ["Ledger record voided"];
     }
   | LedgerRecordCorrectionFailure;
 
@@ -52,7 +53,8 @@ export type LedgerRecordCorrectionFailure = {
     | "missing_income_source_member"
     | "missing_member_payer"
     | "fund_paid_expense_cannot_have_member_payer"
-    | "reimbursed_expense_cannot_change_payment_source";
+    | "record_voided"
+    | "reimbursed_expense_blocked";
   authorizationReason?: Exclude<AuthorizationResult, { allowed: true }>["reason"];
 };
 
@@ -75,8 +77,14 @@ export function updateLedgerRecord(
     };
   }
 
+  const mutable = validateMutableRecord(record);
+
+  if (mutable.ok === false) {
+    return mutable;
+  }
+
   const nextRecord = mergeRecord(record, command);
-  const validation = validateUpdatedRecord(nextRecord, context.categories, record);
+  const validation = validateUpdatedRecord(nextRecord, context.categories);
 
   if (validation.ok === false) {
     return validation;
@@ -106,11 +114,34 @@ export function deleteLedgerRecord(
     };
   }
 
+  const mutable = validateMutableRecord(record);
+
+  if (mutable.ok === false) {
+    return mutable;
+  }
+
   return {
     ok: true,
-    deletedRecordId: record.id,
-    events: ["Ledger record deleted"],
+    record: {
+      ...record,
+      status: "voided",
+    },
+    events: ["Ledger record voided"],
   };
+}
+
+function validateMutableRecord(
+  record: LedgerRecord,
+): { ok: true } | LedgerRecordCorrectionFailure {
+  if (record.status === "voided") {
+    return { ok: false, reason: "record_voided" };
+  }
+
+  if (record.type === "expense" && record.reimbursementStatus === "reimbursed") {
+    return { ok: false, reason: "reimbursed_expense_blocked" };
+  }
+
+  return { ok: true };
 }
 
 function mergeRecord(
@@ -119,6 +150,7 @@ function mergeRecord(
 ): LedgerRecord {
   const base = {
     ...record,
+    name: command.name ?? record.name,
     amountCents: command.amountCents ?? record.amountCents,
     occurredOn: command.occurredOn ?? record.occurredOn,
     categoryId: command.categoryId ?? record.categoryId,
@@ -150,7 +182,6 @@ function mergeRecord(
 function validateUpdatedRecord(
   record: LedgerRecord,
   categories: LedgerCategory[],
-  originalRecord: LedgerRecord,
 ): { ok: true } | LedgerRecordCorrectionFailure {
   if (!Number.isInteger(record.amountCents) || record.amountCents <= 0) {
     return { ok: false, reason: "invalid_amount" };
@@ -179,17 +210,6 @@ function validateUpdatedRecord(
   }
 
   if (record.type === "expense") {
-    if (
-      originalRecord.type === "expense" &&
-      originalRecord.reimbursementStatus === "reimbursed" &&
-      originalRecord.paymentSource !== record.paymentSource
-    ) {
-      return {
-        ok: false,
-        reason: "reimbursed_expense_cannot_change_payment_source",
-      };
-    }
-
     if (record.paymentSource === "member" && !record.payerMemberId) {
       return { ok: false, reason: "missing_member_payer" };
     }

@@ -16,6 +16,7 @@ const refundableMeiExpense: ExpenseLedgerRecord = {
   paymentSource: "member",
   payerMemberId: "member-mei",
   reimbursementStatus: "refundable",
+  status: "active",
 };
 
 const records: LedgerRecord[] = [
@@ -60,6 +61,13 @@ const records: LedgerRecord[] = [
     createdByMemberId: "member-mei",
     sourceMemberId: "member-mei",
     reimbursementStatus: "not_applicable",
+    status: "active",
+  },
+  {
+    ...refundableMeiExpense,
+    id: "expense-voided",
+    amountCents: 9_999,
+    status: "voided",
   },
 ];
 

@@ -48,6 +48,7 @@ describe("createLedgerRecord", () => {
         sourceMemberId: "member-mei",
         note: "六月房租",
         reimbursementStatus: "not_applicable",
+        status: "active",
       },
       events: ["Income recorded"],
     });
@@ -92,6 +93,7 @@ describe("createLedgerRecord", () => {
         createdByMemberId: "member-mei",
         paymentSource: "fund",
         reimbursementStatus: "not_refundable",
+        status: "active",
       },
       events: ["Expense recorded"],
     });
@@ -121,6 +123,7 @@ describe("createLedgerRecord", () => {
         paymentSource: "member",
         payerMemberId: "member-mei",
         reimbursementStatus: "refundable",
+        status: "active",
       },
       events: ["Expense recorded", "Member-paid expense became refundable"],
     });

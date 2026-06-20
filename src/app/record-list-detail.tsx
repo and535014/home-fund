@@ -13,9 +13,20 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { initialActionState } from "@/app/action-state";
+import {
+  updateLedgerRecordAction,
+  voidLedgerRecordAction,
+  type UpdateLedgerRecordActionCode,
+  type UpdateLedgerRecordActionField,
+  type VoidLedgerRecordActionCode,
+  type VoidLedgerRecordActionField,
+} from "@/app/ledger-record-actions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Item,
   ItemContent,
@@ -43,15 +55,18 @@ import type { HouseholdAccessProfile } from "@/modules/identity-access/session-a
 
 export function RecordListDetail({
   actor,
+  categories,
   categoriesById,
   memberNames,
   records,
 }: {
   actor: HouseholdAccessProfile;
+  categories: Category[];
   categoriesById: Record<string, Category>;
   memberNames: Record<string, string>;
   records: LedgerRecord[];
 }) {
+  const router = useRouter();
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
@@ -97,11 +112,15 @@ export function RecordListDetail({
         {selectedRecord ? (
           <RecordDetailDialog
             actor={actor}
+            categories={categories}
             categoryName={
               categoriesById[selectedRecord.categoryId]?.name ?? selectedRecord.categoryId
             }
             memberNames={memberNames}
-            onClose={closeSelectedRecord}
+            onMutationSuccess={() => {
+              closeSelectedRecord();
+              router.refresh();
+            }}
             record={selectedRecord}
           />
         ) : null}
@@ -169,15 +188,17 @@ function RecordListItem({
 
 function RecordDetailDialog({
   actor,
+  categories,
   categoryName,
   memberNames,
-  onClose,
+  onMutationSuccess,
   record,
 }: {
   actor: HouseholdAccessProfile;
+  categories: Category[];
   categoryName: string;
   memberNames: Record<string, string>;
-  onClose: () => void;
+  onMutationSuccess: () => void;
   record: LedgerRecord;
 }) {
   const isIncome = record.type === "income";
@@ -187,15 +208,15 @@ function RecordDetailDialog({
   if (mode === "edit") {
     return (
       <EditRecordDialog
-        categoryName={categoryName}
+        categories={categories}
         memberNames={memberNames}
         onCancel={() => setMode("detail")}
-        onSave={() => {
+        onSuccess={() => {
           toast.success("紀錄已更新", {
             description: "已更新目前月份紀錄與摘要。",
             id: `edit-record-success-${record.id}`,
           });
-          onClose();
+          onMutationSuccess();
         }}
         record={record}
       />
@@ -206,12 +227,12 @@ function RecordDetailDialog({
     return (
       <DeleteRecordDialog
         onCancel={() => setMode("detail")}
-        onConfirm={() => {
+        onSuccess={() => {
           toast.success("紀錄已刪除", {
             description: "這筆紀錄已從目前月份紀錄與摘要移除。",
             id: `delete-record-success-${record.id}`,
           });
-          onClose();
+          onMutationSuccess();
         }}
         record={record}
       />
@@ -302,18 +323,43 @@ function RecordDetailDialog({
 }
 
 function EditRecordDialog({
-  categoryName,
+  categories,
   memberNames,
   onCancel,
-  onSave,
+  onSuccess,
   record,
 }: {
-  categoryName: string;
+  categories: Category[];
   memberNames: Record<string, string>;
   onCancel: () => void;
-  onSave: () => void;
+  onSuccess: () => void;
   record: LedgerRecord;
 }) {
+  const [paymentSource, setPaymentSource] = useState(
+    record.type === "expense" ? record.paymentSource : "member",
+  );
+  const [actionState, formAction, isPending] = useActionState(
+    updateLedgerRecordAction,
+    initialActionState<
+      { recordId: string },
+      UpdateLedgerRecordActionField,
+      UpdateLedgerRecordActionCode
+    >(),
+  );
+  const activeCategories = categories.filter(
+    (category) => category.type === record.type && category.status === "active",
+  );
+  const members = Object.entries(memberNames).map(([id, displayName]) => ({
+    id,
+    displayName,
+  }));
+
+  useEffect(() => {
+    if (actionState.status === "success") {
+      onSuccess();
+    }
+  }, [actionState.status, onSuccess]);
+
   return (
     <DialogContent className="max-w-xl">
       <DialogHeader>
@@ -323,67 +369,132 @@ function EditRecordDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <DialogBody className="grid gap-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-2 text-label">
-            名稱
-            <Input defaultValue={record.name} name="name" />
-          </label>
-          <label className="grid gap-2 text-label">
-            金額
-            <Input
-              defaultValue={String(record.amountCents / 100)}
-              inputMode="decimal"
-              name="amountTwd"
-            />
-          </label>
-          <label className="grid gap-2 text-label">
-            日期
-            <Input defaultValue={record.occurredOn} name="occurredOn" type="date" />
-          </label>
-          <div className="grid gap-2 text-label">
-            分類
-            <div className="flex h-10 items-center rounded-input border border-input bg-secondary/30 px-3 text-body text-muted-foreground">
-              {categoryName}
-            </div>
+      <form action={formAction}>
+        {actionState.status === "error" && actionState.message ? (
+          <Alert className="mb-3" role="alert" variant="destructive">
+            <AlertDescription>{actionState.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        <input name="recordId" type="hidden" value={record.id} />
+        <input name="recordType" type="hidden" value={record.type} />
+        <DialogBody className="grid gap-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-2 text-label">
+              名稱
+              <Input defaultValue={record.name} name="name" />
+            </label>
+            <label className="grid gap-2 text-label">
+              金額
+              <Input
+                defaultValue={String(record.amountCents / 100)}
+                inputMode="decimal"
+                name="amountTwd"
+              />
+            </label>
+            <label className="grid gap-2 text-label">
+              日期
+              <Input defaultValue={record.occurredOn} name="occurredOn" type="date" />
+            </label>
+            <label className="grid gap-2 text-label">
+              分類
+              <NativeSelect defaultValue={record.categoryId} name="categoryId">
+                {activeCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            {record.type === "expense" ? (
+              <>
+                <label className="grid gap-2 text-label">
+                  支出類型
+                  <NativeSelect
+                    name="paymentSource"
+                    onChange={(event) =>
+                      setPaymentSource(event.currentTarget.value as "fund" | "member")
+                    }
+                    value={paymentSource}
+                  >
+                    <option value="member">成員代墊</option>
+                    <option value="fund">基金支出</option>
+                  </NativeSelect>
+                </label>
+                {paymentSource === "member" ? (
+                  <label className="grid gap-2 text-label">
+                    支付者
+                    <NativeSelect
+                      defaultValue={record.payerMemberId ?? ""}
+                      name="payerMemberId"
+                    >
+                      {members.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.displayName}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </label>
+                ) : null}
+              </>
+            ) : (
+              <label className="grid gap-2 text-label">
+                支付者
+                <NativeSelect defaultValue={record.sourceMemberId} name="sourceMemberId">
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.displayName}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+            )}
           </div>
-          <div className="grid gap-2 text-label sm:col-span-2">
-            支付者
-            <div className="flex h-10 items-center rounded-input border border-input bg-secondary/30 px-3 text-body text-muted-foreground">
-              {recordActorLabel(record, memberNames)}
-            </div>
-          </div>
-        </div>
 
-        <label className="grid gap-2 text-label">
-          備註
-          <Textarea defaultValue={record.note ?? ""} name="note" />
-        </label>
-      </DialogBody>
+          <label className="grid gap-2 text-label">
+            備註
+            <Textarea defaultValue={record.note ?? ""} name="note" />
+          </label>
+        </DialogBody>
 
-      <DialogFooter>
-        <Button onClick={onCancel} type="button" variant="outline">
-          <X />
-          取消
-        </Button>
-        <Button onClick={onSave} type="button">
-          <Save />
-          儲存變更
-        </Button>
-      </DialogFooter>
+        <DialogFooter>
+          <Button onClick={onCancel} type="button" variant="outline">
+            <X />
+            取消
+          </Button>
+          <Button disabled={isPending} type="submit">
+            <Save />
+            {isPending ? "儲存中..." : "儲存變更"}
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }
 
 function DeleteRecordDialog({
   onCancel,
-  onConfirm,
+  onSuccess,
   record,
 }: {
   onCancel: () => void;
-  onConfirm: () => void;
+  onSuccess: () => void;
   record: LedgerRecord;
 }) {
+  const [actionState, formAction, isPending] = useActionState(
+    voidLedgerRecordAction,
+    initialActionState<
+      { recordId: string },
+      VoidLedgerRecordActionField,
+      VoidLedgerRecordActionCode
+    >(),
+  );
+
+  useEffect(() => {
+    if (actionState.status === "success") {
+      onSuccess();
+    }
+  }, [actionState.status, onSuccess]);
+
   return (
     <DialogContent className="max-w-md">
       <DialogHeader>
@@ -393,25 +504,33 @@ function DeleteRecordDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <DialogBody>
-        <div className="rounded-card border border-destructive/40 bg-destructive/10 p-4">
-          <p className="text-body-strong">{record.name}</p>
-          <p className="mt-1 text-body text-muted-foreground">
-            {formatAmount(record.amountCents)} · {formatDate(record.occurredOn)}
-          </p>
-        </div>
-      </DialogBody>
+      <form action={formAction}>
+        {actionState.status === "error" && actionState.message ? (
+          <Alert className="mb-3" role="alert" variant="destructive">
+            <AlertDescription>{actionState.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        <input name="recordId" type="hidden" value={record.id} />
+        <DialogBody>
+          <div className="rounded-card border border-destructive/40 bg-destructive/10 p-4">
+            <p className="text-body-strong">{record.name}</p>
+            <p className="mt-1 text-body text-muted-foreground">
+              {formatAmount(record.amountCents)} · {formatDate(record.occurredOn)}
+            </p>
+          </div>
+        </DialogBody>
 
-      <DialogFooter>
-        <Button onClick={onCancel} type="button" variant="outline">
-          <X />
-          取消
-        </Button>
-        <Button onClick={onConfirm} type="button" variant="destructive">
-          <Trash2 />
-          確認刪除
-        </Button>
-      </DialogFooter>
+        <DialogFooter>
+          <Button onClick={onCancel} type="button" variant="outline">
+            <X />
+            取消
+          </Button>
+          <Button disabled={isPending} type="submit" variant="destructive">
+            <Trash2 />
+            {isPending ? "刪除中..." : "確認刪除"}
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }

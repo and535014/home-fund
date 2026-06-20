@@ -68,6 +68,7 @@ const records: LedgerRecord[] = [
     createdByMemberId: "member-fin",
     sourceMemberId: "member-fin",
     reimbursementStatus: "not_applicable",
+    status: "active",
   },
   {
     id: "expense-grocery-june",
@@ -80,6 +81,7 @@ const records: LedgerRecord[] = [
     paymentSource: "member",
     payerMemberId: "member-fin",
     reimbursementStatus: "refundable",
+    status: "active",
   },
 ];
 

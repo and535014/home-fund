@@ -44,6 +44,7 @@ export async function markExpensesReimbursedInDatabase(
         paymentSource: true,
         payerMemberId: true,
         reimbursementStatus: true,
+        status: true,
         note: true,
       },
     });
@@ -97,6 +98,7 @@ function mapPrismaRecordToExpense(record: {
   paymentSource: "fund" | "member" | null;
   payerMemberId: string | null;
   reimbursementStatus: "not_applicable" | "not_refundable" | "refundable" | "reimbursed";
+  status: "active" | "voided";
   note: string | null;
 }): ExpenseLedgerRecord {
   return {
@@ -113,6 +115,7 @@ function mapPrismaRecordToExpense(record: {
       record.reimbursementStatus === "not_applicable"
         ? "not_refundable"
         : record.reimbursementStatus,
+    status: record.status,
     ...(record.note ? { note: record.note } : {}),
   };
 }

@@ -5,6 +5,7 @@ import {
 } from "../identity-access/authorization";
 
 export type LedgerRecordType = "income" | "expense";
+export type LedgerRecordStatus = "active" | "voided";
 
 export type LedgerCategory = {
   id: string;
@@ -54,6 +55,7 @@ export type IncomeLedgerRecord = {
   sourceMemberId: string;
   note?: string;
   reimbursementStatus: "not_applicable";
+  status: LedgerRecordStatus;
 };
 
 export type ExpenseLedgerRecord = {
@@ -68,9 +70,14 @@ export type ExpenseLedgerRecord = {
   payerMemberId?: string;
   note?: string;
   reimbursementStatus: "not_refundable" | "refundable" | "reimbursed";
+  status: LedgerRecordStatus;
 };
 
 export type LedgerRecord = IncomeLedgerRecord | ExpenseLedgerRecord;
+
+export function isActiveLedgerRecord(record: LedgerRecord): boolean {
+  return record.status === "active";
+}
 
 export type CreateLedgerRecordContext = {
   categories: LedgerCategory[];
@@ -139,6 +146,7 @@ export function createLedgerRecord(
         sourceMemberId: command.sourceMemberId,
         note: command.note,
         reimbursementStatus: "not_applicable",
+        status: "active",
       },
       events: ["Income recorded"],
     };
@@ -158,6 +166,7 @@ export function createLedgerRecord(
         paymentSource: "fund",
         note: command.note,
         reimbursementStatus: "not_refundable",
+        status: "active",
       },
       events: ["Expense recorded"],
     };
@@ -177,6 +186,7 @@ export function createLedgerRecord(
       payerMemberId: command.payerMemberId,
       note: command.note,
       reimbursementStatus: "refundable",
+      status: "active",
     },
     events: ["Expense recorded", "Member-paid expense became refundable"],
   };

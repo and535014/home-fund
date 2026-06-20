@@ -47,6 +47,19 @@ const memberPaidExpense: ExpenseLedgerRecord = {
   paymentSource: "member",
   payerMemberId: "member-mei",
   reimbursementStatus: "refundable",
+  status: "active",
+};
+
+const reimbursedExpense: ExpenseLedgerRecord = {
+  ...memberPaidExpense,
+  id: "expense-reimbursed",
+  reimbursementStatus: "reimbursed",
+};
+
+const voidedExpense: ExpenseLedgerRecord = {
+  ...memberPaidExpense,
+  id: "expense-voided",
+  status: "voided",
 };
 
 describe("ledger record corrections", () => {
@@ -110,14 +123,20 @@ describe("ledger record corrections", () => {
   it("allows owners and admins to delete records", () => {
     expect(deleteLedgerRecord(owner, memberPaidExpense)).toEqual({
       ok: true,
-      deletedRecordId: "expense-1",
-      events: ["Ledger record deleted"],
+      record: {
+        ...memberPaidExpense,
+        status: "voided",
+      },
+      events: ["Ledger record voided"],
     });
 
     expect(deleteLedgerRecord(admin, memberPaidExpense)).toEqual({
       ok: true,
-      deletedRecordId: "expense-1",
-      events: ["Ledger record deleted"],
+      record: {
+        ...memberPaidExpense,
+        status: "voided",
+      },
+      events: ["Ledger record voided"],
     });
   });
 
@@ -126,6 +145,34 @@ describe("ledger record corrections", () => {
       ok: false,
       reason: "permission_denied",
       authorizationReason: "finance_manager_cannot_delete_other_member_record",
+    });
+  });
+
+  it("blocks edits and deletes for voided records", () => {
+    expect(updateLedgerRecord(owner, voidedExpense, {
+      amountCents: 3_500,
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "record_voided",
+    });
+
+    expect(deleteLedgerRecord(owner, voidedExpense)).toEqual({
+      ok: false,
+      reason: "record_voided",
+    });
+  });
+
+  it("blocks edits and deletes for reimbursed member-paid expenses", () => {
+    expect(updateLedgerRecord(owner, reimbursedExpense, {
+      amountCents: 3_500,
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "reimbursed_expense_blocked",
+    });
+
+    expect(deleteLedgerRecord(owner, reimbursedExpense)).toEqual({
+      ok: false,
+      reason: "reimbursed_expense_blocked",
     });
   });
 });

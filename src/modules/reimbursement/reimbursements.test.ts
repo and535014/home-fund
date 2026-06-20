@@ -26,6 +26,7 @@ const refundableExpense: ExpenseLedgerRecord = {
   paymentSource: "member",
   payerMemberId: "member-mei",
   reimbursementStatus: "refundable",
+  status: "active",
 };
 
 describe("markExpensesReimbursed", () => {

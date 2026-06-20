@@ -44,6 +44,7 @@ const records: LedgerRecord[] = [
     createdByMemberId: "member-mei",
     sourceMemberId: "member-mei",
     reimbursementStatus: "not_applicable",
+    status: "active",
   },
   {
     id: "expense-grocery-june",
@@ -56,6 +57,7 @@ const records: LedgerRecord[] = [
     paymentSource: "member",
     payerMemberId: "member-mei",
     reimbursementStatus: "refundable",
+    status: "active",
   },
   {
     id: "expense-internet-june",
@@ -67,6 +69,7 @@ const records: LedgerRecord[] = [
     createdByMemberId: "member-admin",
     paymentSource: "fund",
     reimbursementStatus: "not_refundable",
+    status: "active",
   },
   {
     id: "income-july-rent",
@@ -78,6 +81,20 @@ const records: LedgerRecord[] = [
     createdByMemberId: "member-mei",
     sourceMemberId: "member-mei",
     reimbursementStatus: "not_applicable",
+    status: "active",
+  },
+  {
+    id: "expense-voided-june",
+    type: "expense",
+    name: "作廢支出",
+    amountCents: 9_999,
+    occurredOn: "2026-06-12",
+    categoryId: "expense-grocery",
+    createdByMemberId: "member-mei",
+    paymentSource: "member",
+    payerMemberId: "member-mei",
+    reimbursementStatus: "refundable",
+    status: "voided",
   },
 ];
 

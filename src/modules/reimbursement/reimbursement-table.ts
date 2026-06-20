@@ -2,6 +2,7 @@ import type {
   ExpenseLedgerRecord,
   LedgerRecord,
 } from "../fund-ledger/ledger-records";
+import { isActiveLedgerRecord } from "../fund-ledger/ledger-records";
 
 export type ReimbursementTableMember = {
   id: string;
@@ -95,6 +96,7 @@ function refundableExpensesForMonth(
   return records.filter(
     (record): record is ExpenseLedgerRecord =>
       record.type === "expense" &&
+      isActiveLedgerRecord(record) &&
       record.occurredOn.startsWith(`${month}-`) &&
       record.paymentSource === "member" &&
       record.reimbursementStatus === "refundable",

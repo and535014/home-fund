@@ -45,6 +45,11 @@ enum LedgerRecordType {
   expense
 }
 
+enum LedgerRecordStatus {
+  active
+  voided
+}
+
 enum PaymentSource {
   fund
   member
@@ -185,6 +190,7 @@ model LedgerRecord {
   paymentSource       PaymentSource?
   payerMemberId       String?
   reimbursementStatus ReimbursementStatus
+  status              LedgerRecordStatus @default(active)
   note                String?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -201,6 +207,8 @@ model LedgerRecord {
   @@index([householdId, occurredOn])
   @@index([householdId, type, occurredOn])
   @@index([householdId, reimbursementStatus, occurredOn])
+  @@index([householdId, status, occurredOn])
+  @@index([householdId, status, reimbursementStatus, occurredOn])
   @@index([payerMemberId, reimbursementStatus])
 }
 

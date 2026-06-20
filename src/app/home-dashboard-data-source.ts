@@ -39,6 +39,7 @@ type PrismaLedgerRecordRow = {
   paymentSource: "fund" | "member" | null;
   payerMemberId: string | null;
   reimbursementStatus: LedgerRecord["reimbursementStatus"];
+  status: LedgerRecord["status"];
   note: string | null;
 };
 
@@ -89,6 +90,7 @@ export type HomeDashboardPrismaClient = {
           gte: Date;
           lt: Date;
         };
+        status: "active";
       };
       select: {
         id: true;
@@ -102,6 +104,7 @@ export type HomeDashboardPrismaClient = {
         paymentSource: true;
         payerMemberId: true;
         reimbursementStatus: true;
+        status: true;
         note: true;
       };
       orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }];
@@ -154,6 +157,7 @@ export function createHomeDashboardDataSource(
           prisma.ledgerRecord.findMany({
             where: {
               occurredOn: monthDateRange(month),
+              status: "active",
             },
             select: {
               id: true,
@@ -167,6 +171,7 @@ export function createHomeDashboardDataSource(
               paymentSource: true,
               payerMemberId: true,
               reimbursementStatus: true,
+              status: true,
               note: true,
             },
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
@@ -192,6 +197,7 @@ export function mapPrismaLedgerRecordToLedgerRecord(
     occurredOn: formatDateOnly(record.occurredOn),
     categoryId: record.categoryId,
     createdByMemberId: record.createdByMemberId,
+    status: record.status,
     ...(record.note ? { note: record.note } : {}),
   };
 

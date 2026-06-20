@@ -1,6 +1,10 @@
 import type {
   CreateLedgerRecordCommand,
 } from "@/modules/fund-ledger/ledger-records";
+import type {
+  UpdateLedgerRecordInDatabaseCommand,
+  VoidLedgerRecordInDatabaseCommand,
+} from "@/modules/fund-ledger/ledger-record-command";
 
 export type ParseCreateLedgerRecordFormResult =
   | {
@@ -105,6 +109,96 @@ export function parseCreateLedgerRecordForm(
       payerMemberId,
       ...(note ? { note } : {}),
     },
+  };
+}
+
+export type ParseUpdateLedgerRecordFormResult =
+  | {
+      ok: true;
+      command: UpdateLedgerRecordInDatabaseCommand;
+    }
+  | {
+      ok: false;
+      reason:
+        | "missing_record_id"
+        | "invalid_record_type"
+        | "missing_name"
+        | "invalid_amount"
+        | "missing_category"
+        | "missing_source_member"
+        | "invalid_payment_source"
+        | "missing_payer_member";
+    };
+
+export type ParseVoidLedgerRecordFormResult =
+  | {
+      ok: true;
+      command: VoidLedgerRecordInDatabaseCommand;
+    }
+  | {
+      ok: false;
+      reason: "missing_record_id";
+    };
+
+export function parseUpdateLedgerRecordForm(
+  formData: FormData,
+): ParseUpdateLedgerRecordFormResult {
+  const recordId = readFormString(formData, "recordId");
+
+  if (!recordId) {
+    return { ok: false, reason: "missing_record_id" };
+  }
+
+  const parsedCreate = parseCreateLedgerRecordForm(formData);
+
+  if (!parsedCreate.ok) {
+    return parsedCreate;
+  }
+
+  const command = parsedCreate.command;
+
+  if (command.type === "income") {
+    return {
+      ok: true,
+      command: {
+        recordId,
+        name: command.name,
+        amountCents: command.amountCents,
+        occurredOn: command.occurredOn,
+        categoryId: command.categoryId,
+        sourceMemberId: command.sourceMemberId,
+        ...(command.note ? { note: command.note } : {}),
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    command: {
+      recordId,
+      name: command.name,
+      amountCents: command.amountCents,
+      occurredOn: command.occurredOn,
+      categoryId: command.categoryId,
+      paymentSource: command.paymentSource,
+      ...(command.payerMemberId ? { payerMemberId: command.payerMemberId } : {}),
+      ...(command.note ? { note: command.note } : {}),
+    },
+  };
+}
+
+export function parseVoidLedgerRecordForm(
+  formData: FormData,
+): ParseVoidLedgerRecordFormResult {
+  const recordId = readFormString(formData, "recordId");
+
+  if (!recordId) {
+    return { ok: false, reason: "missing_record_id" };
+  }
+
+  return {
+    ok: true,
+    command: { recordId },
   };
 }
 

@@ -5,7 +5,11 @@ import {
   type CategoryColorKey,
   type CategoryIconKey,
 } from "../categorization/category-visual-options";
-import type { LedgerRecord, LedgerRecordType } from "../fund-ledger/ledger-records";
+import {
+  isActiveLedgerRecord,
+  type LedgerRecord,
+  type LedgerRecordType,
+} from "../fund-ledger/ledger-records";
 import type { MonthlyReimbursementTable } from "../reimbursement/reimbursement-table";
 
 export type MonthlyReportTotals = {
@@ -48,8 +52,10 @@ export type BuildMonthlyReportInput = {
 };
 
 export function buildMonthlyReport(input: BuildMonthlyReportInput): MonthlyReport {
-  const monthlyRecords = input.records.filter((record) =>
-    record.occurredOn.startsWith(`${input.month}-`),
+  const monthlyRecords = input.records.filter(
+    (record) =>
+      isActiveLedgerRecord(record) &&
+      record.occurredOn.startsWith(`${input.month}-`),
   );
   const totals = buildTotals(monthlyRecords);
 
