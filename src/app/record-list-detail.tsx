@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -338,14 +338,14 @@ function EditRecordDialog({
   const [paymentSource, setPaymentSource] = useState(
     record.type === "expense" ? record.paymentSource : "member",
   );
-  const [actionState, formAction, isPending] = useActionState(
-    updateLedgerRecordAction,
+  const [actionState, setActionState] = useState(() =>
     initialActionState<
       { recordId: string },
       UpdateLedgerRecordActionField,
       UpdateLedgerRecordActionCode
     >(),
   );
+  const [isPending, startTransition] = useTransition();
   const activeCategories = categories.filter(
     (category) => category.type === record.type && category.status === "active",
   );
@@ -354,11 +354,17 @@ function EditRecordDialog({
     displayName,
   }));
 
-  useEffect(() => {
-    if (actionState.status === "success") {
-      onSuccess();
-    }
-  }, [actionState.status, onSuccess]);
+  function formAction(formData: FormData) {
+    startTransition(async () => {
+      const nextState = await updateLedgerRecordAction(actionState, formData);
+
+      setActionState(nextState);
+
+      if (nextState.status === "success") {
+        onSuccess();
+      }
+    });
+  }
 
   return (
     <DialogContent className="max-w-xl">
@@ -480,20 +486,26 @@ function DeleteRecordDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const [actionState, formAction, isPending] = useActionState(
-    voidLedgerRecordAction,
+  const [actionState, setActionState] = useState(() =>
     initialActionState<
       { recordId: string },
       VoidLedgerRecordActionField,
       VoidLedgerRecordActionCode
     >(),
   );
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (actionState.status === "success") {
-      onSuccess();
-    }
-  }, [actionState.status, onSuccess]);
+  function formAction(formData: FormData) {
+    startTransition(async () => {
+      const nextState = await voidLedgerRecordAction(actionState, formData);
+
+      setActionState(nextState);
+
+      if (nextState.status === "success") {
+        onSuccess();
+      }
+    });
+  }
 
   return (
     <DialogContent className="max-w-md">
