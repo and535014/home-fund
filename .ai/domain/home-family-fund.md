@@ -46,6 +46,10 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Category | Admin-managed classification for income or expenses. | Categorization |
 | Category management | Admin-only workflow for maintaining income and expense categories. | Categorization |
 | Category sidebar entry | Navigation entry for category management; visible only to admins. | Identity and access |
+| Category visual identity | The admin-managed color and icon used to recognize a category across forms, records, and reports. | Categorization / Reporting |
+| Category color | A selected color from the approved category palette; used for badges, selectors, and category summary charts. | Categorization / Reporting |
+| Category icon | A selected icon key from the approved category icon registry, backed by the app's Lucide icon set. | Categorization / Web experience |
+| Category sort order | Admin-managed active-category order within a household and category type; used by new-record category choices. | Categorization / Fund ledger |
 | Active category | Category available for new income or expense records. | Categorization |
 | Archived category | Category unavailable for new records but still readable on historical records and reports. | Categorization / Reporting |
 | Recurring rule | A monthly income or expense definition that can create or remind about expected ledger activity. | Recurring schedule |
@@ -72,22 +76,24 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | 8 | Category created | Create category | Admin | Income and expenses can be classified by household language. |
 | 9 | Category renamed | Rename category | Admin | Active category labels remain useful without changing historical references. |
 | 10 | Category archived | Archive category | Admin | Category is removed from new-record choices while historical records remain understandable. |
-| 11 | Category management command rejected | Create, rename, or archive category | Finance manager or General member | Non-admin category mutations do not change the catalog. |
-| 12 | Income recorded | Record income | Member, Admin, or Finance manager | Received household money is included in monthly ledger totals. |
-| 13 | Expense recorded | Record expense | Member, Admin, or Finance manager | Household spending is captured with a payment source of fund-paid or member-paid. |
-| 14 | Member-paid expense became refundable | Record member-paid expense | Member, Admin, or Finance manager | A member-paid expense appears in the reimbursement table as refundable/unreimbursed. |
-| 15 | Ledger record corrected | Correct ledger record | Record owner, Admin, or Finance manager | Mistakes can be fixed under permission rules. |
-| 16 | Ledger record deleted | Delete ledger record | Record owner or Admin | Invalid records can be removed under ownership and admin rules. |
-| 17 | Recurring rule created | Create recurring rule | Admin or authorized manager | Expected monthly income or expense can be tracked consistently. |
-| 18 | Recurring rule updated | Update recurring rule | Admin or authorized manager | Schedule, category, amount, or posting policy can change. |
-| 19 | Immediate recurring item posted | Post immediate recurring item | Recurring posting policy | Auto-posted fixed items affect the monthly ledger. |
-| 20 | Recurring reminder created | Create recurring reminder | Recurring reminder policy | Expected but unconfirmed money is visible without affecting ledger totals. |
-| 21 | Recurring reminder confirmed | Confirm recurring reminder | Authorized member | A pending expected item becomes a real income or expense record. |
-| 22 | Monthly records viewed | View monthly records | Member | Household members can inspect all records for a month. |
-| 23 | Monthly report generated | Generate monthly report | Member | The household sees monthly income, expenses, categories, and status. |
-| 24 | Monthly reimbursement table generated | Generate reimbursement table | Member | Amounts owed to each member are visible by month. |
-| 25 | Reimbursement expenses selected | Select expenses for reimbursement | Finance manager | The finance manager chooses exact expenses to settle. |
-| 26 | Expenses reimbursed | Mark selected expenses reimbursed | Finance manager | Selected expenses are settled once and excluded from future unpaid reimbursement totals. |
+| 11 | Category visual identity changed | Change category visual identity | Admin | Category color and icon stay recognizable across category management, record forms, historical records, and reports. |
+| 12 | Category order changed | Reorder categories | Admin | Active category choices appear in the household's preferred order when members create records. |
+| 13 | Category management command rejected | Create, rename, archive, change visual identity, or reorder category | Finance manager or General member | Non-admin category mutations do not change the catalog. |
+| 14 | Income recorded | Record income | Member, Admin, or Finance manager | Received household money is included in monthly ledger totals. |
+| 15 | Expense recorded | Record expense | Member, Admin, or Finance manager | Household spending is captured with a payment source of fund-paid or member-paid. |
+| 16 | Member-paid expense became refundable | Record member-paid expense | Member, Admin, or Finance manager | A member-paid expense appears in the reimbursement table as refundable/unreimbursed. |
+| 17 | Ledger record corrected | Correct ledger record | Record owner, Admin, or Finance manager | Mistakes can be fixed under permission rules. |
+| 18 | Ledger record deleted | Delete ledger record | Record owner or Admin | Invalid records can be removed under ownership and admin rules. |
+| 19 | Recurring rule created | Create recurring rule | Admin or authorized manager | Expected monthly income or expense can be tracked consistently. |
+| 20 | Recurring rule updated | Update recurring rule | Admin or authorized manager | Schedule, category, amount, or posting policy can change. |
+| 21 | Immediate recurring item posted | Post immediate recurring item | Recurring posting policy | Auto-posted fixed items affect the monthly ledger. |
+| 22 | Recurring reminder created | Create recurring reminder | Recurring reminder policy | Expected but unconfirmed money is visible without affecting ledger totals. |
+| 23 | Recurring reminder confirmed | Confirm recurring reminder | Authorized member | A pending expected item becomes a real income or expense record. |
+| 24 | Monthly records viewed | View monthly records | Member | Household members can inspect all records for a month. |
+| 25 | Monthly report generated | Generate monthly report | Member | The household sees monthly income, expenses, categories, and status. |
+| 26 | Monthly reimbursement table generated | Generate reimbursement table | Member | Amounts owed to each member are visible by month. |
+| 27 | Reimbursement expenses selected | Select expenses for reimbursement | Finance manager | The finance manager chooses exact expenses to settle. |
+| 28 | Expenses reimbursed | Mark selected expenses reimbursed | Finance manager | Selected expenses are settled once and excluded from future unpaid reimbursement totals. |
 
 ## Identity and Access Membership Events
 | Domain Event | Triggering Command | Actor | Business Outcome |
@@ -111,8 +117,12 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Member permissions changed | New permissions determine allowed commands immediately. | Re-evaluate authorization | Admin is the only role that changes permissions in MVP. |
 | Dashboard navigation is resolved | Category management sidebar entry is visible only to admins. | Resolve dashboard navigation | Finance managers and general members must not see the category entry, even if they have `manage_categories` capability. |
 | Category management page is requested | Only admins can browse category management. | Open category management page | Direct route access must be denied server-side for non-admin members; hidden sidebar is not sufficient. |
-| Category management command is submitted | Only admins can create, rename, or archive categories. | Create, Rename, or Archive category | `manage_categories` capability is dormant for category management in this MVP slice unless future approved delegation reintroduces it. |
+| Category management command is submitted | Only admins can create, rename, archive, change visual identity, or reorder categories. | Create, Rename, Archive, Change category visual identity, or Reorder categories | `manage_categories` capability is dormant for category management in this MVP slice unless future approved delegation reintroduces it. |
+| Category is created | New active categories receive a required color, icon, and sort position. If the admin does not choose them, system defaults are applied. | Create category | Default sort position appends the category to the end of its income/expense type. Defaults must be deterministic for seeds and migrations. |
+| Category visual identity is changed | Category color must come from the approved category palette, and category icon must come from the approved Lucide-backed icon registry. | Change category visual identity | Arbitrary remote images and free-form icon names are outside MVP. Palette choice protects contrast and visual consistency. |
+| Category order is changed | Active categories can be manually reordered within the same household and category type. | Reorder categories | Ordering controls the category options for new income/expense records. Missing sort positions fall back to deterministic name ordering only for recovery/migration compatibility. |
 | Category is archived | Archived categories remain readable but unavailable for new records. | Archive category | Historical records and reports keep category labels; new income/expense forms list only active categories. |
+| Archived category is displayed | Archived categories retain their last saved color and icon for historical records and admin review. | View records or reports | Archived categories do not participate in active-category ordering used by new-record forms. Editing archived visual identity is deferred unless a future approved slice explicitly requires it. |
 | General member records income or expense | The payer/source member must be themselves. | Record income or Record expense | Admin and finance manager can record on behalf of another member. |
 | General member attempts correction or deletion | The member must be the record owner. | Correct ledger record or Delete ledger record | Other members' records are read-only to general members. |
 | Admin attempts record management | Admin can create, edit, or delete any member's record. | Record, Correct, or Delete ledger record | Admin delete rights are explicit. |
@@ -131,7 +141,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Household | Member invited, Member account updated, Member permissions changed, Member invited by email | Only admins manage members and permissions; every functional user belongs to the household. | Is MVP strictly one household, or should the model allow future household IDs now? |
 | MemberAccount | Member account updated, Member permissions changed, Invited Google account matched, Member profile initialized from Google, Member display name changed | Display name identifies the member in records and is app-owned; avatar is Google-owned for this slice; permissions must map to known MVP roles; admins can adjust finance-manager permissions over time. | Can a member hold admin and finance manager roles at the same time? Should invited members auto-activate on email match or require admin approval? |
 | LedgerRecord | Income recorded, Expense recorded, Member-paid expense became refundable, Ledger record corrected, Ledger record deleted | Records have amount, month/date, category, creator, payment source, payer/source member, and reimbursement status when member-paid; general members can modify only owned records; deleted records must not appear in totals. | Should deletion be hard delete or archived/voided state for auditability? |
-| CategoryCatalog | Category created, Category renamed, Category archived, Category management command rejected | Income and expense records reference valid categories; only admins create, rename, and archive categories; active categories are available for new records; archived categories remain readable for historical records and reports. | Should category name uniqueness compare only active categories, or also archived categories of the same type? |
+| CategoryCatalog | Category created, Category renamed, Category archived, Category visual identity changed, Category order changed, Category management command rejected | Income and expense records reference valid categories; only admins create, rename, archive, change visual identity, and reorder categories; active categories are available for new records; active category choices are ordered by household/type sort order; archived categories remain readable with their saved visual identity for historical records and reports. | Should category name uniqueness compare only active categories, or also archived categories of the same type? |
 | RecurringRule | Recurring rule created, Recurring rule updated, Immediate recurring item posted, Recurring reminder created, Recurring reminder confirmed | Posting mode is either immediate or reminder-based; reminder-based items do not affect totals until confirmed. | How are missed or duplicate monthly occurrences prevented? |
 | ReimbursementBatch | Reimbursement expenses selected, Expenses reimbursed | Only finance managers perform reimbursement; selected refundable expenses can be marked reimbursed once; reimbursement totals trace to expense IDs. | Does reimbursement reduce fund balance or only mark settlement state? |
 | MonthlyReport | Monthly records viewed, Monthly report generated, Monthly reimbursement table generated | Reports derive from ledger, recurring, category, and reimbursement data by month. | Which mobile report summaries are required for MVP? |
@@ -141,10 +151,10 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 |---|---|---|---|
 | Identity and Access | member, invited member, Google account, admin, finance manager, general member, permission, display name, avatar, account information, logout | Google sign-in gate, logout, member invitation/linking, account profile defaults, admin-managed display names, role assignment, authorization decisions. | Upstream to all contexts because commands require authenticated/authorized members and member names appear throughout financial records and reports. |
 | Fund Ledger | income record, expense record, payment source, payer member, record owner, fund-paid expense, member-paid expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
-| Categorization | category, income category, expense category, active category, archived category | Admin-only category management and category lifecycle; classify ledger records by active categories while preserving archived labels for history. | Uses Identity and Access for admin-only authorization; feeds Fund Ledger and Reporting. |
+| Categorization | category, income category, expense category, category visual identity, category color, category icon, category sort order, active category, archived category | Admin-only category management, category lifecycle, visual identity, and active-category ordering; classify ledger records by active categories while preserving archived labels and visual identity for history. | Uses Identity and Access for admin-only authorization; feeds Fund Ledger and Reporting. |
 | Recurring Schedule | recurring rule, immediate posting, reminder-based posting, pending recurring item | Manage monthly expected items, auto-post immediate items, and confirm reminder items. | Creates ledger records in Fund Ledger; feeds Reporting with pending items. |
 | Reimbursement | reimbursement table, refundable expense, selected expense, reimbursed expense, payer member | Calculate refundable member-paid expenses by month and mark selected expenses reimbursed once. | Uses Fund Ledger expenses and Identity and Access finance-manager permissions; feeds Reporting. |
-| Reporting | monthly records, monthly report, category summary, reimbursement status | Month-based views for records, category totals, pending recurring items, and reimbursement status. | Downstream read model from Ledger, Categorization, Recurring Schedule, and Reimbursement. |
+| Reporting | monthly records, monthly report, category summary, category color, reimbursement status | Month-based views for records, category totals, pending recurring items, and reimbursement status; category summaries use persisted category visual identity when available. | Downstream read model from Ledger, Categorization, Recurring Schedule, and Reimbursement. |
 | Responsive Web Experience | desktop layout, mobile layout, browse flow, create flow, report flow, reimbursement flow | Ensure core workflows are usable on desktop and mobile. | Presentation concern downstream from all domain contexts; not source of financial truth. |
 
 ## Visual Model
@@ -287,6 +297,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 - Primary UI locale is decided as Traditional Chinese (`zh-TW`); currency remains unresolved, with TWD likely for MVP.
 - Role composition is unresolved: admin and finance manager may need to be independent roles that one member can both hold.
 - Category management permission is decided for MVP: only admins can see the category sidebar entry, browse category management, create categories, rename categories, or archive categories. `manage_categories` capability is dormant for this workflow unless future delegation is approved.
+- Category visual identity and ordering are decided for MVP: admins can configure active categories with approved palette colors, approved Lucide-backed icons, and manual order within each category type; new categories append to their type by default; archived categories retain visual identity for history but do not participate in new-record ordering.
 - Recurring-rule management permissions remain unresolved; current artifact marks them as admin or authorized manager.
 - Finance manager delete permission is decided for MVP: finance managers cannot delete other members' records. Admin-managed permission expansion may allow this later if explicitly enabled.
 - Member invitation/linking mechanism is narrowed for the active slice: admin-managed Google email invitation is the leading MVP path, with invite links, first-login approval, and manual account linking still to be evaluated during targeted discovery.

@@ -50,6 +50,8 @@ trace_links:
   - .ai/release/desktop-product-structure-layout-redesign-local-dev-readiness.md
   - .ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md
   - .ai/archive/archive-record-list-detail-modal-2026-06-20.md
+  - .ai/intent/category-visual-identity.md
+  - .ai/domain-impact/category-visual-identity.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -154,18 +156,18 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: category-visual-identity
 - latest_completed_slice: record list detail modal and dashboard panel refinements, compressed in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`.
-- current_stage: Record list detail modal lifecycle is complete and compressed.
-- recommended_resume_gate: next product/release change should start at Intent Intake; optional manual Artifact Prune only if explicitly requested.
-- recommended_next_skill: intent-intake for the next change; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
+- current_stage: Category visual identity and ordering Domain Discovery is drafted and awaiting review.
+- recommended_resume_gate: Experience Prototype for category visual identity and ordering after approval; optional manual Artifact Prune only if explicitly requested.
+- recommended_next_skill: experience-prototype for the active change; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
 
 ## Artifact Inventory
 
 - idea: maintained `.ai/intent/home-family-fund.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
 - completed record list detail modal: summarized in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`; source intent/prototype/spec/technical-design/implementation/verification/release artifacts were manually pruned after compression.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- domain-impact: active category visual identity and ordering impact is at `.ai/domain-impact/category-visual-identity.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
