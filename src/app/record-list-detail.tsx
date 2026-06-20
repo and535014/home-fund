@@ -299,7 +299,7 @@ function RecordDetailDialog({
       </DialogBody>
 
       {(access.canEdit || access.canDelete) && !access.blockedReason ? (
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           {access.canDelete ? (
             <Button
               onClick={() => setMode("delete")}
@@ -456,7 +456,7 @@ function EditRecordDialog({
           </label>
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button onClick={onCancel} type="button" variant="outline">
             <X />
             取消
@@ -520,7 +520,7 @@ function DeleteRecordDialog({
           </div>
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button onClick={onCancel} type="button" variant="outline">
             <X />
             取消
