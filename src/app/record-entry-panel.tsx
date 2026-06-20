@@ -1,6 +1,5 @@
 "use client";
 
-import { Shapes } from "lucide-react";
 import {
   useActionState,
   useEffect,
@@ -8,6 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  CategoryVisualMark,
+  compareCategoryVisualOrder,
+  getCategoryVisual,
+} from "@/app/category-visuals";
 import { initialActionState } from "./action-state";
 import {
   createLedgerRecordAction,
@@ -281,6 +285,8 @@ function DateField() {
 }
 
 function CategoryField({ categories }: { categories: Category[] }) {
+  const orderedCategories = [...categories].sort(compareCategoryVisualOrder);
+
   return (
     <Field>
       {categories.length === 0 ? (
@@ -293,7 +299,10 @@ function CategoryField({ categories }: { categories: Category[] }) {
           className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5"
           role="radiogroup"
         >
-        {categories.map((category) => (
+        {orderedCategories.map((category) => {
+          const visual = getCategoryVisual(category);
+
+          return (
           <label
             className="group grid cursor-pointer justify-items-center gap-2 text-center"
             key={category.id}
@@ -305,14 +314,18 @@ function CategoryField({ categories }: { categories: Category[] }) {
               type="radio"
               value={category.id}
             />
-            <span className="grid size-14 place-items-center rounded-full bg-secondary text-secondary-foreground transition-colors group-hover:bg-accent group-hover:text-accent-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:bg-primary peer-checked:text-primary-foreground">
-              <Shapes aria-hidden="true" size={24} />
-            </span>
+            <CategoryVisualMark
+              className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-2 peer-checked:ring-ring"
+              color={visual.color}
+              icon={visual.icon}
+              size="lg"
+            />
             <span className="max-w-20 truncate text-label text-muted-foreground peer-checked:text-foreground">
               {category.name}
             </span>
           </label>
-        ))}
+          );
+        })}
         </div>
       )}
     </Field>

@@ -5,6 +5,7 @@ import {
 } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { formatAmount, SummaryMetric } from "@/app/dashboard-widgets";
+import { CategoryVisualLabel, getCategoryVisual } from "@/app/category-visuals";
 import { MonthSwitcher } from "@/app/month-switcher";
 import { RecordListDetail } from "@/app/record-list-detail";
 import {
@@ -202,9 +203,8 @@ function CategoryStatsPanel({
 		>
 			{totalExpenseCents > 0 ? (
 				<div className="grid h-full content-start items-start gap-3">
-					{expenseSummaries.map((summary, index) => (
+					{expenseSummaries.map((summary) => (
 						<CategoryStatRow
-							color={CATEGORY_STAT_COLORS[index % CATEGORY_STAT_COLORS.length]}
 							key={summary.categoryId}
 							maxAmountCents={totalExpenseCents}
 							summary={summary}
@@ -221,11 +221,9 @@ function CategoryStatsPanel({
 }
 
 function CategoryStatRow({
-	color,
 	maxAmountCents,
 	summary,
 }: {
-	color: string;
 	maxAmountCents: number;
 	summary: {
 		categoryId: string;
@@ -234,22 +232,32 @@ function CategoryStatRow({
 		type: "expense" | "income";
 	};
 }) {
+	const visual = getCategoryVisual({
+		id: summary.categoryId,
+		name: summary.categoryName,
+		type: summary.type,
+	});
 	const percent =
 		maxAmountCents > 0
 			? Math.round((summary.totalAmountCents / maxAmountCents) * 100)
 			: 0;
 
 	return (
-		<div className="grid grid-cols-[minmax(0,1fr)_minmax(0,3.5fr)_minmax(0,1.5fr)] items-center gap-3">
-			<p className="truncate text-body-strong text-foreground">
-				{summary.categoryName}
-			</p>
+		<div className="grid grid-cols-[minmax(0,1.8fr)_minmax(0,3fr)_minmax(0,1.5fr)] items-center gap-3">
+			<CategoryVisualLabel
+				category={{
+					id: summary.categoryId,
+					name: summary.categoryName,
+					type: summary.type,
+				}}
+				compact
+			/>
 			<div className="h-2 w-full min-w-0 overflow-hidden rounded-full bg-muted">
 				<div
 					aria-hidden="true"
 					className="h-full rounded-full"
 					style={{
-						backgroundColor: color,
+						backgroundColor: visual.color,
 						width: `${Math.max(percent, 2)}%`,
 					}}
 				/>
@@ -263,14 +271,6 @@ function CategoryStatRow({
 		</div>
 	);
 }
-
-const CATEGORY_STAT_COLORS = [
-	"var(--expense)",
-	"oklch(0.72 0.13 192)",
-	"oklch(0.74 0.14 70)",
-	"oklch(0.73 0.17 148)",
-	"oklch(0.68 0.16 315)",
-];
 
 function buildMonthlyTrendPoints(
 	month: string,

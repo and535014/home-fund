@@ -3,36 +3,22 @@
 import {
   Archive,
   Edit3,
+  GripVertical,
   Tags,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { useActionState, useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import {
-  initialActionState,
-  type ActionState,
-} from "@/app/action-state";
-import {
-  archiveCategoryAction,
-  createCategoryAction,
-  renameCategoryAction,
-} from "@/app/category-actions";
-import type {
-  ArchiveCategoryActionField,
-  CategoryActionCode,
-  CreateCategoryActionField,
-  RenameCategoryActionField,
-} from "@/app/category-actions";
+  CATEGORY_COLOR_OPTIONS,
+  CATEGORY_ICON_OPTIONS,
+  CategoryVisualLabel,
+  compareCategoryVisualOrder,
+  getCategoryVisual,
+  type CategoryIconKey,
+} from "@/app/category-visuals";
 import type { Category } from "@/modules/categorization/category-catalog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -57,12 +43,15 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 type CategoryType = Category["type"];
 
 type EditableCategory = Category & {
+  color?: string;
+  icon?: CategoryIconKey;
   recordCount: number;
+  sortOrder?: number;
 };
 
 type CategoryManagementPanelProps = {
@@ -94,44 +83,30 @@ export function AddCategoryHeaderButton({
 }
 
 export function CategoryManagementPanel({ categories }: CategoryManagementPanelProps) {
-  const router = useRouter();
-  const [createActionState, createFormAction] = useActionState(
-    createCategoryAction,
-    initialActionState<
-      { categoryId: string; name: string; type: CategoryType },
-      CreateCategoryActionField,
-      CategoryActionCode
-    >(),
-  );
-  const [renameActionState, renameFormAction] = useActionState(
-    renameCategoryAction,
-    initialActionState<
-      { categoryId: string; name: string },
-      RenameCategoryActionField,
-      CategoryActionCode
-    >(),
-  );
-  const [archiveActionState, archiveFormAction] = useActionState(
-    archiveCategoryAction,
-    initialActionState<
-      { categoryId: string },
-      ArchiveCategoryActionField,
-      CategoryActionCode
-    >(),
-  );
   const [newType, setNewType] = useState<CategoryType>("expense");
   const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0].value);
+  const [newIcon, setNewIcon] = useState<CategoryIconKey>("tags");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [archivingId, setArchivingId] = useState<string | null>(null);
-  const displayedCategories = categories;
-
-  const activeCategories = displayedCategories.filter(
-    (category) => category.status === "active",
+  const [editingColor, setEditingColor] = useState<string>(
+    CATEGORY_COLOR_OPTIONS[0].value,
   );
-  const archivedCategories = displayedCategories.filter(
-    (category) => category.status === "archived",
+  const [editingIcon, setEditingIcon] = useState<CategoryIconKey>("tags");
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [displayedCategories, setDisplayedCategories] = useState(() =>
+    hydrateVisualCategories(categories),
+  );
+
+  const activeCategories = displayedCategories
+    .filter((category) => category.status === "active")
+    .sort(compareCategoryVisualOrder);
+  const expenseCategories = activeCategories.filter(
+    (category) => category.type === "expense",
+  );
+  const incomeCategories = activeCategories.filter(
+    (category) => category.type === "income",
   );
   const editingCategory =
     displayedCategories.find((category) => category.id === editingId) ?? null;
@@ -149,71 +124,67 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
     };
   }, []);
 
-  useEffect(() => {
-    showCategoryActionToast(createActionState, {
-      successDescription: "已加入啟用分類。",
-      successId: "category-created",
-    });
-
-    if (createActionState.status === "success") {
-      router.refresh();
-    }
-  }, [createActionState, router]);
-
-  useEffect(() => {
-    showCategoryActionToast(renameActionState, {
-      successDescription: "已更新分類名稱。",
-      successId: "category-renamed",
-    });
-
-    if (renameActionState.status === "success") {
-      router.refresh();
-    }
-  }, [renameActionState, router]);
-
-  useEffect(() => {
-    showCategoryActionToast(archiveActionState, {
-      successDescription: "既有紀錄仍會保留原分類。",
-      successId: "category-archived",
-    });
-
-    if (archiveActionState.status === "success") {
-      router.refresh();
-    }
-  }, [archiveActionState, router]);
-
   function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     const normalizedName = newName.trim();
 
     if (!normalizedName) {
-      event.preventDefault();
       toast.error("請輸入分類名稱。");
       return;
     }
 
     if (hasDuplicateActiveName(displayedCategories, newType, normalizedName)) {
-      event.preventDefault();
       toast.error("同類型已有啟用中的相同分類名稱。");
       return;
     }
 
+    const nextSortOrder =
+      Math.max(
+        0,
+        ...displayedCategories
+          .filter(
+            (category) => category.type === newType && category.status === "active",
+          )
+          .map((category) => category.sortOrder ?? 0),
+      ) + 10;
+
+    setDisplayedCategories((current) => [
+      ...current,
+      {
+        color: newColor,
+        icon: newIcon,
+        id: `local-${newType}-${Date.now()}`,
+        name: normalizedName,
+        recordCount: 0,
+        sortOrder: nextSortOrder,
+        status: "active",
+        type: newType,
+      },
+    ]);
     setNewName("");
     setIsCreateDialogOpen(false);
+    toast.success("分類已新增", {
+      description: "已加入啟用分類。",
+      id: "category-created-local",
+    });
   }
 
   function startRename(category: EditableCategory) {
+    const visual = getCategoryVisual(category);
     setEditingId(category.id);
     setEditingName(category.name);
+    setEditingColor(category.color ?? visual.color);
+    setEditingIcon(category.icon ?? visual.icon);
   }
 
   function submitRenameCategory(
     event: FormEvent<HTMLFormElement>,
     category: EditableCategory,
   ) {
+    event.preventDefault();
     const normalizedName = editingName.trim();
 
     if (!normalizedName) {
-      event.preventDefault();
       toast.error("請輸入分類名稱。");
       return;
     }
@@ -225,12 +196,27 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
         normalizedName,
       )
     ) {
-      event.preventDefault();
       toast.error("同類型已有啟用中的相同分類名稱。");
       return;
     }
 
+    setDisplayedCategories((current) =>
+      current.map((candidate) =>
+        candidate.id === category.id
+          ? {
+              ...candidate,
+              color: editingColor,
+              icon: editingIcon,
+              name: normalizedName,
+            }
+          : candidate,
+      ),
+    );
     setEditingId(null);
+    toast.success("分類已更新", {
+      description: "已更新分類名稱、顏色與 icon。",
+      id: "category-renamed-local",
+    });
   }
 
   function startArchive(category: EditableCategory) {
@@ -238,52 +224,112 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   }
 
   function confirmArchiveCategory() {
+    if (archivingCategory) {
+      setDisplayedCategories((current) =>
+        current.map((category) =>
+          category.id === archivingCategory.id
+            ? { ...category, status: "archived" }
+            : category,
+        ),
+      );
+      toast.success("分類已封存", {
+        description: "既有紀錄仍會保留原分類。",
+        id: "category-archived-local",
+      });
+    }
+
     setEditingId(null);
     setArchivingId(null);
   }
 
+  function reorderCategory({
+    draggedCategoryId,
+    targetCategoryId,
+    type,
+  }: {
+    draggedCategoryId: string;
+    targetCategoryId: string;
+    type: CategoryType;
+  }) {
+    if (draggedCategoryId === targetCategoryId) {
+      return;
+    }
+
+    const sameTypeCategories = activeCategories.filter(
+      (candidate) => candidate.type === type,
+    );
+    const fromIndex = sameTypeCategories.findIndex(
+      (candidate) => candidate.id === draggedCategoryId,
+    );
+    const toIndex = sameTypeCategories.findIndex(
+      (candidate) => candidate.id === targetCategoryId,
+    );
+
+    if (fromIndex < 0 || toIndex < 0) {
+      return;
+    }
+
+    const reordered = [...sameTypeCategories];
+    const [movedCategory] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, movedCategory);
+    const sortOrderById = new Map(
+      reordered.map((candidate, index) => [candidate.id, (index + 1) * 10]),
+    );
+
+    setDisplayedCategories((current) =>
+      current.map((candidate) => {
+        const sortOrder = sortOrderById.get(candidate.id);
+        return sortOrder ? { ...candidate, sortOrder } : candidate;
+      }),
+    );
+  }
+
   return (
-    <div className="grid gap-5">
-      <section aria-label="分類列表" className="min-w-0">
-        <Tabs defaultValue="active">
-          <TabsList
-            aria-label="分類狀態"
-            className="w-full sm:w-auto"
-            variant="line"
-          >
-            <TabsTrigger value="active">
-              啟用分類 ({activeCategories.length})
-            </TabsTrigger>
-            <TabsTrigger value="archived">
-              封存分類 ({archivedCategories.length})
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="active">
-            <ActiveCategoryTab
-              activeCategories={activeCategories}
+    <div className="grid h-full min-h-0 gap-5">
+      <section
+        aria-label="分類列表"
+        className="grid min-h-0 gap-4 lg:grid-cols-2"
+      >
+        <CategoryPanel count={expenseCategories.length} title="支出">
+          {expenseCategories.length === 0 ? (
+            <CategoryEmptyState />
+          ) : (
+            <CategoryList
+              categories={expenseCategories}
               editingId={editingId}
-              hasAnyCategory={displayedCategories.length > 0}
               onArchive={startArchive}
               onEdit={startRename}
+              onReorder={reorderCategory}
+              type="expense"
             />
-          </TabsContent>
-          <TabsContent value="archived">
-            <ArchivedCategoryTab archivedCategories={archivedCategories} />
-          </TabsContent>
-        </Tabs>
+          )}
+        </CategoryPanel>
+        <CategoryPanel count={incomeCategories.length} title="收入">
+          {incomeCategories.length === 0 ? (
+            <CategoryEmptyState />
+          ) : (
+            <CategoryList
+              categories={incomeCategories}
+              editingId={editingId}
+              onArchive={startArchive}
+              onEdit={startRename}
+              onReorder={reorderCategory}
+              type="income"
+            />
+          )}
+        </CategoryPanel>
       </section>
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新增分類</DialogTitle>
-            <DialogDescription>
-              新增後立即成為新紀錄表單的可選分類。
-            </DialogDescription>
           </DialogHeader>
           <CategoryForm
-            action={createFormAction}
-            fieldError={createActionState.fieldErrors?.name?.[0]}
+            color={newColor}
+            icon={newIcon}
             name={newName}
+            onColorChange={setNewColor}
+            onIconChange={setNewIcon}
             onNameChange={setNewName}
             onSubmit={submitCreateCategory}
             onTypeChange={setNewType}
@@ -303,16 +349,15 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
         <DialogContent>
           <DialogHeader>
             <DialogTitle>修改分類</DialogTitle>
-            <DialogDescription>
-              修改啟用中的分類名稱；既有紀錄會顯示新的分類名稱。
-            </DialogDescription>
           </DialogHeader>
           {editingCategory ? (
             <CategoryForm
-              action={renameFormAction}
               categoryId={editingCategory.id}
-              fieldError={renameActionState.fieldErrors?.name?.[0]}
+              color={editingColor}
+              icon={editingIcon}
               name={editingName}
+              onColorChange={setEditingColor}
+              onIconChange={setEditingIcon}
               onNameChange={setEditingName}
               onSubmit={(event) => submitRenameCategory(event, editingCategory)}
               onTypeChange={() => undefined}
@@ -341,7 +386,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
           {archivingCategory ? (
             <div className="grid gap-4">
               <div className="rounded-card border border-border bg-muted/40 p-3">
-                <p className="text-body-strong">{archivingCategory.name}</p>
+                <CategoryVisualLabel category={archivingCategory} />
                 <p className="mt-1 text-caption text-muted-foreground">
                   目前有 {archivingCategory.recordCount} 筆歷史紀錄使用這個分類；封存後既有紀錄仍會保留原分類。
                 </p>
@@ -354,18 +399,10 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
                 >
                   取消
                 </Button>
-                <form
-                  action={archiveFormAction}
-                  onSubmit={confirmArchiveCategory}
-                >
+                <form onSubmit={(event) => event.preventDefault()}>
                   <div className="grid gap-2">
                     <input name="categoryId" type="hidden" value={archivingCategory.id} />
-                    {archiveActionState.fieldErrors?.categoryId?.[0] ? (
-                      <p className="text-caption text-destructive">
-                        {archiveActionState.fieldErrors.categoryId[0]}
-                      </p>
-                    ) : null}
-                    <Button type="submit" variant="destructive">
+                    <Button onClick={confirmArchiveCategory} type="button" variant="destructive">
                       <Archive aria-hidden="true" />
                       確認封存
                     </Button>
@@ -380,95 +417,46 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   );
 }
 
-function ActiveCategoryTab({
-  activeCategories,
-  editingId,
-  hasAnyCategory,
-  onArchive,
-  onEdit,
-}: {
-  activeCategories: EditableCategory[];
-  editingId: string | null;
-  hasAnyCategory: boolean;
-  onArchive: (category: EditableCategory) => void;
-  onEdit: (category: EditableCategory) => void;
-}) {
-  if (!hasAnyCategory) {
-    return (
-      <Card>
-        <CardContent className="grid min-h-52 place-items-center text-center">
-          <div>
-            <Tags
-              aria-hidden="true"
-              className="mx-auto mb-3 text-muted-foreground"
-              size={28}
-            />
-            <p className="text-body-strong">尚未建立分類</p>
-            <p className="mt-1 text-caption text-muted-foreground">
-              建立第一個收入或支出分類後，新增紀錄才會出現可選項目。
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+function CategoryEmptyState() {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <CategoryGroup
-        categories={activeCategories.filter(
-          (category) => category.type === "income",
-        )}
-        editingId={editingId}
-        onArchive={onArchive}
-        onEdit={onEdit}
-        title="收入分類"
-        type="income"
-      />
-      <CategoryGroup
-        categories={activeCategories.filter(
-          (category) => category.type === "expense",
-        )}
-        editingId={editingId}
-        onArchive={onArchive}
-        onEdit={onEdit}
-        title="支出分類"
-        type="expense"
-      />
+    <div className="grid min-h-32 place-items-center rounded-card border border-dashed border-border text-center">
+      <p className="text-caption text-muted-foreground">尚無分類</p>
     </div>
   );
 }
 
-function ArchivedCategoryTab({
-  archivedCategories,
+function CategoryPanel({
+  children,
+  count,
+  title,
 }: {
-  archivedCategories: EditableCategory[];
+  children: ReactNode;
+  count: number;
+  title: string;
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <ArchivedCategoryGroup
-        categories={archivedCategories.filter(
-          (category) => category.type === "income",
-        )}
-        title="收入分類"
-        type="income"
-      />
-      <ArchivedCategoryGroup
-        categories={archivedCategories.filter(
-          (category) => category.type === "expense",
-        )}
-        title="支出分類"
-        type="expense"
-      />
-    </div>
+    <section
+      aria-label={`${title}分類`}
+      className="flex min-h-0 min-w-0 flex-col justify-start gap-3 overflow-hidden"
+    >
+      <h3 className="shrink-0 text-body-strong text-foreground">
+        {title} ({count})
+      </h3>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
+        {children}
+      </div>
+    </section>
   );
 }
 
 function CategoryForm({
-  action,
   categoryId,
+  color,
   fieldError,
+  icon,
   name,
+  onColorChange,
+  onIconChange,
   onNameChange,
   onSubmit,
   onTypeChange,
@@ -476,10 +464,13 @@ function CategoryForm({
   type,
   typeDisabled = false,
 }: {
-  action?: ComponentProps<"form">["action"];
   categoryId?: string;
+  color: string;
   fieldError?: string;
+  icon: CategoryIconKey;
   name: string;
+  onColorChange: (color: string) => void;
+  onIconChange: (icon: CategoryIconKey) => void;
   onNameChange: (name: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onTypeChange: (type: CategoryType) => void;
@@ -488,40 +479,84 @@ function CategoryForm({
   typeDisabled?: boolean;
 }) {
   return (
-    <form action={action} className="grid gap-4" onSubmit={onSubmit}>
+    <form className="grid gap-4" onSubmit={onSubmit}>
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
       <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="category-type">類型</FieldLabel>
-          <NativeSelect
-            disabled={typeDisabled}
-            id="category-type"
-            name="type"
-            onChange={(event) =>
-              onTypeChange(event.currentTarget.value as CategoryType)
-            }
-            value={type}
-          >
-            <NativeSelectOption value="income">收入</NativeSelectOption>
-            <NativeSelectOption value="expense">支出</NativeSelectOption>
-          </NativeSelect>
-          {typeDisabled ? (
-            <FieldDescription>分類類型建立後不可在此切換。</FieldDescription>
-          ) : null}
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
-          <Input
-            id="category-name"
-            name="name"
-            onChange={(event) => onNameChange(event.target.value)}
-            placeholder="例如：水電費"
-            value={name}
-          />
-          <FieldDescription>
-            {fieldError ?? "同一類型中，啟用分類不可重複命名。"}
-          </FieldDescription>
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="category-type">類型</FieldLabel>
+            <NativeSelect
+              disabled={typeDisabled}
+              id="category-type"
+              name="type"
+              onChange={(event) =>
+                onTypeChange(event.currentTarget.value as CategoryType)
+              }
+              value={type}
+            >
+              <NativeSelectOption value="income">收入</NativeSelectOption>
+              <NativeSelectOption value="expense">支出</NativeSelectOption>
+            </NativeSelect>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
+            <Input
+              id="category-name"
+              name="name"
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="例如：水電費"
+              value={name}
+            />
+            {fieldError ? <FieldDescription>{fieldError}</FieldDescription> : null}
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel>顏色</FieldLabel>
+            <div className="flex flex-wrap gap-2" role="radiogroup">
+              {CATEGORY_COLOR_OPTIONS.map((option) => (
+                <button
+                  aria-checked={color === option.value}
+                  aria-label={option.label}
+                  className={cn(
+                    "grid size-9 place-items-center rounded-input border border-border bg-background transition focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    color === option.value && "border-ring ring-2 ring-ring/35",
+                  )}
+                  key={option.value}
+                  onClick={() => onColorChange(option.value)}
+                  role="radio"
+                  type="button"
+                >
+                  <span
+                    className="size-5 rounded-full"
+                    style={{ backgroundColor: option.value }}
+                  />
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field>
+            <FieldLabel>Icon</FieldLabel>
+            <div className="flex flex-wrap gap-2" role="radiogroup">
+              {CATEGORY_ICON_OPTIONS.map(({ Icon, key, label }) => (
+                <button
+                  aria-checked={icon === key}
+                  aria-label={label}
+                  className={cn(
+                    "grid size-9 place-items-center rounded-input border border-border bg-background transition focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    icon === key && "border-ring bg-accent text-accent-foreground ring-2 ring-ring/35",
+                  )}
+                  key={key}
+                  onClick={() => onIconChange(key)}
+                  role="radio"
+                  type="button"
+                >
+                  <Icon aria-hidden="true" size={17} />
+                </button>
+              ))}
+            </div>
+          </Field>
+        </div>
       </FieldGroup>
       <Button type="submit">
         <Tags aria-hidden="true" />
@@ -531,135 +566,139 @@ function CategoryForm({
   );
 }
 
-function CategoryGroup({
+function CategoryList({
   categories,
   editingId,
   onArchive,
   onEdit,
-  title,
+  onReorder,
   type,
 }: {
   categories: EditableCategory[];
   editingId: string | null;
   onArchive: (category: EditableCategory) => void;
   onEdit: (category: EditableCategory) => void;
-  title: string;
+  onReorder: (input: {
+    draggedCategoryId: string;
+    targetCategoryId: string;
+    type: CategoryType;
+  }) => void;
   type: CategoryType;
 }) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className={type === "income" ? "text-income" : "text-expense"}>
-            ●
-          </span>
-          {title} ({categories.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {categories.length === 0 ? (
-          <p className="text-caption text-muted-foreground">尚無啟用分類</p>
-        ) : (
-          <div className="grid gap-3">
-            {categories.map((category) => (
-              <CategoryItem
-                actions={
-                  <>
-                    <Button
-                      aria-label={`修改 ${category.name}`}
-                      aria-pressed={editingId === category.id}
-                      onClick={() => onEdit(category)}
-                      size="icon-sm"
-                      type="button"
-                      variant="secondary"
-                    >
-                      <Edit3 aria-hidden="true" />
-                    </Button>
-                    <Button
-                      aria-label={`封存 ${category.name}`}
-                      onClick={() => onArchive(category)}
-                      size="icon-sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <Archive aria-hidden="true" />
-                    </Button>
-                  </>
-                }
-                category={category}
-                key={category.id}
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="grid gap-3">
+      {categories.map((category) => (
+        <CategoryItem
+          actions={
+            <>
+              <Button
+                aria-label={`修改 ${category.name}`}
+                aria-pressed={editingId === category.id}
+                onClick={() => onEdit(category)}
+                size="icon-sm"
+                type="button"
+                variant="secondary"
+              >
+                <Edit3 aria-hidden="true" />
+              </Button>
+              <Button
+                aria-label={`封存 ${category.name}`}
+                onClick={() => onArchive(category)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <Archive aria-hidden="true" />
+              </Button>
+            </>
+          }
+          category={category}
+          isActive={editingId === category.id}
+          isDragging={draggingId === category.id}
+          key={category.id}
+          onDragEnd={() => setDraggingId(null)}
+          onDragEnter={(targetCategory) => {
+            if (!draggingId || draggingId === targetCategory.id) {
+              return;
+            }
+
+            onReorder({
+              draggedCategoryId: draggingId,
+              targetCategoryId: targetCategory.id,
+              type,
+            });
+          }}
+          onDragStart={(draggedCategory) => {
+            setDraggingId(draggedCategory.id);
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
 function CategoryItem({
   actions,
   category,
-  statusLabel,
+  isActive = false,
+  isDragging = false,
+  onDragEnd,
+  onDragEnter,
+  onDragStart,
 }: {
   actions?: ReactNode;
   category: EditableCategory;
-  statusLabel?: string;
+  isActive?: boolean;
+  isDragging?: boolean;
+  onDragEnd?: () => void;
+  onDragEnter?: (category: EditableCategory) => void;
+  onDragStart?: (category: EditableCategory) => void;
 }) {
+  const canReorder = Boolean(onDragStart);
+
   return (
-    <Item className="flex-nowrap bg-background" size="sm" variant="outline">
+    <Item
+      className={cn(
+        "flex-nowrap bg-background transition",
+        isActive && "border-ring bg-accent/40",
+        isDragging && "opacity-55 ring-2 ring-ring/35",
+      )}
+      onDragEnd={onDragEnd}
+      onDragEnter={() => onDragEnter?.(category)}
+      onDragOver={(event) => {
+        if (canReorder) {
+          event.preventDefault();
+        }
+      }}
+      size="sm"
+      variant="outline"
+    >
+      {canReorder ? (
+        <button
+          aria-label={`排序 ${category.name}`}
+          className="grid size-8 shrink-0 cursor-grab place-items-center rounded-input text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing"
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", category.id);
+            onDragStart?.(category);
+          }}
+          type="button"
+        >
+          <GripVertical aria-hidden="true" size={17} />
+        </button>
+      ) : null}
       <ItemContent className="min-w-0">
-        <ItemTitle className="block w-auto truncate">{category.name}</ItemTitle>
+        <ItemTitle className="block">
+          <CategoryVisualLabel category={category} />
+        </ItemTitle>
       </ItemContent>
       {actions ? (
         <ItemActions className="shrink-0">{actions}</ItemActions>
       ) : null}
-      {statusLabel ? (
-        <ItemActions className="shrink-0">
-          <Badge variant="outline">{statusLabel}</Badge>
-        </ItemActions>
-      ) : null}
     </Item>
-  );
-}
-
-function ArchivedCategoryGroup({
-  categories,
-  title,
-  type,
-}: {
-  categories: EditableCategory[];
-  title: string;
-  type: CategoryType;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className={type === "income" ? "text-income" : "text-expense"}>
-            ●
-          </span>
-          {title} ({categories.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {categories.length === 0 ? (
-          <div className="grid min-h-32 place-items-center text-center">
-            <p className="text-caption text-muted-foreground">尚無封存分類</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {categories.map((category) => (
-              <CategoryItem
-                category={category}
-                key={category.id}
-                statusLabel="封存"
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -674,6 +713,7 @@ function seedEditableCategories(
 
   return categories.map((category) => ({
     ...category,
+    ...getCategoryVisual(category),
     recordCount: recordCounts.get(category.id) ?? 0,
   }));
 }
@@ -685,29 +725,11 @@ export function buildEditableCategories(
   return seedEditableCategories(categories, records);
 }
 
-function showCategoryActionToast(
-  state: ActionState<unknown, string, CategoryActionCode>,
-  {
-    successDescription,
-    successId,
-  }: {
-    successDescription: string;
-    successId: string;
-  },
-) {
-  if (state.status === "success" && state.message) {
-    toast.success(state.message, {
-      description: successDescription,
-      id: successId,
-    });
-    return;
-  }
-
-  if (state.status === "error" && state.message) {
-    toast.error(state.message, {
-      id: `category-${state.code ?? "unknown_error"}`,
-    });
-  }
+function hydrateVisualCategories(categories: EditableCategory[]): EditableCategory[] {
+  return categories.map((category) => ({
+    ...category,
+    ...getCategoryVisual(category),
+  }));
 }
 
 function hasDuplicateActiveName(

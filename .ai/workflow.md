@@ -52,6 +52,7 @@ trace_links:
   - .ai/archive/archive-record-list-detail-modal-2026-06-20.md
   - .ai/intent/category-visual-identity.md
   - .ai/domain-impact/category-visual-identity.md
+  - .ai/prototype/category-visual-identity.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -158,9 +159,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: category-visual-identity
 - latest_completed_slice: record list detail modal and dashboard panel refinements, compressed in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`.
-- current_stage: Category visual identity and ordering Domain Discovery is drafted and awaiting review.
-- recommended_resume_gate: Experience Prototype for category visual identity and ordering after approval; optional manual Artifact Prune only if explicitly requested.
-- recommended_next_skill: experience-prototype for the active change; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
+- current_stage: Category visual identity and ordering Experience Prototype is drafted and awaiting review.
+- recommended_resume_gate: Behavior Spec / BDD / E2E for category visual identity and ordering after prototype approval; optional manual Artifact Prune only if explicitly requested.
+- recommended_next_skill: behavior-spec for the active change after approval; artifact-prune only if explicitly requested; target-aware-release if a stricter release target is selected.
 
 ## Artifact Inventory
 
@@ -171,7 +172,7 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
-- experience-design/prototype: completed desktop layout redesign prototype is summarized in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`; completed remove standalone create-record entry prototype is summarized in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`; completed admin-only category management prototype is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
+- experience-design/prototype: active category visual identity and ordering prototype is at `.ai/prototype/category-visual-identity.md`; completed desktop layout redesign prototype is summarized in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`; completed remove standalone create-record entry prototype is summarized in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`; completed admin-only category management prototype is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior prototype/design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - architecture/technical-design: completed desktop layout redesign design is summarized in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`; completed remove standalone create-record entry design is summarized in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`; completed admin Google OAuth and member invitations design is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management design is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior feature design artifacts are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.
 - behavior specs: completed desktop layout redesign spec is summarized in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`; completed remove standalone create-record entry spec is summarized in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`; completed admin Google OAuth and member invitations spec is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management spec is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; remaining story specs stay active for future slice selection.
 - implementation: completed desktop layout redesign implementation is summarized in `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`; completed remove standalone create-record entry implementation is summarized in `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`; completed admin Google OAuth and member invitations implementation is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management implementation is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`; completed prior implementation logs are summarized in `.ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md`.

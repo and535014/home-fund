@@ -114,7 +114,7 @@ function RecordListItem({
         onClick={(event) => onOpen(event.currentTarget)}
         type="button"
       >
-        <ItemMedia className="self-center">
+        <ItemMedia className="self-center group-has-[[data-slot=item-description]]/item:translate-y-0 group-has-[[data-slot=item-description]]/item:self-center">
           <RecordCategoryLabel name={categoryName} />
         </ItemMedia>
 
