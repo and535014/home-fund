@@ -29,7 +29,7 @@ reviewed_at: 2026-06-20
 
 ## Verification Summary
 
-- result: pass_with_minor_test_gap
+- result: pass
 - supported_release_target: local_dev
 - verified_commit: `7ff09c4 Refactor homepage record creation`
 - scope: IA and form-state change only; no schema, auth provider, OAuth callback, or production operations change.
@@ -50,7 +50,7 @@ The implemented behavior matches the approved product direction: create-record e
 | Validation errors stay inline in modal | Pass | `e2e/create-record.spec.ts` missing category case. |
 | Success closes modal, refreshes data, shows feedback | Pass | `e2e/create-record.spec.ts` income/expense creation cases; `RecordCreateScope` handles close, `router.refresh()`, and toast. |
 | Cross-member authorization remains server-side | Pass | Existing `e2e/permission-matrix.spec.ts` coverage and unchanged ledger command authorization boundary. |
-| Desktop and mobile create controls share behavior | Partial | Shared `RecordCreateActions` / `RecordCreateScope` implementation covers both surfaces; a dedicated mobile viewport E2E is not yet present. |
+| Desktop and mobile create controls share behavior | Pass | Shared `RecordCreateActions` / `RecordCreateScope` implementation; `e2e/create-record.spec.ts` mobile footer action test. |
 
 ## Test Evidence
 
@@ -59,9 +59,9 @@ Latest post-refactor checks:
 - `corepack pnpm type-check`
   - passed.
 - `corepack pnpm lint`
-  - passed.
+  - passed after sequential rerun; one parallel attempt hit the known transient Prisma generate `EEXIST` race.
 - `pnpm test:e2e e2e/create-record.spec.ts`
-  - passed: 7 browser tests.
+  - passed: 8 browser tests, including mobile footer action bar open behavior.
 - `git diff --check`
   - passed before commit.
 
@@ -96,7 +96,7 @@ Known command note: parallel `prisma generate` through simultaneous pnpm checks 
 - Closed: homepage-only create entry, including removal from reimbursement and recurring pages.
 - Closed: validation error stays in modal.
 - Closed: success closes modal and refreshes server-rendered data.
-- Remaining automated coverage gap: the Behavior Spec asked for one mobile viewport check for the footer action bar. The implementation uses the same scoped actions for mobile and desktop, but no dedicated mobile viewport E2E was added in this slice.
+- Closed: mobile footer action bar opens the create dialog without URL mutation.
 
 ## Domain And Release Check
 
@@ -107,14 +107,13 @@ Known command note: parallel `prisma generate` through simultaneous pnpm checks 
 
 ## Review Gate
 
-- decision: pass_with_minor_test_gap
+- decision: pass
 - acceptance_signals:
-  - Homepage create flows pass browser tests for income, fund-paid expense, member-paid expense, validation error, reload close, route not-found, and homepage-only entry.
+  - Homepage create flows pass browser tests for income, fund-paid expense, member-paid expense, validation error, reload close, route not-found, homepage-only entry, and mobile footer action open behavior.
   - Type-check and lint pass.
   - Worktree was clean after commit `7ff09c4`.
 - residual_risks:
-  - Dedicated mobile viewport E2E for footer action bar remains missing.
   - Manual focus-return and mobile visual scan were not performed in this verification pass.
 - recommended_next_gate:
   - Target-Aware Release for `local_dev` if this change is being prepared for a demo or preview handoff.
-  - Otherwise, address the mobile E2E gap as a small follow-up before broader release hardening.
+  - Otherwise, continue with the next product adjustment from Intent Intake.

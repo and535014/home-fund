@@ -151,6 +151,19 @@ test("keeps create-record actions on the homepage only", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "週期", exact: true })).toBeVisible();
 });
 
+test("opens the create dialog from the mobile footer action bar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto("/?month=2026-06");
+
+  await page.getByRole("button", { name: "新增支出" }).last().click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "新增支出" })).toBeVisible();
+  await expectNoCreateParams(page);
+});
+
 async function selectFieldOption(page: Page, label: string, option: string) {
   await page
     .getByText(label, { exact: true })
