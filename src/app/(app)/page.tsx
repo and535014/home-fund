@@ -106,6 +106,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 					title="紀錄"
 				>
 					<RecordListDetail
+						actor={homeView.profile}
 						categoriesById={categoriesById}
 						memberNames={memberNames}
 						records={recentRecords}
