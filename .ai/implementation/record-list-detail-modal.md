@@ -60,7 +60,7 @@ Updated `e2e/create-record.spec.ts` to cover changed labels and downstream behav
 - Preserved the no-page-scroll dashboard layout by keeping the page content on the existing `h-full min-h-0` grid structure.
 - Replaced the monthly trend card with an unframed chart region and removed the visible `收支趨勢` title.
 - Removed remaining dashboard Card wrappers from the record list, reimbursement summary, and category chart while keeping SummaryMetric card frames.
-- Replaced the expense category pie chart on the overview with category rows showing category name, percentage badge, proportional bar, and formatted amount.
+- Replaced the expense category pie chart on the overview with category rows showing category name, proportional bar, formatted amount, and muted percentage text after the amount.
 - Updated dashboard panel sizing so reimbursement and category panels fill available height and align content to the top.
 - Extracted a local `DashboardPanel` wrapper for titled dashboard sections and applied it to reimbursement, category stats, and records, including the desktop left border for the records column.
 - Kept the existing item/list component structure and did not reintroduce table or standalone footer behavior.

@@ -240,11 +240,11 @@ function CategoryStatRow({
 			: 0;
 
 	return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,3.5fr)_minmax(0,1.5fr)] items-center gap-3">
+		<div className="grid grid-cols-[minmax(0,1fr)_minmax(0,3.5fr)_minmax(0,1.5fr)] items-center gap-3">
 			<p className="truncate text-body-strong text-foreground">
 				{summary.categoryName}
 			</p>
-      <div className="h-2 w-full min-w-0 overflow-hidden rounded-full bg-muted">
+			<div className="h-2 w-full min-w-0 overflow-hidden rounded-full bg-muted">
 				<div
 					aria-hidden="true"
 					className="h-full rounded-full"
