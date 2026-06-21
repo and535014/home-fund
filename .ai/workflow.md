@@ -176,9 +176,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: record-detail-reimbursement
 - latest_completed_slice: edit/delete ledger records, compressed in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`.
-- current_stage: Target-Aware Release review for record detail reimbursement.
-- recommended_resume_gate: Learning Loop after user approval, or Artifact Compression if learning is explicitly skipped.
-- recommended_next_skill: learning-loop after Target-Aware Release is approved.
+- current_stage: Learning Loop review for record detail reimbursement.
+- recommended_resume_gate: Artifact Compression after user approval.
+- recommended_next_skill: artifact-compression after Learning Loop is approved.
 
 ## Artifact Inventory
 
