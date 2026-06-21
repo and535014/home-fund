@@ -1,7 +1,7 @@
 ---
 id: spec-record-detail-reimbursement
 stage: behavior-spec
-status: review
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -220,7 +220,7 @@ And pending reimbursement totals do not change
 
 ## Review Gate
 
-- decision: needs_user_review
+- decision: approved
 - reviewer_focus:
   - Confirm final AC matches the reviewed prototype.
   - Confirm E2E fixtures are enough for local_dev.
@@ -233,6 +233,6 @@ And pending reimbursement totals do not change
   - Feature Technical Design can decide server action, transaction, persistence, and revalidation boundaries.
   - TDD can start from domain/server-action/component/E2E tests.
 - unresolved_blockers:
-  - None for Feature Technical Design after reviewer approval.
+  - None for Feature Technical Design.
 - next_step:
   - Feature Technical Design for `record-detail-reimbursement`.
