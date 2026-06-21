@@ -72,6 +72,7 @@ trace_links:
   - .ai/archive/archive-edit-delete-ledger-records-2026-06-21.md
   - .ai/archive/archive-record-detail-reimbursement-2026-06-21.md
   - .ai/intent/record-search-sort-filter.md
+  - .ai/domain-impact/record-search-sort-filter.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -178,16 +179,16 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: record-search-sort-filter
 - latest_completed_slice: record detail reimbursement, compressed in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`.
-- current_stage: Intent Intake review for record search, sort, and filter.
-- recommended_resume_gate: Domain Discovery / Domain Impact for `record-search-sort-filter` after explicit approval.
-- recommended_next_skill: domain-discovery after Intent Intake approval; intent-intake if this intent needs revision; target-aware-release for stricter release target; artifact-prune only if explicitly requested.
+- current_stage: Domain Discovery / Domain Impact review for record search, sort, and filter.
+- recommended_resume_gate: Experience Prototype for `record-search-sort-filter` after explicit Domain Discovery approval.
+- recommended_next_skill: experience-prototype after Domain Discovery approval; domain-discovery if this domain impact needs revision; target-aware-release for stricter release target; artifact-prune only if explicitly requested.
 
 ## Artifact Inventory
 
 - idea: maintained `.ai/intent/home-family-fund.md`; active record search, sort, and filter intent is `.ai/intent/record-search-sort-filter.md`; completed record detail reimbursement intent is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records intent is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
 - completed record list detail modal: summarized in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`; source intent/prototype/spec/technical-design/implementation/verification/release artifacts were manually pruned after compression.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed record detail reimbursement impact is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records impact is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- domain-impact: active record search, sort, and filter impact is `.ai/domain-impact/record-search-sort-filter.md`; completed record detail reimbursement impact is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records impact is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
