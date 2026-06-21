@@ -19,6 +19,7 @@ trace_links:
   domain_impact:
     - .ai/domain-impact/record-search-sort-filter.md
   component_paths:
+    - src/app/record-search-panel.tsx
     - src/app/record-list-detail.tsx
     - src/app/(app)/search/page.tsx
 reviewed_at: 2026-06-21
@@ -29,8 +30,9 @@ reviewed_at: 2026-06-21
 ## Summary
 
 - route: `/search`
-- prototype_host: existing search page, backed by the shared record list/detail component
-- primary_component: `src/app/record-list-detail.tsx`
+- prototype_host: existing search page, backed by a search-page container and the shared record list/detail component
+- primary_component: `src/app/record-search-panel.tsx`
+- supporting_component: `src/app/record-list-detail.tsx`
 - integration_point: `src/app/(app)/search/page.tsx`
 - frontend_stack: Next.js App Router, React client component, TypeScript, Tailwind, local shadcn-style Input/NativeSelect/Button/Item/Dialog components, Lucide icons
 - run_command: `corepack pnpm dev`
@@ -47,10 +49,10 @@ reviewed_at: 2026-06-21
 - The initial search page shows an empty-result prompt until the user enters a keyword or changes search/filter/sort criteria.
 - All filters and sort options open in a `篩選與排序` modal from the filter button.
 - Filter and sort changes in the modal stay as draft settings until the user presses `套用`.
-- Keyword search uses visible record data: record name, note, active category name, member/fund label, type/payment label, date, amount, and reimbursement status.
+- Keyword search uses record name and formatted amount only.
 - When keyword text is present, the search input shows an icon-only `X` clear button that clears the keyword and resets keyword-matched results.
 - Record type filter supports `全部`, `收入`, and `支出`.
-- Category filter lists active categories only; archived categories are intentionally not shown and archived category names are not included in keyword matching. When a type is selected, category options are limited to that type.
+- Category filter lists active categories only; archived categories are intentionally not shown and category names are not included in keyword matching. When a type is selected, category options are limited to that type.
 - The member/fund participation filter is labeled `收支對象` for review. It includes `基金` plus household members by default, but when `收入` is selected it only shows household members.
 - Reimbursement status filter supports `全部`, `已退款`, and `未退款`.
 - Date range supports start-only, end-only, and start/end filtering by record occurrence date without using the dashboard month switcher.
@@ -98,7 +100,7 @@ reviewed_at: 2026-06-21
 
 ## UX Acceptance Inputs
 
-- Users can find a record by typing text from visible record fields.
+- Users can find a record by typing its name or formatted amount.
 - Users can clear keyword search from the input with an `X` button; if no filter/sort criteria remain, the initial empty-result prompt returns.
 - Users see an initial empty-result prompt instead of a record list before searching or setting criteria.
 - Users can open `篩選`, narrow records by type, active category, person/fund, refund state, and optional date boundaries, then close the modal without losing query state.
@@ -109,11 +111,11 @@ reviewed_at: 2026-06-21
 - Users can change filter/sort controls in the modal without affecting results until `套用`.
 - Users can clear modal filter/sort draft state, then press `套用` to update results.
 - Users can open details from filtered results and still see valid actions.
-- Archived categories are not offered as filter options and are not matched by keyword search.
+- Category names are not matched by keyword search; archived categories are not offered as filter options.
 
 ## E2E Scenario Candidates
 
-- Search for a category/member/note term and see only matching active records.
+- Search for a record name or amount and see only matching active records.
 - Clear the keyword with the input `X` button and verify keyword matching is removed from the result set.
 - Open `/search` with no query and verify the initial empty-result prompt appears without records.
 - Open the filter modal from the search page and close it without changing the keyword search.
@@ -124,7 +126,7 @@ reviewed_at: 2026-06-21
 - Select `已退款` and verify reimbursed member-paid expenses appear while income and fund-paid expenses do not.
 - Use start-only and end-only date filters from the modal, press `套用`, and verify boundary dates are included.
 - Change sort from the modal, press `套用`, and verify visible order.
-- Clear query state and verify the full active record list returns.
+- Clear query state and verify the initial empty-result prompt returns unless other filter/sort criteria remain.
 - Open a filtered record detail and verify existing edit/delete/refund affordance behavior remains intact.
 
 ## Known Gaps
@@ -154,7 +156,7 @@ reviewed_at: 2026-06-21
 - must_check:
   - Prototype remains a real production-stack slice.
   - Prototype does not imply final server query, URL state, or Prisma filter design is decided.
-  - Archived categories are excluded from category options and keyword matching.
+  - Category names are excluded from keyword matching, and archived categories are excluded from category options.
 - acceptance_signals:
   - Behavior Spec can define final query semantics and E2E scenarios from this prototype.
   - Technical Design can choose state persistence and data-access boundaries without changing UX intent.

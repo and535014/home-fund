@@ -1,7 +1,7 @@
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import { createHomeDashboardDataSource } from "@/app/home-dashboard-data-source";
-import { RecordListDetail } from "@/app/record-list-detail";
+import { RecordSearchPanel } from "@/app/record-search-panel";
 import { PageLayout } from "@/components/layout/page-layout";
 
 export default async function SearchPage() {
@@ -25,11 +25,10 @@ export default async function SearchPage() {
         aria-label="搜尋紀錄"
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <RecordListDetail
+        <RecordSearchPanel
           actor={session.profile}
           categories={dashboardData.categories}
           categoriesById={categoriesById}
-          enableQuery
           memberNames={memberNames}
           records={dashboardData.records}
         />

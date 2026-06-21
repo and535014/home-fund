@@ -13,6 +13,16 @@ export type MemberManagementMember = {
   status: MemberManagementMemberStatus;
 };
 
+type MemberManagementMemberRow = {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  roles: {
+    role: MemberRole;
+  }[];
+  status: MemberManagementMemberStatus;
+};
+
 export async function loadMemberManagementMembers(): Promise<MemberManagementMember[]> {
   await requireAppRouteAccess("members");
   const members = await getPrismaClient().member.findMany({
@@ -35,7 +45,7 @@ export async function loadMemberManagementMembers(): Promise<MemberManagementMem
     },
   });
 
-  return members.map((member) => ({
+  return (members as MemberManagementMemberRow[]).map((member) => ({
     id: member.id,
     displayName: member.displayName,
     avatarUrl: member.avatarUrl,

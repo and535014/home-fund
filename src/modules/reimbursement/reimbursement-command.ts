@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { ExpenseLedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { AuthenticatedMember } from "@/modules/identity-access/authorization";
 import {
@@ -24,7 +24,7 @@ export async function markExpensesReimbursedInDatabase(
   const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
   const selectedExpenseIds = [...new Set(command.selectedExpenseIds)];
 
-  return context.prisma.$transaction(async (tx) => {
+  return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const records = await tx.ledgerRecord.findMany({
       where: {
         householdId,

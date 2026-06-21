@@ -26,6 +26,7 @@ trace_links:
     - /search
   target_components:
     - src/app/(app)/search/page.tsx
+    - src/app/record-search-panel.tsx
     - src/app/record-list-detail.tsx
     - src/app/home-dashboard-data-source.ts
   domain_modules:
@@ -57,7 +58,7 @@ reviewed_at: 2026-06-21
 2. `/search` does not show a page header.
 3. The first visible controls on `/search` are a keyword search input and an icon-only filter button.
 4. The initial `/search` result area shows `請輸入關鍵字或設定篩選條件。` and no records.
-5. Entering a keyword searches active records across visible record fields: name, note, active category name, member/fund label, type/payment label, date, amount, and reimbursement status.
+5. Entering a keyword searches active records by record name and formatted amount only.
 6. When keyword text is present, the search input shows an icon-only `X` button.
 7. Activating the search input `X` clears the keyword and removes keyword matching from the result set.
 8. If clearing the keyword leaves no applied filter or non-default sort, the initial empty-result prompt returns.
@@ -70,7 +71,7 @@ reviewed_at: 2026-06-21
 15. `清除` in the modal resets modal draft filter/sort settings to defaults but does not update results until `套用` is activated.
 16. When any filter or non-default sort is applied, the icon-only filter button uses a visually distinct active style and exposes the applied-condition count through its accessible label.
 17. Type filter supports `全部`, `收入`, and `支出`.
-18. Category filter lists active categories only; archived categories are not options and are not matched by keyword search.
+18. Category filter lists active categories only; archived categories are not options and category names are not matched by keyword search.
 19. When type is `收入`, category options show only active income categories.
 20. When type is `支出`, category options show only active expense categories.
 21. If changing type makes the selected category invalid for that type, the category filter resets to `全部`.
@@ -107,13 +108,13 @@ And an icon-only filter button is visible
 And the page shows `請輸入關鍵字或設定篩選條件。`  
 And no record detail trigger is visible
 
-### Scenario: Keyword Search Matches Visible Record Fields
+### Scenario: Keyword Search Matches Name And Amount
 
 Given an authenticated member is on `/search`  
-When they enter a keyword that appears in a record name, note, active category, member name, type/payment label, date, amount, or reimbursement status  
+When they enter a keyword that appears in a record name or formatted amount  
 Then active matching records are listed  
 And voided records are not listed  
-And archived category names are not matched as searchable category text
+And notes, category names, member names, type/payment labels, dates, and reimbursement statuses are not matched as keyword text
 
 ### Scenario: Keyword Search Can Be Cleared
 
@@ -202,7 +203,7 @@ And existing edit, delete, and reimbursement affordances follow the same authori
 | Scenario | Route | Fixture | Viewport | Selectors / Assertions |
 |---|---|---|---|---|
 | Initial search page | `/search` | linked household member | desktop | no heading `搜尋`; input `搜尋紀錄`; icon-only button name `開啟篩選`; text `請輸入關鍵字或設定篩選條件。`; no button `/查看.*詳情/`. |
-| Keyword search and clear | `/search` | active records with searchable name/note/category/member | desktop | fill input `搜尋紀錄`; assert matching record trigger visible; click button `清除搜尋`; input empty; initial prompt returns if no filters active. |
+| Keyword search and clear | `/search` | active records with searchable names and amounts | desktop | fill input `搜尋紀錄`; assert matching record trigger visible; search by amount; click button `清除搜尋`; input empty; initial prompt returns if no filters active. |
 | Filter modal draft apply | `/search` | active income/expense/member/fund/refund records | desktop | open `開啟篩選`; heading `篩選與排序`; change controls; assert results unchanged before `套用`; click `套用`; assert filtered results. |
 | Type-constrained category and participant | `/search` | active income and expense categories plus household members | desktop | select `收入`; category select lacks expense categories; `收支對象` lacks `基金`; select `支出`; category select lacks income categories and includes expense categories; `基金` visible. |
 | Combined filters | `/search` | active member-paid refundable expense | desktop | apply `支出`, active category, member, `未退款`, date range; assert only matching active records and no income/fund-paid records. |
@@ -221,7 +222,7 @@ And existing edit, delete, and reimbursement affordances follow the same authori
   - active fund-paid expense with expense category.
   - active member-paid refundable expense.
   - active member-paid reimbursed expense.
-  - at least one note/category/member term unique enough for keyword search.
+  - at least one name term and one amount unique enough for keyword search.
   - records on date boundaries for start-only, end-only, and bounded date checks.
   - archived category attached to a historical record only if needed to prove it is not searchable/filterable.
   - voided record excluded from search results.
@@ -248,7 +249,7 @@ And existing edit, delete, and reimbursement affordances follow the same authori
 
 | Level | Coverage |
 |---|---|
-| Unit/domain | Query predicate maps keyword, type, active category, member/fund participation, reimbursement status, date range, active status, and sort criteria correctly. |
+| Unit/domain | Query predicate maps keyword by name/amount, type, active category, member/fund participation, reimbursement status, date range, active status, and sort criteria correctly. |
 | Unit/domain | Category options are active-only and constrained by selected type. |
 | Unit/domain | `收支對象` excludes `基金` when type is `收入` and resets invalid fund selection. |
 | Unit/domain | Reimbursement status filters include only reimbursed/refundable member-paid expenses and exclude income/fund-paid records. |
@@ -262,10 +263,10 @@ And existing edit, delete, and reimbursement affordances follow the same authori
 - Decide whether the final implementation keeps client-side query over active records or moves criteria into server/Prisma queries.
 - Decide query-state persistence. Current spec treats query state as local and not URL/bookmarkable.
 - Define performance limits for loading active records on `/search`.
-- Consider extracting query predicate/sort helpers from `RecordListDetail` for testability.
+- Keep search query UI in the search page container, not in the shared record list/detail shell.
 - Decide whether `收支對象` remains the final label or should be renamed before implementation.
 - Keep dashboard recent-record behavior separate from search page query behavior.
-- Ensure archived category names are not searchable/filterable while historical records remain readable by other criteria.
+- Ensure category names are not searchable while active category filters still work and archived categories remain non-filterable.
 
 ## Accepted Risks
 

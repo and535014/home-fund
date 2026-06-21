@@ -115,6 +115,63 @@ describe("createHomeDashboardDataSource", () => {
       orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
     });
   });
+
+  it("loads active records for the search page", async () => {
+    const memberFindMany = vi.fn(async () => [
+      {
+        id: "member-fin",
+        displayName: "Lin",
+        avatarUrl: null,
+        googleAccountEmail: "lin@example.com",
+        googleSubject: "google-lin",
+        status: "active" as const,
+        roles: [{ role: "finance_manager" as const }],
+        capabilities: [],
+      },
+    ]);
+    const categoryFindMany = vi.fn(async () => [
+      {
+        id: "expense-grocery",
+        type: "expense" as const,
+        name: "日用品",
+        color: "gold" as const,
+        icon: "shopping-cart" as const,
+        sortOrder: 10,
+        status: "active" as const,
+      },
+    ]);
+    const ledgerRecordFindMany = vi.fn(async () => [
+      {
+        id: "expense-grocery-june",
+        type: "expense" as const,
+        name: "日用品代墊",
+        amountCents: 642_000,
+        occurredOn: new Date("2026-06-09T00:00:00.000Z"),
+        categoryId: "expense-grocery",
+        createdByMemberId: "member-fin",
+        sourceMemberId: null,
+        paymentSource: "member" as const,
+        payerMemberId: "member-fin",
+        reimbursementStatus: "refundable" as const,
+        status: "active" as const,
+        note: "日用品代墊",
+      },
+    ]);
+    const dataSource = createHomeDashboardDataSource({
+      member: { findMany: memberFindMany },
+      category: { findMany: categoryFindMany },
+      ledgerRecord: { findMany: ledgerRecordFindMany },
+    });
+
+    const data = await dataSource.getSearchPageData();
+
+    expect(data.records).toHaveLength(1);
+    expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        status: "active",
+      },
+    }));
+  });
 });
 
 describe("mapPrismaLedgerRecordToLedgerRecord", () => {

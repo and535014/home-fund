@@ -58,9 +58,10 @@ reviewed_at: 2026-06-21
 
 | Area | Decision |
 |---|---|
-| Route | `src/app/(app)/search/page.tsx` owns the search page. It renders no `PageHeader`, loads search data server-side, and passes it into the shared record list/detail client component. |
-| Dashboard | `src/app/(app)/page.tsx` keeps recent-month record summary behavior and does not enable query controls. |
-| Client component | `src/app/record-list-detail.tsx` remains the shared record list/detail shell. Its query UI is enabled only when `enableQuery` is true. |
+| Route | `src/app/(app)/search/page.tsx` owns the search page. It renders no `PageHeader`, loads search data server-side, and passes it into `RecordSearchPanel`. |
+| Dashboard | `src/app/(app)/page.tsx` keeps recent-month record summary behavior and renders the shared list/detail shell without search query controls. |
+| Search client component | `src/app/record-search-panel.tsx` owns search-page query state, query controls, filter modal state, filtered results, and search empty-state selection. |
+| Shared list/detail component | `src/app/record-list-detail.tsx` owns only record list rendering, record detail selection, detail focus return, and detail actions. It does not own search controls or query state. |
 | Query logic | Move prototype query state types, option builders, filtering, keyword text building, and sorting into a route-neutral helper module before implementation tests, preferably `src/app/record-query.ts`. |
 | Data source | Extend or refine `src/app/home-dashboard-data-source.ts` with a search-specific loader that returns active records only. Keep monthly dashboard reads unchanged. |
 | Auth | `/search` uses `requireAuthenticatedMember()` like other app routes. No role-specific browse restriction beyond authenticated household access. |
@@ -148,19 +149,12 @@ Filtering order is not user-visible but should be deterministic and testable:
 
 ### Keyword Search
 
-Keyword search matches normalized visible text from:
+Keyword search matches normalized text from:
 
 - record name
-- note
-- active category name only
-- income/expense label
-- fund-paid label
-- member/fund actor label
-- reimbursement status label
-- display date
 - formatted amount
 
-Archived category names must not be included in keyword text.
+Notes, category names, member/fund labels, type/payment labels, reimbursement status labels, and display dates must not be included in keyword text.
 
 ### Member/Fund Participation
 
@@ -192,13 +186,20 @@ Archived category names must not be included in keyword text.
 
 ## UI State Ownership
 
+`RecordSearchPanel` owns:
+
+- applied query state
+- filter modal open state
+- filter modal draft query state
+- filtered records
+- search empty-state message
+
 `RecordListDetail` owns:
 
 - selected record id
 - detail focus return
-- applied query state when `enableQuery`
-- filter modal open state
-- filter modal draft query state
+- record list rendering
+- detail actions and refresh hooks
 
 Search input:
 
@@ -263,11 +264,11 @@ Empty states:
 ## TDD Implementation Order
 
 1. Extract query state, defaults, option builders, predicate, keyword text, and comparator into `src/app/record-query.ts`.
-2. Add unit tests for `record-query.ts` covering active-only filtering, keyword fields, archived category exclusion, type/category constraints, participant constraints, reimbursement filters, date boundaries, sorting, and active filter count.
+2. Add unit tests for `record-query.ts` covering active-only filtering, keyword name/amount fields, non-keyword field exclusion, type/category constraints, participant constraints, reimbursement filters, date boundaries, sorting, and active filter count.
 3. Add data-source tests for `getSearchPageData()` active-only records and required select shape.
-4. Add component-level tests if existing test setup can render `RecordListDetail`; otherwise cover UI through E2E.
+4. Add component-level tests if existing test setup can render `RecordSearchPanel`; otherwise cover UI through E2E.
 5. Add `e2e/record-search.spec.ts` for initial state, keyword clear, modal draft/apply, constrained options, combined filters, reimbursement status, sort, detail continuity, and mobile modal.
-6. Refactor `src/app/record-list-detail.tsx` to consume extracted helpers while preserving accepted prototype behavior.
+6. Refactor search query UI into `src/app/record-search-panel.tsx`; keep `src/app/record-list-detail.tsx` as the shared list/detail shell.
 7. Run type-check, lint, unit tests, build, and targeted E2E.
 
 ## Release Implications
