@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CalendarDays,
+  HandCoins,
   Pencil,
   ReceiptText,
   Save,
@@ -48,7 +49,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
-import { RecordCategoryLabel } from "@/app/record-category-label";
+import { CategoryVisualMark, getCategoryVisual } from "@/app/category-visuals";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -112,9 +113,11 @@ export function RecordListDetail({
         {selectedRecord ? (
           <RecordDetailDialog
             actor={actor}
+            category={categoriesById[selectedRecord.categoryId]}
             categories={categories}
             categoryName={
-              categoriesById[selectedRecord.categoryId]?.name ?? selectedRecord.categoryId
+              categoriesById[selectedRecord.categoryId]?.name ??
+              selectedRecord.categoryId
             }
             memberNames={memberNames}
             onMutationSuccess={() => {
@@ -140,8 +143,6 @@ function RecordListItem({
   onOpen: (trigger: HTMLButtonElement) => void;
   record: LedgerRecord;
 }) {
-  const isIncome = record.type === "income";
-
   return (
     <Item
       asChild
@@ -154,40 +155,66 @@ function RecordListItem({
         onClick={(event) => onOpen(event.currentTarget)}
         type="button"
       >
-        <ItemMedia className="self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
-          {category ? <RecordCategoryLabel category={category} /> : null}
-        </ItemMedia>
-
-        <ItemContent className="min-w-0">
-          <ItemTitle className="max-w-full">
-            <span className="truncate">{record.name}</span>
-          </ItemTitle>
-
-          <ItemDescription className="truncate">
-            {recordActorLabel(record, memberNames)}
-          </ItemDescription>
-        </ItemContent>
-
-        <ItemContent className="min-w-0 flex-none items-end text-right">
-          <ItemTitle
-            className={`max-w-full justify-end ${
-              isIncome ? "text-income" : "text-expense"
-            }`}
-          >
-            <span className="truncate">{formatAmount(record.amountCents)}</span>
-          </ItemTitle>
-
-          <ItemDescription className="truncate">
-            {formatDate(record.occurredOn)}
-          </ItemDescription>
-        </ItemContent>
+        <RecordSummaryContent
+          category={category}
+          memberNames={memberNames}
+          record={record}
+        />
       </button>
     </Item>
   );
 }
 
+function RecordSummaryContent({
+  category,
+  memberNames,
+  record,
+}: {
+  category?: Category;
+  memberNames: Record<string, string>;
+  record: LedgerRecord;
+}) {
+  const isIncome = record.type === "income";
+  const visual = category ? getCategoryVisual(category) : null;
+
+  return (
+    <>
+      <ItemMedia className="self-center! translate-y-0!">
+        {visual ? (
+          <CategoryVisualMark color={visual.color} icon={visual.icon} />
+        ) : null}
+      </ItemMedia>
+
+      <ItemContent className="min-w-0">
+        <ItemTitle className="max-w-full">
+          <span className="truncate">{record.name}</span>
+        </ItemTitle>
+
+        <ItemDescription className="truncate">
+          {recordActorLabel(record, memberNames)}
+        </ItemDescription>
+      </ItemContent>
+
+      <ItemContent className="min-w-0 flex-none items-end text-right">
+        <ItemTitle
+          className={`max-w-full justify-end ${
+            isIncome ? "text-income" : "text-expense"
+          }`}
+        >
+          <span className="truncate">{formatAmount(record.amountCents)}</span>
+        </ItemTitle>
+
+        <ItemDescription className="truncate">
+          {formatDate(record.occurredOn)}
+        </ItemDescription>
+      </ItemContent>
+    </>
+  );
+}
+
 function RecordDetailDialog({
   actor,
+  category,
   categories,
   categoryName,
   memberNames,
@@ -195,6 +222,7 @@ function RecordDetailDialog({
   record,
 }: {
   actor: HouseholdAccessProfile;
+  category?: Category;
   categories: Category[];
   categoryName: string;
   memberNames: Record<string, string>;
@@ -202,8 +230,18 @@ function RecordDetailDialog({
   record: LedgerRecord;
 }) {
   const isIncome = record.type === "income";
-  const [mode, setMode] = useState<"detail" | "edit" | "delete">("detail");
-  const access = recordActionAccess(actor, record);
+  const [mode, setMode] = useState<"detail" | "edit" | "delete" | "refund">(
+    "detail",
+  );
+  const [isPrototypeReimbursed, setIsPrototypeReimbursed] = useState(false);
+  const displayedRecord =
+    isPrototypeReimbursed && record.type === "expense"
+      ? ({
+          ...record,
+          reimbursementStatus: "reimbursed",
+        } satisfies LedgerRecord)
+      : record;
+  const access = recordActionAccess(actor, displayedRecord);
 
   if (mode === "edit") {
     return (
@@ -213,7 +251,7 @@ function RecordDetailDialog({
         onCancel={() => setMode("detail")}
         onSuccess={() => {
           toast.success("紀錄已更新", {
-            description: "已更新目前月份紀錄與摘要。",
+            description: "這筆紀錄已更新。",
             id: `edit-record-success-${record.id}`,
           });
           onMutationSuccess();
@@ -229,10 +267,29 @@ function RecordDetailDialog({
         onCancel={() => setMode("detail")}
         onSuccess={() => {
           toast.success("紀錄已刪除", {
-            description: "這筆紀錄已從目前月份紀錄與摘要移除。",
+            description: "這筆紀錄已移除。",
             id: `delete-record-success-${record.id}`,
           });
           onMutationSuccess();
+        }}
+        record={record}
+      />
+    );
+  }
+
+  if (mode === "refund") {
+    return (
+      <RefundRecordDialog
+        category={category}
+        memberNames={memberNames}
+        onCancel={() => setMode("detail")}
+        onSuccess={() => {
+          setIsPrototypeReimbursed(true);
+          setMode("detail");
+          toast.success("已完成退款", {
+            description: "這筆紀錄已標記為已退款。",
+            id: `refund-record-success-${record.id}`,
+          });
         }}
         record={record}
       />
@@ -246,59 +303,62 @@ function RecordDetailDialog({
       </DialogHeader>
 
       <DialogBody className="grid gap-4">
-      <div className="rounded-card border border-border bg-secondary/30 p-4">
-        <p className="text-caption text-muted-foreground">金額</p>
-        <p
-          className={`mt-1 text-heading ${
-            isIncome ? "text-income" : "text-expense"
-          }`}
-        >
-          {formatAmount(record.amountCents)}
-        </p>
-      </div>
-
-      {access.blockedReason ? (
-        <div className="flex gap-3 rounded-card border border-border bg-secondary/30 p-3 text-body text-muted-foreground">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-300" />
-          <p>{access.blockedReason}</p>
+        <div className="rounded-card border border-border bg-secondary/30 p-4">
+          <p className="text-caption text-muted-foreground">金額</p>
+          <p
+            className={`mt-1 text-heading ${
+              isIncome ? "text-income" : "text-expense"
+            }`}
+          >
+            {formatAmount(record.amountCents)}
+          </p>
         </div>
-      ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <DetailField
-          icon={<CalendarDays />}
-          label="日期"
-          value={formatDate(record.occurredOn)}
-        />
-        <DetailField
-          icon={<ReceiptText />}
-          label="分類"
-          value={categoryName}
-        />
-        <DetailField
-          icon={<WalletCards />}
-          label="狀態"
-          value={ledgerRecordStatusLabel(record)}
-        />
-        <DetailField
-          icon={<UserRound />}
-          label="支付者"
-          value={recordActorLabel(record, memberNames)}
-        />
-      </div>
+        {access.blockedReason ? (
+        <Alert variant="warning">
+          <AlertTriangle />
+          <AlertDescription>
+            {access.blockedReason}
+          </AlertDescription>
+        </Alert>
+        ) : null}
 
-      <div className="rounded-card border border-border p-4">
-        <div className="flex items-center gap-2 text-label">
-          <StickyNote className="size-4 text-muted-foreground" />
-          備註
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DetailField
+            icon={<CalendarDays />}
+            label="日期"
+            value={formatDate(record.occurredOn)}
+          />
+          <DetailField
+            icon={<ReceiptText />}
+            label="分類"
+            value={categoryName}
+          />
+          <DetailField
+            icon={<WalletCards />}
+            label="狀態"
+            value={ledgerRecordStatusLabel(displayedRecord)}
+          />
+          <DetailField
+            icon={<UserRound />}
+            label="支付者"
+            value={recordActorLabel(displayedRecord, memberNames)}
+          />
         </div>
-        <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">
-          {record.note?.trim() || "沒有備註。"}
-        </p>
-      </div>
+
+        <div className="rounded-card border border-border p-4">
+          <div className="flex items-center gap-2 text-label">
+            <StickyNote className="size-4 text-muted-foreground" />
+            備註
+          </div>
+          <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">
+            {record.note?.trim() || "沒有備註。"}
+          </p>
+        </div>
       </DialogBody>
 
-      {(access.canEdit || access.canDelete) && !access.blockedReason ? (
+      {(access.canEdit || access.canDelete || access.canRefund) &&
+      !access.blockedReason ? (
         <DialogFooter className="mt-4">
           {access.canDelete ? (
             <Button
@@ -310,6 +370,12 @@ function RecordDetailDialog({
               刪除
             </Button>
           ) : null}
+          {access.canRefund ? (
+            <Button onClick={() => setMode("refund")} type="button">
+              <HandCoins />
+              退款
+            </Button>
+          ) : null}
           {access.canEdit ? (
             <Button onClick={() => setMode("edit")} type="button">
               <Pencil />
@@ -318,6 +384,67 @@ function RecordDetailDialog({
           ) : null}
         </DialogFooter>
       ) : null}
+    </DialogContent>
+  );
+}
+
+function RefundRecordDialog({
+  category,
+  memberNames,
+  onCancel,
+  onSuccess,
+  record,
+}: {
+  category?: Category;
+  memberNames: Record<string, string>;
+  onCancel: () => void;
+  onSuccess: () => void;
+  record: LedgerRecord;
+}) {
+  const [isPending, setIsPending] = useState(false);
+
+  function confirmPrototypeRefund() {
+    setIsPending(true);
+    onSuccess();
+  }
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>確認退款</DialogTitle>
+        <DialogDescription>將此紀錄標記為已退款。</DialogDescription>
+      </DialogHeader>
+
+      <DialogBody className="grid gap-3">
+        <Item className="border border-border bg-secondary/30">
+          <RecordSummaryContent
+            category={category}
+            memberNames={memberNames}
+            record={record}
+          />
+        </Item>
+        <Alert variant="warning">
+          <AlertTriangle />
+          <AlertDescription>
+            確認後，狀態會顯示為已退款，且無法編輯或刪除。
+          </AlertDescription>
+        </Alert>
+      </DialogBody>
+
+      <DialogFooter className="mt-4">
+        <Button onClick={onCancel} type="button" variant="outline">
+          <X />
+          取消
+        </Button>
+        <Button
+          disabled={isPending}
+          onClick={confirmPrototypeRefund}
+          type="button"
+        >
+          <HandCoins />
+          {isPending ? "處理中..." : "確認退款"}
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 }
@@ -370,9 +497,7 @@ function EditRecordDialog({
     <DialogContent className="max-w-xl">
       <DialogHeader>
         <DialogTitle>編輯紀錄</DialogTitle>
-        <DialogDescription>
-          調整後會重新計算目前月份的月報、分類統計與退款資訊。
-        </DialogDescription>
+        <DialogDescription>更新這筆紀錄的內容。</DialogDescription>
       </DialogHeader>
 
       <form action={formAction}>
@@ -399,7 +524,11 @@ function EditRecordDialog({
             </label>
             <label className="grid gap-2 text-label">
               日期
-              <Input defaultValue={record.occurredOn} name="occurredOn" type="date" />
+              <Input
+                defaultValue={record.occurredOn}
+                name="occurredOn"
+                type="date"
+              />
             </label>
             <label className="grid gap-2 text-label">
               分類
@@ -418,7 +547,9 @@ function EditRecordDialog({
                   <NativeSelect
                     name="paymentSource"
                     onChange={(event) =>
-                      setPaymentSource(event.currentTarget.value as "fund" | "member")
+                      setPaymentSource(
+                        event.currentTarget.value as "fund" | "member",
+                      )
                     }
                     value={paymentSource}
                   >
@@ -445,7 +576,10 @@ function EditRecordDialog({
             ) : (
               <label className="grid gap-2 text-label">
                 支付者
-                <NativeSelect defaultValue={record.sourceMemberId} name="sourceMemberId">
+                <NativeSelect
+                  defaultValue={record.sourceMemberId}
+                  name="sourceMemberId"
+                >
                   {members.map((member) => (
                     <option key={member.id} value={member.id}>
                       {member.displayName}
@@ -512,7 +646,7 @@ function DeleteRecordDialog({
       <DialogHeader>
         <DialogTitle>刪除紀錄</DialogTitle>
         <DialogDescription>
-          這筆紀錄會從月報、分類統計、紀錄列表與待退款計算中移除。
+          刪除後，這筆紀錄不會顯示在列表中。
         </DialogDescription>
       </DialogHeader>
 
@@ -527,7 +661,8 @@ function DeleteRecordDialog({
           <div className="rounded-card border border-destructive/40 bg-destructive/10 p-4">
             <p className="text-body-strong">{record.name}</p>
             <p className="mt-1 text-body text-muted-foreground">
-              {formatAmount(record.amountCents)} · {formatDate(record.occurredOn)}
+              {formatAmount(record.amountCents)} ·{" "}
+              {formatDate(record.occurredOn)}
             </p>
           </div>
         </DialogBody>
@@ -607,24 +742,34 @@ function recordActionAccess(
   blockedReason?: string;
   canDelete: boolean;
   canEdit: boolean;
+  canRefund: boolean;
 } {
   const isOwner = actor.id === record.createdByMemberId;
   const isAdmin = actor.roles.includes("admin");
   const isFinanceManager = actor.roles.includes("finance_manager");
   const isReimbursedExpense =
     record.type === "expense" && record.reimbursementStatus === "reimbursed";
+  const canPerformReimbursement = isAdmin || isFinanceManager;
+  const canRefund =
+    canPerformReimbursement &&
+    record.type === "expense" &&
+    record.status === "active" &&
+    record.paymentSource === "member" &&
+    record.reimbursementStatus === "refundable";
 
   if (isReimbursedExpense) {
     return {
-      blockedReason: "這筆代墊支出已退款，需先有退款沖銷流程才能編輯或刪除。",
+      blockedReason: "這筆代墊支出已退款，無法編輯或刪除。",
       canDelete: false,
       canEdit: false,
+      canRefund: false,
     };
   }
 
   return {
     canDelete: isAdmin || isOwner,
     canEdit: isAdmin || isFinanceManager || isOwner,
+    canRefund,
   };
 }
 

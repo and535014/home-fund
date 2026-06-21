@@ -64,7 +64,8 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Member-paid expense | Expense paid upfront by a member; it starts as refundable/unreimbursed and appears in the reimbursement table until settled. | Reimbursement |
 | Refundable expense | Member-paid expense that has not yet been reimbursed. | Reimbursement |
 | Reimbursed expense | Member-paid expense that a finance manager has marked as reimbursed. | Reimbursement |
-| Reimbursement | One-time settlement action marking selected member-paid expenses as reimbursed. | Reimbursement |
+| Reimbursement | One-time settlement action marking selected member-paid expenses as reimbursed. The user-facing action may be labeled `退款`, but the MVP does not execute an external money transfer. | Reimbursement |
+| Record detail reimbursement | A single-record reimbursement action launched from an eligible member-paid expense detail dialog after confirmation. | Reimbursement / Responsive Web Experience |
 
 ## Event Timeline
 | Order | Domain Event | Triggering Command | Actor | Business Outcome |
@@ -97,6 +98,8 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | 26 | Monthly reimbursement table generated | Generate reimbursement table | Member | Amounts owed to each member are visible by month. |
 | 27 | Reimbursement expenses selected | Select expenses for reimbursement | Finance manager | The finance manager chooses exact expenses to settle. |
 | 28 | Expenses reimbursed | Mark selected expenses reimbursed | Finance manager | Selected expenses are settled once and excluded from future unpaid reimbursement totals. |
+| 29 | Record detail reimbursement confirmed | Confirm record detail reimbursement | Finance manager | A finance manager confirms the `退款` action for one eligible refundable member-paid expense from the record detail dialog. |
+| 30 | Record detail expense reimbursed | Reimburse record detail expense | Finance manager | One eligible member-paid expense is marked reimbursed from its record detail and excluded from future unpaid reimbursement totals. |
 
 ## Identity and Access Membership Events
 | Domain Event | Triggering Command | Actor | Business Outcome |
@@ -140,6 +143,8 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Monthly report requested | Include confirmed ledger records, categories, pending recurring items, and reimbursement status. | Generate monthly report | Reporting is a read model, not a separate source of truth. |
 | Reimbursement table requested | Group refundable member-paid expenses by month and payer member. | Generate reimbursement table | Must trace totals to individual expenses. |
 | Finance manager marks reimbursement | Each selected refundable expense may be marked reimbursed only once. | Mark selected expenses reimbursed | Changes status from refundable/unreimbursed to reimbursed and prevents double-counting. |
+| Record detail reimbursement requested | A record detail `退款` action is available only for active member-paid expenses that are currently refundable, and only to actors authorized to perform reimbursement. | Reimburse record detail expense | Income records, fund-paid expenses, voided records, already reimbursed expenses, and unauthorized actors must not create reimbursement state changes. |
+| Record detail reimbursement submitted | The actor must confirm before the selected expense is marked reimbursed. | Confirm record detail reimbursement | Confirmation protects against accidental one-record settlement from the detail dialog. |
 
 ## Aggregate Candidates
 | Aggregate | Events Owned | Invariants | Open Questions |
@@ -149,7 +154,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | LedgerRecord | Income recorded, Expense recorded, Member-paid expense became refundable, Ledger record corrected, Ledger record voided | Records have amount, month/date, category, creator, payment source, payer/source member, reimbursement status when member-paid, and active/voided lifecycle; general members can modify only owned records; voided records must not appear in active totals, record lists, category summaries, or refundable expense calculations. | Should a reimbursed member-paid expense be directly voidable in MVP, admin-only, or blocked until reimbursement reversal exists? |
 | CategoryCatalog | Category created, Category renamed, Category archived, Category visual identity changed, Category order changed, Category management command rejected | Income and expense records reference valid categories; only admins create, rename, archive, change visual identity, and reorder categories; active categories are available for new records; active category choices are ordered by household/type sort order; archived categories remain readable with their saved visual identity for historical records and reports. | Should category name uniqueness compare only active categories, or also archived categories of the same type? |
 | RecurringRule | Recurring rule created, Recurring rule updated, Immediate recurring item posted, Recurring reminder created, Recurring reminder confirmed | Posting mode is either immediate or reminder-based; reminder-based items do not affect totals until confirmed. | How are missed or duplicate monthly occurrences prevented? |
-| ReimbursementBatch | Reimbursement expenses selected, Expenses reimbursed | Only finance managers perform reimbursement; selected refundable expenses can be marked reimbursed once; reimbursement totals trace to expense IDs. | Does reimbursement reduce fund balance or only mark settlement state? |
+| ReimbursementBatch | Reimbursement expenses selected, Expenses reimbursed, Record detail reimbursement confirmed, Record detail expense reimbursed | Only finance managers perform reimbursement; selected refundable expenses can be marked reimbursed once; reimbursement totals trace to expense IDs; record-detail reimbursement is the single-expense variant of the same settlement invariant. | Does reimbursement reduce fund balance or only mark settlement state? |
 | MonthlyReport | Monthly records viewed, Monthly report generated, Monthly reimbursement table generated | Reports derive from ledger, recurring, category, and reimbursement data by month. | Which mobile report summaries are required for MVP? |
 
 ## Bounded Context Candidates
@@ -159,7 +164,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 | Fund Ledger | income record, expense record, payment source, payer member, record owner, fund-paid expense, member-paid expense | Create, correct, delete, and browse confirmed financial records; enforce record ownership rules. | Uses Identity and Access for authorization; feeds Reporting and Reimbursement. |
 | Categorization | category, income category, expense category, category visual identity, category color, category icon, category sort order, active category, archived category | Admin-only category management, category lifecycle, visual identity, and active-category ordering; classify ledger records by active categories while preserving archived labels and visual identity for history. | Uses Identity and Access for admin-only authorization; feeds Fund Ledger and Reporting. |
 | Recurring Schedule | recurring rule, immediate posting, reminder-based posting, pending recurring item | Manage monthly expected items, auto-post immediate items, and confirm reminder items. | Creates ledger records in Fund Ledger; feeds Reporting with pending items. |
-| Reimbursement | reimbursement table, refundable expense, selected expense, reimbursed expense, payer member | Calculate refundable member-paid expenses by month and mark selected expenses reimbursed once. | Uses Fund Ledger expenses and Identity and Access finance-manager permissions; feeds Reporting. |
+| Reimbursement | reimbursement table, refundable expense, selected expense, reimbursed expense, payer member, record detail reimbursement | Calculate refundable member-paid expenses by month and mark selected expenses reimbursed once, including a single-record path from the record detail dialog. | Uses Fund Ledger expenses and Identity and Access finance-manager permissions; feeds Reporting. |
 | Reporting | monthly records, monthly report, category summary, category color, reimbursement status | Month-based views for records, category totals, pending recurring items, and reimbursement status; category summaries use persisted category visual identity when available. | Downstream read model from Ledger, Categorization, Recurring Schedule, and Reimbursement. |
 | Responsive Web Experience | desktop layout, mobile layout, browse flow, create flow, report flow, reimbursement flow | Ensure core workflows are usable on desktop and mobile. | Presentation concern downstream from all domain contexts; not source of financial truth. |
 
@@ -314,6 +319,7 @@ This artifact inherits `mvp` delivery and `local_dev` release target from `idea-
 - Reminder delivery is unresolved; MVP can use in-app pending reminders unless external notification is selected later.
 - Expense split rules are unresolved; MVP assumes one category and one upfront payer unless changed.
 - Reimbursement accounting effect is unresolved; current model changes member-paid expenses from refundable/unreimbursed to reimbursed and leaves whether fund balance changes as an open policy decision.
+- Record detail reimbursement wording is decided for the active slice: the button label is `退款`, and it marks an eligible member-paid expense reimbursed after confirmation; it does not execute an external payment transfer.
 - Deletion semantics are unresolved; hard delete is simpler, but void/archive may better protect financial history.
 - RWD acceptance needs concrete workflow priority: browse, create, monthly report, reimbursement, and member management may need different mobile density.
 

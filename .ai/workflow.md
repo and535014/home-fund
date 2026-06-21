@@ -174,11 +174,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: record-detail-reimbursement
 - latest_completed_slice: edit/delete ledger records, compressed in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`.
-- current_stage: Artifact Compression review for edit/delete ledger records.
-- recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change.
+- current_stage: Experience Prototype approved for record detail reimbursement.
+- recommended_resume_gate: Behavior Spec / BDD / E2E after user approval.
+- recommended_next_skill: behavior-spec after Experience Prototype is approved.
 
 ## Artifact Inventory
 

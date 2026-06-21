@@ -223,7 +223,7 @@ function updateLedgerRecordError(
     record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
     record_voided: "這筆紀錄已刪除，無法再次修改。",
     reimbursed_expense_blocked:
-      "這筆代墊支出已退款，需先有退款沖銷流程才能編輯或刪除。",
+      "這筆代墊支出已退款，無法編輯或刪除。",
   };
 
   return actionError(messages[code], {
@@ -241,7 +241,7 @@ function voidLedgerRecordError(
     record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
     record_voided: "這筆紀錄已刪除，無法再次修改。",
     reimbursed_expense_blocked:
-      "這筆代墊支出已退款，需先有退款沖銷流程才能編輯或刪除。",
+      "這筆代墊支出已退款，無法編輯或刪除。",
   };
 
   return actionError(messages[code], {
