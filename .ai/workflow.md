@@ -176,8 +176,8 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: record-detail-reimbursement
 - latest_completed_slice: edit/delete ledger records, compressed in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`.
-- current_stage: TDD Implementation for record detail reimbursement.
-- recommended_resume_gate: Verification after implementation.
+- current_stage: TDD Implementation review for record detail reimbursement.
+- recommended_resume_gate: Verification after user approval.
 - recommended_next_skill: verification after TDD Implementation is complete.
 
 ## Artifact Inventory

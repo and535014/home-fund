@@ -20,8 +20,11 @@ import { toast } from "sonner";
 
 import { initialActionState } from "@/app/action-state";
 import {
+  reimburseLedgerRecordAction,
   updateLedgerRecordAction,
   voidLedgerRecordAction,
+  type ReimburseLedgerRecordActionCode,
+  type ReimburseLedgerRecordActionField,
   type UpdateLedgerRecordActionCode,
   type UpdateLedgerRecordActionField,
   type VoidLedgerRecordActionCode,
@@ -233,9 +236,9 @@ function RecordDetailDialog({
   const [mode, setMode] = useState<"detail" | "edit" | "delete" | "refund">(
     "detail",
   );
-  const [isPrototypeReimbursed, setIsPrototypeReimbursed] = useState(false);
+  const [isRefundedLocally, setIsRefundedLocally] = useState(false);
   const displayedRecord =
-    isPrototypeReimbursed && record.type === "expense"
+    isRefundedLocally && record.type === "expense"
       ? ({
           ...record,
           reimbursementStatus: "reimbursed",
@@ -284,7 +287,7 @@ function RecordDetailDialog({
         memberNames={memberNames}
         onCancel={() => setMode("detail")}
         onSuccess={() => {
-          setIsPrototypeReimbursed(true);
+          setIsRefundedLocally(true);
           setMode("detail");
           toast.success("已完成退款", {
             description: "這筆紀錄已標記為已退款。",
@@ -315,12 +318,10 @@ function RecordDetailDialog({
         </div>
 
         {access.blockedReason ? (
-        <Alert variant="warning">
-          <AlertTriangle />
-          <AlertDescription>
-            {access.blockedReason}
-          </AlertDescription>
-        </Alert>
+          <Alert variant="warning">
+            <AlertTriangle />
+            <AlertDescription>{access.blockedReason}</AlertDescription>
+          </Alert>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -401,11 +402,25 @@ function RefundRecordDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const [isPending, setIsPending] = useState(false);
+  const [actionState, setActionState] = useState(() =>
+    initialActionState<
+      { recordId: string },
+      ReimburseLedgerRecordActionField,
+      ReimburseLedgerRecordActionCode
+    >(),
+  );
+  const [isPending, startTransition] = useTransition();
 
-  function confirmPrototypeRefund() {
-    setIsPending(true);
-    onSuccess();
+  function formAction(formData: FormData) {
+    startTransition(async () => {
+      const nextState = await reimburseLedgerRecordAction(actionState, formData);
+
+      setActionState(nextState);
+
+      if (nextState.status === "success") {
+        onSuccess();
+      }
+    });
   }
 
   return (
@@ -415,36 +430,40 @@ function RefundRecordDialog({
         <DialogDescription>將此紀錄標記為已退款。</DialogDescription>
       </DialogHeader>
 
-      <DialogBody className="grid gap-3">
-        <Item className="border border-border bg-secondary/30">
-          <RecordSummaryContent
-            category={category}
-            memberNames={memberNames}
-            record={record}
-          />
-        </Item>
-        <Alert variant="warning">
-          <AlertTriangle />
-          <AlertDescription>
-            確認後，狀態會顯示為已退款，且無法編輯或刪除。
-          </AlertDescription>
-        </Alert>
-      </DialogBody>
+      <form action={formAction}>
+        {actionState.status === "error" && actionState.message ? (
+          <Alert className="mb-3" role="alert" variant="destructive">
+            <AlertDescription>{actionState.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        <input name="recordId" type="hidden" value={record.id} />
+        <DialogBody className="grid gap-3">
+          <Item className="border border-border bg-secondary/30">
+            <RecordSummaryContent
+              category={category}
+              memberNames={memberNames}
+              record={record}
+            />
+          </Item>
+          <Alert variant="warning">
+            <AlertTriangle />
+            <AlertDescription>
+              確認後，狀態會顯示為已退款，且無法編輯或刪除。
+            </AlertDescription>
+          </Alert>
+        </DialogBody>
 
-      <DialogFooter className="mt-4">
-        <Button onClick={onCancel} type="button" variant="outline">
-          <X />
-          取消
-        </Button>
-        <Button
-          disabled={isPending}
-          onClick={confirmPrototypeRefund}
-          type="button"
-        >
-          <HandCoins />
-          {isPending ? "處理中..." : "確認退款"}
-        </Button>
-      </DialogFooter>
+        <DialogFooter className="mt-4">
+          <Button onClick={onCancel} type="button" variant="outline">
+            <X />
+            取消
+          </Button>
+          <Button disabled={isPending} type="submit">
+            <HandCoins />
+            {isPending ? "處理中..." : "確認退款"}
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }

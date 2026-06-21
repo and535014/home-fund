@@ -63,6 +63,7 @@ export function markExpensesReimbursed(
     }
 
     if (
+      expense.status !== "active" ||
       expense.paymentSource !== "member" ||
       expense.reimbursementStatus !== "refundable"
     ) {

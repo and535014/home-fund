@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseCreateLedgerRecordForm,
+  parseReimburseLedgerRecordForm,
   parseUpdateLedgerRecordForm,
   parseVoidLedgerRecordForm,
 } from "./ledger-record-form";
@@ -137,6 +138,29 @@ describe("parseVoidLedgerRecordForm", () => {
       command: {
         recordId: "expense-1",
       },
+    });
+  });
+});
+
+describe("parseReimburseLedgerRecordForm", () => {
+  it("parses a refund form into a reimbursement command", () => {
+    const formData = new FormData();
+    formData.set("recordId", "expense-1");
+
+    expect(parseReimburseLedgerRecordForm(formData)).toEqual({
+      ok: true,
+      command: {
+        selectedExpenseIds: ["expense-1"],
+      },
+    });
+  });
+
+  it("requires a record id before refunding", () => {
+    const formData = new FormData();
+
+    expect(parseReimburseLedgerRecordForm(formData)).toEqual({
+      ok: false,
+      reason: "missing_record_id",
     });
   });
 });

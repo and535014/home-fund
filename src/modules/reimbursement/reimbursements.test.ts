@@ -110,4 +110,21 @@ describe("markExpensesReimbursed", () => {
       expenseId: "expense-missing",
     });
   });
+
+  it("rejects voided expenses", () => {
+    const result = markExpensesReimbursed(financeManager, [
+      {
+        ...refundableExpense,
+        status: "voided",
+      },
+    ], {
+      selectedExpenseIds: ["expense-refundable"],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "not_refundable",
+      expenseId: "expense-refundable",
+    });
+  });
 });

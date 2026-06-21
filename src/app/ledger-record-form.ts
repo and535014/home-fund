@@ -5,6 +5,9 @@ import type {
   UpdateLedgerRecordInDatabaseCommand,
   VoidLedgerRecordInDatabaseCommand,
 } from "@/modules/fund-ledger/ledger-record-command";
+import type {
+  MarkExpensesReimbursedCommand,
+} from "@/modules/reimbursement/reimbursements";
 
 export type ParseCreateLedgerRecordFormResult =
   | {
@@ -140,6 +143,16 @@ export type ParseVoidLedgerRecordFormResult =
       reason: "missing_record_id";
     };
 
+export type ParseReimburseLedgerRecordFormResult =
+  | {
+      ok: true;
+      command: MarkExpensesReimbursedCommand;
+    }
+  | {
+      ok: false;
+      reason: "missing_record_id";
+    };
+
 export function parseUpdateLedgerRecordForm(
   formData: FormData,
 ): ParseUpdateLedgerRecordFormResult {
@@ -199,6 +212,21 @@ export function parseVoidLedgerRecordForm(
   return {
     ok: true,
     command: { recordId },
+  };
+}
+
+export function parseReimburseLedgerRecordForm(
+  formData: FormData,
+): ParseReimburseLedgerRecordFormResult {
+  const recordId = readFormString(formData, "recordId");
+
+  if (!recordId) {
+    return { ok: false, reason: "missing_record_id" };
+  }
+
+  return {
+    ok: true,
+    command: { selectedExpenseIds: [recordId] },
   };
 }
 

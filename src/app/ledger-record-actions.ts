@@ -14,8 +14,10 @@ import {
   voidLedgerRecordInDatabase,
   type LedgerRecordMutationPrismaClient,
 } from "@/modules/fund-ledger/ledger-record-command";
+import { markExpensesReimbursedInDatabase } from "@/modules/reimbursement/reimbursement-command";
 import {
   parseCreateLedgerRecordForm,
+  parseReimburseLedgerRecordForm,
   parseUpdateLedgerRecordForm,
   parseVoidLedgerRecordForm,
 } from "./ledger-record-form";
@@ -67,6 +69,15 @@ export type VoidLedgerRecordActionCode =
 
 export type VoidLedgerRecordActionField = "recordId";
 
+export type ReimburseLedgerRecordActionCode =
+  | "already_reimbursed"
+  | "missing_record_id"
+  | "not_refundable"
+  | "permission_denied"
+  | "record_not_found";
+
+export type ReimburseLedgerRecordActionField = "recordId";
+
 export type CreateLedgerRecordActionState = ActionState<
   { recordId: string },
   CreateLedgerRecordActionField,
@@ -83,6 +94,12 @@ export type VoidLedgerRecordActionState = ActionState<
   { recordId: string },
   VoidLedgerRecordActionField,
   VoidLedgerRecordActionCode
+>;
+
+export type ReimburseLedgerRecordActionState = ActionState<
+  { recordId: string },
+  ReimburseLedgerRecordActionField,
+  ReimburseLedgerRecordActionCode
 >;
 
 export async function createLedgerRecordAction(
@@ -176,6 +193,38 @@ export async function voidLedgerRecordAction(
   });
 }
 
+export async function reimburseLedgerRecordAction(
+  _previousState: ReimburseLedgerRecordActionState,
+  formData: FormData,
+): Promise<ReimburseLedgerRecordActionState> {
+  const parsed = parseReimburseLedgerRecordForm(formData);
+
+  if (!parsed.ok) {
+    return reimburseLedgerRecordError(parsed.reason);
+  }
+
+  const session = await requireAuthenticatedMember();
+  const result = await markExpensesReimbursedInDatabase(
+    session.access.member,
+    parsed.command,
+    {
+      prisma: getPrismaClient(),
+    },
+  );
+
+  if (!result.ok) {
+    return reimburseLedgerRecordError(
+      reimbursementErrorCodeForResult(result.reason),
+    );
+  }
+
+  revalidatePath("/");
+  revalidatePath("/reimbursements");
+  return actionSuccess("已完成退款。", {
+    recordId: parsed.command.selectedExpenseIds[0],
+  });
+}
+
 function createLedgerRecordError(
   code: CreateLedgerRecordActionCode,
 ): CreateLedgerRecordActionState {
@@ -248,6 +297,42 @@ function voidLedgerRecordError(
     code,
     fieldErrors: { recordId: [messages[code]] },
   });
+}
+
+function reimburseLedgerRecordError(
+  code: ReimburseLedgerRecordActionCode,
+): ReimburseLedgerRecordActionState {
+  const messages: Record<ReimburseLedgerRecordActionCode, string> = {
+    already_reimbursed: "這筆代墊支出已退款，無法編輯或刪除。",
+    missing_record_id: "找不到要退款的紀錄。",
+    not_refundable: "這筆紀錄無法退款。",
+    permission_denied: "目前帳號沒有退款這筆紀錄的權限。",
+    record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
+  };
+
+  return actionError(messages[code], {
+    code,
+    fieldErrors: { recordId: [messages[code]] },
+  });
+}
+
+function reimbursementErrorCodeForResult(
+  reason:
+    | "permission_denied"
+    | "empty_selection"
+    | "expense_not_found"
+    | "not_refundable"
+    | "already_reimbursed",
+): ReimburseLedgerRecordActionCode {
+  if (reason === "empty_selection") {
+    return "missing_record_id";
+  }
+
+  if (reason === "expense_not_found") {
+    return "record_not_found";
+  }
+
+  return reason;
 }
 
 function fieldForError(

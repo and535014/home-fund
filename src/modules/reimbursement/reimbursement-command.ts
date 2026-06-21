@@ -32,6 +32,7 @@ export async function markExpensesReimbursedInDatabase(
           in: selectedExpenseIds,
         },
         type: "expense",
+        status: "active",
       },
       select: {
         id: true,
@@ -77,6 +78,7 @@ export async function markExpensesReimbursedInDatabase(
         id: {
           in: result.reimbursedExpenses.map((expense) => expense.id),
         },
+        status: "active",
       },
       data: {
         reimbursementStatus: "reimbursed",
