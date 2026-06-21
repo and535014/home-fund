@@ -7,6 +7,8 @@ import {
   Pencil,
   ReceiptText,
   Save,
+  Search,
+  SlidersHorizontal,
   StickyNote,
   Trash2,
   UserRound,
@@ -14,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -53,6 +55,7 @@ import {
 } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryVisualMark, getCategoryVisual } from "@/app/category-visuals";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -61,18 +64,38 @@ export function RecordListDetail({
   actor,
   categories,
   categoriesById,
+  enableQuery = false,
   memberNames,
   records,
 }: {
   actor: HouseholdAccessProfile;
   categories: Category[];
   categoriesById: Record<string, Category>;
+  enableQuery?: boolean;
   memberNames: Record<string, string>;
   records: LedgerRecord[];
 }) {
   const router = useRouter();
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [query, setQuery] = useState<RecordQueryState>(initialRecordQueryState);
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const queryOptions = useMemo(
+    () => buildRecordQueryOptions(categories, memberNames),
+    [categories, memberNames],
+  );
+  const filteredRecords = useMemo(
+    () =>
+      enableQuery
+        ? applyRecordQuery(records, {
+            categoriesById,
+            memberNames,
+            query,
+          })
+        : records,
+    [categoriesById, enableQuery, memberNames, query, records],
+  );
+  const hasActiveQuery = !enableQuery || !isInitialRecordQuery(query);
+  const displayedRecords = hasActiveQuery ? filteredRecords : [];
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ?? null;
   function closeSelectedRecord() {
@@ -84,26 +107,44 @@ export function RecordListDetail({
 
   return (
     <>
-      {records.length === 0 ? (
-        <div className="flex h-full items-center justify-center px-4 py-8 text-center text-muted-foreground">
-          這個月份尚無紀錄。
-        </div>
-      ) : (
-        <ItemGroup className="h-full overflow-y-auto divide-y divide-border">
-          {records.map((record) => (
-            <RecordListItem
-              category={categoriesById[record.categoryId]}
-              key={record.id}
-              memberNames={memberNames}
-              onOpen={(trigger) => {
-                selectedRecordTriggerRef.current = trigger;
-                setSelectedRecordId(record.id);
-              }}
-              record={record}
-            />
-          ))}
-        </ItemGroup>
-      )}
+      <div className="flex h-full min-h-0 flex-col gap-3">
+        {enableQuery ? (
+          <RecordQueryControls
+            onChange={setQuery}
+            options={queryOptions}
+            query={query}
+          />
+        ) : null}
+
+        {records.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center text-muted-foreground">
+            {enableQuery ? "尚無紀錄。" : "這個月份尚無紀錄。"}
+          </div>
+        ) : enableQuery && !hasActiveQuery ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center text-muted-foreground">
+            請輸入關鍵字或設定篩選條件。
+          </div>
+        ) : displayedRecords.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center text-muted-foreground">
+            沒有符合條件的紀錄。
+          </div>
+        ) : (
+          <ItemGroup className="min-h-0 flex-1 overflow-y-auto divide-y divide-border">
+            {displayedRecords.map((record) => (
+              <RecordListItem
+                category={categoriesById[record.categoryId]}
+                key={record.id}
+                memberNames={memberNames}
+                onOpen={(trigger) => {
+                  selectedRecordTriggerRef.current = trigger;
+                  setSelectedRecordId(record.id);
+                }}
+                record={record}
+              />
+            ))}
+          </ItemGroup>
+        )}
+      </div>
 
       <Dialog
         open={Boolean(selectedRecord)}
@@ -134,6 +175,478 @@ export function RecordListDetail({
       </Dialog>
     </>
   );
+}
+
+type RecordSortOrder = "newest" | "oldest" | "amount_desc" | "amount_asc";
+
+type RecordQueryState = {
+  categoryId: string;
+  dateFrom: string;
+  dateTo: string;
+  participant: string;
+  reimbursementStatus: string;
+  search: string;
+  sort: RecordSortOrder;
+  type: string;
+};
+
+type RecordQueryOptions = {
+  activeCategories: Category[];
+  participants: { label: string; value: string }[];
+};
+
+const initialRecordQueryState: RecordQueryState = {
+  categoryId: "all",
+  dateFrom: "",
+  dateTo: "",
+  participant: "all",
+  reimbursementStatus: "all",
+  search: "",
+  sort: "newest",
+  type: "all",
+};
+
+function RecordQueryControls({
+  onChange,
+  options,
+  query,
+}: {
+  onChange: (query: RecordQueryState) => void;
+  options: RecordQueryOptions;
+  query: RecordQueryState;
+}) {
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [draftQuery, setDraftQuery] = useState(query);
+  const activeFilterCount = recordFilterCount(query);
+  const draftFilterCount = recordFilterCount(draftQuery);
+  const draftCategoryOptions = options.activeCategories.filter(
+    (category) => draftQuery.type === "all" || category.type === draftQuery.type,
+  );
+  const draftParticipantOptions = options.participants.filter(
+    (participant) => draftQuery.type !== "income" || participant.value !== "fund",
+  );
+
+  function patchQuery(patch: Partial<RecordQueryState>) {
+    onChange({ ...query, ...patch });
+  }
+
+  function patchDraftQuery(patch: Partial<RecordQueryState>) {
+    setDraftQuery({ ...draftQuery, ...patch });
+  }
+
+  function openFilterDialog() {
+    setDraftQuery(query);
+    setIsFilterDialogOpen(true);
+  }
+
+  function applyDraftQuery() {
+    onChange({ ...draftQuery, search: query.search });
+    setIsFilterDialogOpen(false);
+  }
+
+  return (
+    <div className="grid shrink-0 gap-3">
+      <div className="flex items-center gap-2">
+        <label className="relative block min-w-0 flex-1">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            aria-label="搜尋紀錄"
+            className="pl-9 pr-9"
+            onChange={(event) =>
+              patchQuery({ search: event.currentTarget.value })
+            }
+            placeholder="搜尋紀錄"
+            value={query.search}
+          />
+          {query.search ? (
+            <Button
+              aria-label="清除搜尋"
+              className="absolute right-1 top-1/2 size-8 -translate-y-1/2"
+              onClick={() => patchQuery({ search: "" })}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            >
+              <X />
+            </Button>
+          ) : null}
+        </label>
+
+        <Button
+          aria-label={
+            activeFilterCount > 0
+              ? `開啟篩選，已設定 ${activeFilterCount} 個條件`
+              : "開啟篩選"
+          }
+          className={cn(
+            activeFilterCount > 0 &&
+              "border-primary/70 bg-primary/15 text-primary ring-2 ring-primary/35 hover:bg-primary/20",
+          )}
+          size="icon"
+          onClick={openFilterDialog}
+          type="button"
+          variant={activeFilterCount > 0 ? "secondary" : "outline"}
+        >
+          <SlidersHorizontal />
+        </Button>
+      </div>
+
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>篩選與排序</DialogTitle>
+          </DialogHeader>
+
+          <DialogBody className="grid gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-2 text-label">
+                類型
+                <NativeSelect
+                  aria-label="依類型篩選"
+                  onChange={(event) => {
+                    const type = event.currentTarget.value;
+                    const selectedCategory = options.activeCategories.find(
+                      (category) => category.id === draftQuery.categoryId,
+                    );
+
+                    patchDraftQuery({
+                      categoryId:
+                        type === "all" ||
+                        !selectedCategory ||
+                        selectedCategory.type === type
+                          ? draftQuery.categoryId
+                          : "all",
+                      participant:
+                        type === "income" && draftQuery.participant === "fund"
+                          ? "all"
+                          : draftQuery.participant,
+                      type,
+                    });
+                  }}
+                  value={draftQuery.type}
+                >
+                  <option value="all">全部</option>
+                  <option value="income">收入</option>
+                  <option value="expense">支出</option>
+                </NativeSelect>
+              </label>
+
+              <label className="grid gap-2 text-label">
+                分類
+                <NativeSelect
+                  aria-label="依分類篩選"
+                  onChange={(event) =>
+                    patchDraftQuery({ categoryId: event.currentTarget.value })
+                  }
+                  value={draftQuery.categoryId}
+                >
+                  <option value="all">全部</option>
+                  {draftCategoryOptions.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+
+              <label className="grid gap-2 text-label">
+                收支對象
+                <NativeSelect
+                  aria-label="依收支對象篩選"
+                  onChange={(event) =>
+                    patchDraftQuery({ participant: event.currentTarget.value })
+                  }
+                  value={draftQuery.participant}
+                >
+                  <option value="all">全部</option>
+                  {draftParticipantOptions.map((participant) => (
+                    <option key={participant.value} value={participant.value}>
+                      {participant.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </label>
+
+              <label className="grid gap-2 text-label">
+                退款狀態
+                <NativeSelect
+                  aria-label="依退款狀態篩選"
+                  onChange={(event) =>
+                    patchDraftQuery({
+                      reimbursementStatus: event.currentTarget.value,
+                    })
+                  }
+                  value={draftQuery.reimbursementStatus}
+                >
+                  <option value="all">全部</option>
+                  <option value="refunded">已退款</option>
+                  <option value="unrefunded">未退款</option>
+                </NativeSelect>
+              </label>
+
+              <label className="grid gap-2 text-label">
+                開始日期
+                <Input
+                  aria-label="開始日期"
+                  onChange={(event) =>
+                    patchDraftQuery({ dateFrom: event.currentTarget.value })
+                  }
+                  type="date"
+                  value={draftQuery.dateFrom}
+                />
+              </label>
+
+              <label className="grid gap-2 text-label">
+                結束日期
+                <Input
+                  aria-label="結束日期"
+                  onChange={(event) =>
+                    patchDraftQuery({ dateTo: event.currentTarget.value })
+                  }
+                  type="date"
+                  value={draftQuery.dateTo}
+                />
+              </label>
+            </div>
+
+            <label className="grid gap-2 text-label">
+              排序
+              <NativeSelect
+                aria-label="紀錄排序"
+                onChange={(event) =>
+                  patchDraftQuery({
+                    sort: event.currentTarget.value as RecordSortOrder,
+                  })
+                }
+                value={draftQuery.sort}
+              >
+                <option value="newest">新到舊</option>
+                <option value="oldest">舊到新</option>
+                <option value="amount_desc">金額高到低</option>
+                <option value="amount_asc">金額低到高</option>
+              </NativeSelect>
+            </label>
+          </DialogBody>
+
+          <DialogFooter className="mt-4">
+            {draftFilterCount > 0 ? (
+              <Button
+                onClick={() => {
+                  setDraftQuery({
+                    ...initialRecordQueryState,
+                    search: query.search,
+                  });
+                }}
+                type="button"
+                variant="outline"
+              >
+                <X />
+                清除
+              </Button>
+            ) : null}
+            <Button
+              onClick={applyDraftQuery}
+              type="button"
+            >
+              套用
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function buildRecordQueryOptions(
+  categories: Category[],
+  memberNames: Record<string, string>,
+): RecordQueryOptions {
+  return {
+    activeCategories: categories
+      .filter((category) => category.status === "active")
+      .toSorted((a, b) => {
+        if (a.type !== b.type) {
+          return a.type.localeCompare(b.type);
+        }
+
+        return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+      }),
+    participants: [
+      { label: "基金", value: "fund" },
+      ...Object.entries(memberNames)
+        .map(([id, displayName]) => ({
+          label: displayName,
+          value: `member:${id}`,
+        }))
+        .toSorted((a, b) => a.label.localeCompare(b.label, "zh-TW")),
+    ],
+  };
+}
+
+function applyRecordQuery(
+  records: LedgerRecord[],
+  {
+    categoriesById,
+    memberNames,
+    query,
+  }: {
+    categoriesById: Record<string, Category>;
+    memberNames: Record<string, string>;
+    query: RecordQueryState;
+  },
+): LedgerRecord[] {
+  const search = query.search.trim().toLocaleLowerCase("zh-TW");
+
+  return records
+    .filter((record) => record.status === "active")
+    .filter((record) => {
+      const category = categoriesById[record.categoryId];
+
+      if (query.type !== "all" && record.type !== query.type) {
+        return false;
+      }
+
+      if (query.categoryId !== "all" && record.categoryId !== query.categoryId) {
+        return false;
+      }
+
+      if (!recordMatchesParticipant(record, query.participant)) {
+        return false;
+      }
+
+      if (!recordMatchesReimbursementStatus(record, query.reimbursementStatus)) {
+        return false;
+      }
+
+      if (query.dateFrom && record.occurredOn < query.dateFrom) {
+        return false;
+      }
+
+      if (query.dateTo && record.occurredOn > query.dateTo) {
+        return false;
+      }
+
+      if (search && !recordSearchText(record, category, memberNames).includes(search)) {
+        return false;
+      }
+
+      return true;
+    })
+    .toSorted((a, b) => compareRecords(a, b, query.sort));
+}
+
+function recordMatchesParticipant(
+  record: LedgerRecord,
+  participant: string,
+): boolean {
+  if (participant === "all") {
+    return true;
+  }
+
+  if (participant === "fund") {
+    return record.type === "expense" && record.paymentSource === "fund";
+  }
+
+  const memberId = participant.replace("member:", "");
+
+  if (record.type === "income") {
+    return record.sourceMemberId === memberId;
+  }
+
+  return record.paymentSource === "member" && record.payerMemberId === memberId;
+}
+
+function recordMatchesReimbursementStatus(
+  record: LedgerRecord,
+  reimbursementStatus: string,
+): boolean {
+  if (reimbursementStatus === "all") {
+    return true;
+  }
+
+  if (record.type !== "expense" || record.paymentSource !== "member") {
+    return false;
+  }
+
+  if (reimbursementStatus === "refunded") {
+    return record.reimbursementStatus === "reimbursed";
+  }
+
+  return record.reimbursementStatus === "refundable";
+}
+
+function recordSearchText(
+  record: LedgerRecord,
+  category: Category | undefined,
+  memberNames: Record<string, string>,
+): string {
+  const activeCategoryName =
+    category?.status === "active" ? category.name : "";
+
+  return [
+    record.name,
+    record.note,
+    activeCategoryName,
+    record.type === "income" ? "收入" : "支出",
+    record.type === "expense" && record.paymentSource === "fund"
+      ? "基金支出"
+      : null,
+    recordActorLabel(record, memberNames),
+    ledgerRecordStatusLabel(record),
+    formatDate(record.occurredOn),
+    formatAmount(record.amountCents),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("zh-TW");
+}
+
+function compareRecords(
+  a: LedgerRecord,
+  b: LedgerRecord,
+  sort: RecordSortOrder,
+): number {
+  if (sort === "oldest") {
+    return a.occurredOn.localeCompare(b.occurredOn) || a.name.localeCompare(b.name);
+  }
+
+  if (sort === "amount_desc") {
+    return b.amountCents - a.amountCents || b.occurredOn.localeCompare(a.occurredOn);
+  }
+
+  if (sort === "amount_asc") {
+    return a.amountCents - b.amountCents || b.occurredOn.localeCompare(a.occurredOn);
+  }
+
+  return b.occurredOn.localeCompare(a.occurredOn) || a.name.localeCompare(b.name);
+}
+
+function isInitialRecordQuery(query: RecordQueryState): boolean {
+  return (
+    query.categoryId === initialRecordQueryState.categoryId &&
+    query.dateFrom === initialRecordQueryState.dateFrom &&
+    query.dateTo === initialRecordQueryState.dateTo &&
+    query.participant === initialRecordQueryState.participant &&
+    query.reimbursementStatus === initialRecordQueryState.reimbursementStatus &&
+    query.search === initialRecordQueryState.search &&
+    query.sort === initialRecordQueryState.sort &&
+    query.type === initialRecordQueryState.type
+  );
+}
+
+function recordFilterCount(query: RecordQueryState): number {
+  return [
+    query.categoryId !== initialRecordQueryState.categoryId,
+    query.dateFrom !== initialRecordQueryState.dateFrom,
+    query.dateTo !== initialRecordQueryState.dateTo,
+    query.participant !== initialRecordQueryState.participant,
+    query.reimbursementStatus !== initialRecordQueryState.reimbursementStatus,
+    query.sort !== initialRecordQueryState.sort,
+    query.type !== initialRecordQueryState.type,
+  ].filter(Boolean).length;
 }
 
 function RecordListItem({

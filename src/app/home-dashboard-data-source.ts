@@ -43,6 +43,22 @@ type PrismaLedgerRecordRow = {
   note: string | null;
 };
 
+const ledgerRecordSelect = {
+  id: true,
+  type: true,
+  name: true,
+  amountCents: true,
+  occurredOn: true,
+  categoryId: true,
+  createdByMemberId: true,
+  sourceMemberId: true,
+  paymentSource: true,
+  payerMemberId: true,
+  reimbursementStatus: true,
+  status: true,
+  note: true,
+} as const;
+
 export type HomeDashboardPrismaClient = {
   member: {
     findMany(args: {
@@ -85,28 +101,8 @@ export type HomeDashboardPrismaClient = {
   };
   ledgerRecord: {
     findMany(args: {
-      where: {
-        occurredOn: {
-          gte: Date;
-          lt: Date;
-        };
-        status: "active";
-      };
-      select: {
-        id: true;
-        type: true;
-        name: true;
-        amountCents: true;
-        occurredOn: true;
-        categoryId: true;
-        createdByMemberId: true;
-        sourceMemberId: true;
-        paymentSource: true;
-        payerMemberId: true;
-        reimbursementStatus: true;
-        status: true;
-        note: true;
-      };
+      where: { occurredOn?: { gte: Date; lt: Date }; status: "active" };
+      select: typeof ledgerRecordSelect;
       orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }];
     }): Promise<PrismaLedgerRecordRow[]>;
   };
@@ -159,24 +155,62 @@ export function createHomeDashboardDataSource(
               occurredOn: monthDateRange(month),
               status: "active",
             },
-            select: {
-              id: true,
-              type: true,
-              name: true,
-              amountCents: true,
-              occurredOn: true,
-              categoryId: true,
-              createdByMemberId: true,
-              sourceMemberId: true,
-              paymentSource: true,
-              payerMemberId: true,
-              reimbursementStatus: true,
-              status: true,
-              note: true,
-            },
+            select: ledgerRecordSelect,
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
           }),
         ]);
+
+      return {
+        householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
+        categories: categories.map(mapPrismaCategoryToCategory),
+        records: records.map(mapPrismaLedgerRecordToLedgerRecord),
+      };
+    },
+    async getSearchPageData(): Promise<HomeDashboardData> {
+      const [householdMembers, categories, records] = await Promise.all([
+        prisma.member.findMany({
+          select: {
+            id: true,
+            displayName: true,
+            avatarUrl: true,
+            googleAccountEmail: true,
+            googleSubject: true,
+            status: true,
+            roles: {
+              select: {
+                role: true,
+              },
+            },
+            capabilities: {
+              select: {
+                capability: true,
+              },
+            },
+          },
+          orderBy: {
+            displayName: "asc",
+          },
+        }),
+        prisma.category.findMany({
+          select: {
+            id: true,
+            type: true,
+            name: true,
+            color: true,
+            icon: true,
+            sortOrder: true,
+            status: true,
+          },
+          orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+        }),
+        prisma.ledgerRecord.findMany({
+          where: {
+            status: "active",
+          },
+          select: ledgerRecordSelect,
+          orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
+        }),
+      ]);
 
       return {
         householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
