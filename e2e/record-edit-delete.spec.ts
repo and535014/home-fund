@@ -28,7 +28,7 @@ test("edits and voids an own ledger record from the dashboard detail", async ({
   await editDialog.getByRole("button", { name: "儲存變更" }).click();
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("紀錄已更新")).toBeVisible();
+  await expect(page.getByText("紀錄已更新", { exact: true })).toBeVisible();
   await expect(page.getByText("E2E 已更新刪除")).toBeVisible();
 
   await page.getByRole("button", { name: "查看E2E 已更新刪除詳情" }).click();
@@ -42,7 +42,7 @@ test("edits and voids an own ledger record from the dashboard detail", async ({
   await deleteDialog.getByRole("button", { name: "確認刪除" }).click();
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("紀錄已刪除")).toBeVisible();
+  await expect(page.getByText("紀錄已刪除", { exact: true })).toBeVisible();
   await expect(page.getByText("E2E 已更新刪除")).toHaveCount(0);
   await expect(page.getByRole("button", {
     name: "查看E2E 已更新刪除詳情",

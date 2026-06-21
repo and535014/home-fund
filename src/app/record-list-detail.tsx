@@ -127,6 +127,7 @@ export function RecordListDetail({
               closeSelectedRecord();
               router.refresh();
             }}
+            onRefresh={() => router.refresh()}
             record={selectedRecord}
           />
         ) : null}
@@ -222,6 +223,7 @@ function RecordDetailDialog({
   categoryName,
   memberNames,
   onMutationSuccess,
+  onRefresh,
   record,
 }: {
   actor: HouseholdAccessProfile;
@@ -230,6 +232,7 @@ function RecordDetailDialog({
   categoryName: string;
   memberNames: Record<string, string>;
   onMutationSuccess: () => void;
+  onRefresh: () => void;
   record: LedgerRecord;
 }) {
   const isIncome = record.type === "income";
@@ -293,6 +296,7 @@ function RecordDetailDialog({
             description: "這筆紀錄已標記為已退款。",
             id: `refund-record-success-${record.id}`,
           });
+          onRefresh();
         }}
         record={record}
       />

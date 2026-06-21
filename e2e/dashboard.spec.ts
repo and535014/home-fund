@@ -62,6 +62,38 @@ test("opens record details from the dashboard list", async ({ page }) => {
   await expect(page).toHaveURL(/month=2026-06/u);
 });
 
+test("reimburses a refundable expense from the record detail", async ({ page }) => {
+  await page.goto("/?month=2026-06");
+
+  await page.getByRole("button", { name: "查看補充用品代墊詳情" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("待退款");
+  await dialog.getByRole("button", { name: "退款" }).click();
+
+  await expect(dialog.getByRole("heading", { name: "確認退款" })).toBeVisible();
+  await expect(dialog).toContainText("補充用品代墊");
+  await expect(dialog).toContainText(
+    "確認後，狀態會顯示為已退款，且無法編輯或刪除。",
+  );
+
+  await dialog.getByRole("button", { name: "確認退款" }).click();
+
+  await expect(page.getByText("已完成退款", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("heading", {
+    name: "補充用品代墊",
+  })).toBeVisible();
+  await expect(dialog).toContainText("已退款");
+  await expect(dialog).toContainText("這筆代墊支出已退款，無法編輯或刪除。");
+  await expect(dialog.getByRole("button", { name: "退款" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "編輯" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "刪除" })).toHaveCount(0);
+
+  await page.reload();
+  await page.getByRole("button", { name: "查看補充用品代墊詳情" }).click();
+  await expect(page.getByRole("dialog")).toContainText("已退款");
+});
+
 test("shows no reimbursement status for income details", async ({ page }) => {
   await page.goto("/?month=2026-06");
 
