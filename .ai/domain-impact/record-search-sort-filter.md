@@ -1,7 +1,7 @@
 ---
 id: domain-impact-record-search-sort-filter
 stage: domain-impact
-status: review
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -101,7 +101,7 @@ This slice adds read-model query behavior for active household ledger records. I
 
 ## Review Gate
 
-- decision: review
+- decision: approved
 - reviewer_focus:
   - Confirm query behavior belongs to Reporting and does not change ledger/reimbursement mutation rules.
   - Confirm archived categories are excluded from search/filter criteria.

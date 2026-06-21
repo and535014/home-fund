@@ -1,7 +1,7 @@
 ---
 id: prototype-record-search-sort-filter
 stage: experience-prototype
-status: review
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -144,7 +144,7 @@ reviewed_at: 2026-06-21
 
 ## Review Gate
 
-- decision: review
+- decision: approved
 - reviewer_focus:
   - Confirm query controls belong on the existing `/search` page.
   - Confirm the page surface should keep only keyword search plus an icon-only filter button.
