@@ -72,6 +72,7 @@ trace_links:
   - .ai/archive/archive-edit-delete-ledger-records-2026-06-21.md
   - .ai/archive/archive-record-detail-reimbursement-2026-06-21.md
   - .ai/archive/archive-record-search-sort-filter-2026-06-21.md
+  - .ai/intent/batch-search-record-actions.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -176,15 +177,15 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: batch-search-record-actions
 - latest_completed_slice: record search, sort, and filter, compressed in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`.
-- current_stage: Artifact Prune review for record search, sort, and filter.
-- recommended_resume_gate: Next Intent Intake or stricter-target release readiness.
-- recommended_next_skill: intent-intake for next product change; target-aware-release for stricter release target.
+- current_stage: Intent Intake review for batch search record actions.
+- recommended_resume_gate: Domain Discovery / Domain Impact for `batch-search-record-actions` after user approval.
+- recommended_next_skill: domain-discovery for approved batch delete/refund search actions; target-aware-release for stricter release target.
 
 ## Artifact Inventory
 
-- idea: maintained `.ai/intent/home-family-fund.md`; completed record search, sort, and filter intent is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement intent is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records intent is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
+- idea: maintained `.ai/intent/home-family-fund.md`; active batch search record actions intent is `.ai/intent/batch-search-record-actions.md`; completed record search, sort, and filter intent is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement intent is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records intent is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
 - completed record list detail modal: summarized in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`; source intent/prototype/spec/technical-design/implementation/verification/release artifacts were manually pruned after compression.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
 - domain-impact: completed record search, sort, and filter impact is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement impact is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records impact is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
