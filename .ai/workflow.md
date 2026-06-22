@@ -82,6 +82,7 @@ trace_links:
   - .ai/release/batch-search-record-actions-local-dev-readiness.md
   - .ai/learning/batch-search-record-actions.md
   - .ai/archive/archive-batch-search-record-actions-2026-06-22.md
+  - .ai/intent/admin-created-member-google-binding.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -186,11 +187,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: admin-created-member-google-binding
 - latest_completed_slice: batch search record actions, compressed in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`.
-- current_stage: Artifact Compression review for batch search record actions.
-- recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change.
+- current_stage: Intent Intake review for admin-created member Google binding.
+- recommended_resume_gate: Domain Discovery / Domain Impact for `admin-created-member-google-binding` after approval.
+- recommended_next_skill: domain-discovery after this intent intake is approved.
 
 ## Artifact Inventory
 
