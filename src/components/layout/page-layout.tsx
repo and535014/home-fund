@@ -79,10 +79,20 @@ export function PageContent({ children }: PageContentProps) {
 
 export type PageFooterProps = {
   children: ReactNode;
+  className?: string;
 };
 
-export function PageFooter({ children }: PageFooterProps) {
-  return <footer>{children}</footer>;
+export function PageFooter({ children, className }: PageFooterProps) {
+  return (
+    <footer
+      className={cn(
+        "flex shrink-0 flex-col gap-2 border-t border-border bg-background/95 px-5 pb-1 pt-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between lg:px-6",
+        className,
+      )}
+    >
+      {children}
+    </footer>
+  );
 }
 
 export type MobileActionBarProps = {

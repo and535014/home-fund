@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CalendarDays,
+  Check,
   HandCoins,
   Pencil,
   ReceiptText,
@@ -14,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -53,6 +54,7 @@ import {
 } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryVisualMark, getCategoryVisual } from "@/app/category-visuals";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -62,18 +64,27 @@ export function RecordListDetail({
   categories,
   categoriesById,
   emptyMessage = "這個月份尚無紀錄。",
+  hasMoreRecords = false,
   memberNames,
+  onLoadMoreRecords,
+  onToggleRecordSelection,
   records,
+  selectedRecordIds,
 }: {
   actor: HouseholdAccessProfile;
   categories: Category[];
   categoriesById: Record<string, Category>;
   emptyMessage?: string;
+  hasMoreRecords?: boolean;
   memberNames: Record<string, string>;
+  onLoadMoreRecords?: () => void;
+  onToggleRecordSelection?: (recordId: string) => void;
   records: LedgerRecord[];
+  selectedRecordIds?: Set<string>;
 }) {
   const router = useRouter();
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ?? null;
@@ -83,6 +94,31 @@ export function RecordListDetail({
       selectedRecordTriggerRef.current?.focus();
     });
   }
+
+  useEffect(() => {
+    if (!hasMoreRecords || !onLoadMoreRecords) {
+      return;
+    }
+
+    const target = loadMoreRef.current;
+
+    if (!target) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onLoadMoreRecords();
+        }
+      },
+      { rootMargin: "160px 0px" },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [hasMoreRecords, onLoadMoreRecords, records.length]);
 
   return (
     <>
@@ -96,15 +132,25 @@ export function RecordListDetail({
             {records.map((record) => (
               <RecordListItem
                 category={categoriesById[record.categoryId]}
+                isSelected={selectedRecordIds?.has(record.id) ?? false}
                 key={record.id}
                 memberNames={memberNames}
                 onOpen={(trigger) => {
                   selectedRecordTriggerRef.current = trigger;
                   setSelectedRecordId(record.id);
                 }}
+                onToggleSelection={onToggleRecordSelection}
                 record={record}
               />
             ))}
+            {hasMoreRecords ? (
+              <div
+                ref={loadMoreRef}
+                className="px-4 py-4 text-center text-caption text-muted-foreground"
+              >
+                載入更多紀錄...
+              </div>
+            ) : null}
           </ItemGroup>
         )}
       </div>
@@ -142,15 +188,55 @@ export function RecordListDetail({
 
 function RecordListItem({
   category,
+  isSelected,
   memberNames,
   onOpen,
+  onToggleSelection,
   record,
 }: {
   category?: Category;
+  isSelected: boolean;
   memberNames: Record<string, string>;
   onOpen: (trigger: HTMLButtonElement) => void;
+  onToggleSelection?: (recordId: string) => void;
   record: LedgerRecord;
 }) {
+  if (onToggleSelection) {
+    return (
+      <Item
+        className="rounded-none border-0 hover:bg-secondary/45 focus-within:bg-secondary/45"
+        size="sm"
+      >
+        <button
+          aria-label={isSelected ? `取消選取${record.name}` : `選取${record.name}`}
+          aria-pressed={isSelected}
+          className={cn(
+            "flex size-7 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            isSelected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          )}
+          onClick={() => onToggleSelection(record.id)}
+          type="button"
+        >
+          {isSelected ? <Check className="size-3.5" /> : null}
+        </button>
+        <button
+          aria-label={`查看${record.name}詳情`}
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+          onClick={(event) => onOpen(event.currentTarget)}
+          type="button"
+        >
+          <RecordSummaryContent
+            category={category}
+            memberNames={memberNames}
+            record={record}
+          />
+        </button>
+      </Item>
+    );
+  }
+
   return (
     <Item
       asChild

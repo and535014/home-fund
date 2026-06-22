@@ -74,7 +74,6 @@ describe("getVisibleDashboardNavigationItems", () => {
     expect(navigation.map((item) => item.label)).toEqual([
       "總覽",
       "搜尋",
-      "退款",
       "設定",
     ]);
     expect(navigation).toContainEqual(
@@ -100,7 +99,7 @@ describe("getVisibleDashboardNavigationItems", () => {
     );
   });
 
-  it("keeps reimbursements visible only for finance managers and admins", () => {
+  it("does not expose standalone reimbursement navigation", () => {
     const generalNavigation = getVisibleDashboardNavigationItems(
       buildAccessHints(members[0]),
     );
@@ -115,10 +114,10 @@ describe("getVisibleDashboardNavigationItems", () => {
       }),
     );
     expect(financeNavigation).toContainEqual(
-      expect.objectContaining({
-        href: "/reimbursements",
-        label: "退款",
-      }),
+      expect.objectContaining({ href: "/search", label: "搜尋" }),
+    );
+    expect(financeNavigation).not.toContainEqual(
+      expect.objectContaining({ href: "/reimbursements", label: "退款" }),
     );
   });
 });
