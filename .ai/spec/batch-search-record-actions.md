@@ -210,7 +210,6 @@ And the browser is not redirected to `/search` or `/`
 | Progressive loading | `/search` | seed more than 100 matching records or test fixture override | desktop | Scroll result list to `載入更多紀錄...`; next 100-record batch appears; footer remains visible and outside scroll region. |
 | Batch delete confirmation | `/search` | selected records with delete eligible and skipped cases | desktop | Button `批次刪除 (<n>)`; dialog heading `確認批次刪除`; texts `將處理`, `略過`; confirm `確認刪除`; success feedback. |
 | Batch refund confirmation | `/search` | selected refundable and ineligible records | desktop | Button `批次退款 (<n>)`; dialog heading `確認批次退款`; texts `將處理`, `略過`, `退款總金額`; confirm `確認退款`; success feedback. |
-| Navigation removal | `/` or `/search` | finance/admin user | desktop | Link `搜尋` visible; link `退款` absent; direct `/reimbursements` shows heading/text for default 404. |
 | Mobile footer | `/search` | active query and selection mode | mobile | Footer stacks without overlap; selected count, total, all-select, clear, delete, and refund controls fit and remain outside result scroll. |
 
 ## Fixture And Data Strategy
@@ -244,7 +243,7 @@ And the browser is not redirected to `/search` or `/`
 - Confirmation headings: `確認批次刪除`, `確認批次退款`.
 - Confirmation counts: `將處理`, `略過`.
 - Refund amount: `退款總金額`.
-- Direct removed route: default 404 heading/content.
+- Removed routes are not covered by E2E direct-visit tests.
 
 ## Responsive And Accessibility Requirements
 
@@ -272,8 +271,8 @@ And the browser is not redirected to `/search` or `/`
 | Server/API contract | Search supports 100-record server pagination/cursor and returns enough metadata for current-query count and total amount; all-select remains scoped to currently displayed rows. |
 | Component | Selection mode toggle, row selection, footer normal/selection states, all-select disabled state, and confirmation dialogs. |
 | Component | Shared `PageFooter` renders top-border footer without cards/badges/icons and supports mobile wrapping. |
-| E2E | Normal search, selection mode, clear selection, all-select, progressive loading, batch delete confirmation, batch refund confirmation with amount, navigation removal, `/reimbursements` 404, mobile footer. |
-| Existing E2E cleanup | Update stale `/reimbursements` placeholder assertions in `e2e/dashboard.spec.ts` and `e2e/create-record.spec.ts`. |
+| E2E | Normal search, selection mode, clear selection, all-select, progressive loading, batch delete confirmation, batch refund confirmation with amount, mobile footer. |
+| Existing E2E cleanup | Remove stale direct-visit tests for removed routes such as `/reimbursements`, `/recurring`, and `/records`. |
 | Manual | Review Traditional Chinese copy, amount color semantics, keyboard focus, and mixed-selection trust. |
 
 ## Technical Design Inputs

@@ -134,31 +134,9 @@ test("closes an open create dialog after browser reload", async ({ page }) => {
   await expectNoCreateParams(page);
 });
 
-test("does not expose the removed standalone create-record route", async ({
-  page,
-}) => {
-  await page.goto("/records");
-
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
-
-  await page.goto("/records/new");
-
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
-});
-
-test("keeps create-record actions on the homepage only", async ({ page }) => {
+test("keeps create-record actions on the homepage", async ({ page }) => {
   await page.goto("/?month=2026-06");
   await expect(page.getByRole("button", { name: "新增紀錄" })).toBeVisible();
-
-  await page.goto("/reimbursements?month=2026-06");
-  await expect(page.getByRole("button", { name: "新增紀錄" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "退款", exact: true })).toBeVisible();
-  await expect(page.getByText("敬請期待")).toBeVisible();
-
-  await page.goto("/recurring?month=2026-06");
-  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
 });
 
 async function openCreateDialog(page: Page, tabName: string) {

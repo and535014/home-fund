@@ -126,3 +126,50 @@ test("sorts filtered records by amount", async ({ page }) => {
     /補充用品代墊/u,
   ]);
 });
+
+test("selects currently displayed rows and shows batch refund total", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("代墊");
+  await expect(page.getByRole("button", { name: "查看日用品代墊詳情" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "查看補充用品代墊詳情" })).toBeVisible();
+  await expect(page.getByText("搜尋結果 2 筆")).toBeVisible();
+  await expect(page.getByText("總額")).toBeVisible();
+  await expect(page.getByText("$8,300")).toBeVisible();
+
+  await page.getByRole("button", { name: "開啟選取模式" }).click();
+  await expect(page.getByText("已選取 0 筆")).toBeVisible();
+
+  await page.getByRole("button", { name: "全選目前顯示" }).click();
+
+  await expect(page.getByText("已選取 2 筆")).toBeVisible();
+  await expect(page.getByRole("button", { name: "已全選目前顯示" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "批次刪除 (0)" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "批次退款 (2)" })).toBeEnabled();
+
+  await page.getByRole("button", { name: "批次退款 (2)" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "確認批次退款" })).toBeVisible();
+  await expect(dialog).toContainText("退款總金額");
+  await expect(dialog).toContainText("$8,300");
+
+  await dialog.getByRole("button", { name: "確認退款" }).click();
+
+  await expect(page.getByText("已完成批次退款")).toBeVisible();
+});
+
+test("shows batch delete count in parentheses for selected eligible records", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("網路費");
+  await expect(page.getByRole("button", { name: "查看網路費詳情" })).toBeVisible();
+
+  await page.getByRole("button", { name: "開啟選取模式" }).click();
+  await page.getByRole("button", { name: "全選目前顯示" }).click();
+
+  await expect(page.getByRole("button", { name: "批次刪除 (1)" })).toBeEnabled();
+});

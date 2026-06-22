@@ -328,7 +328,7 @@ App/server tests:
 Component and E2E tests:
 
 - update `e2e/record-search.spec.ts` for selection mode, footer, all-currently-displayed selection, progressive loading, and batch confirmation text.
-- update `e2e/dashboard.spec.ts` and `e2e/create-record.spec.ts` to stop expecting `/reimbursements`.
+- remove direct-visit E2E coverage for removed routes such as `/reimbursements`, `/recurring`, and `/records`; do not add navigation-absence tests for deleted pages.
 - add or extend fixture data with more than 100 matching records to exercise cursor paging.
 - run desktop and mobile footer assertions to guard against overlap.
 

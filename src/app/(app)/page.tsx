@@ -180,7 +180,7 @@ function PendingReimbursementsPanel({
 			<p className="text-heading text-foreground">{totalAmount}</p>
 			<p className="text-caption text-muted-foreground">
 				{feedback === "success"
-					? "已完成退款，退款頁可查看剩餘待處理項目。"
+					? "已完成退款，搜尋頁可繼續篩選待處理項目。"
 					: `${pendingCount} 筆成員代墊支出待處理。`}
 			</p>
 		</DashboardPanel>

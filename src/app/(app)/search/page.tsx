@@ -30,7 +30,6 @@ export default async function SearchPage() {
           categories={dashboardData.categories}
           categoriesById={categoriesById}
           memberNames={memberNames}
-          records={dashboardData.records}
         />
       </section>
     </PageLayout>

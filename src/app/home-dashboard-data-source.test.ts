@@ -116,7 +116,7 @@ describe("createHomeDashboardDataSource", () => {
     });
   });
 
-  it("loads active records for the search page", async () => {
+  it("loads lookup data only for the search page", async () => {
     const memberFindMany = vi.fn(async () => [
       {
         id: "member-fin",
@@ -140,23 +140,7 @@ describe("createHomeDashboardDataSource", () => {
         status: "active" as const,
       },
     ]);
-    const ledgerRecordFindMany = vi.fn(async () => [
-      {
-        id: "expense-grocery-june",
-        type: "expense" as const,
-        name: "日用品代墊",
-        amountCents: 642_000,
-        occurredOn: new Date("2026-06-09T00:00:00.000Z"),
-        categoryId: "expense-grocery",
-        createdByMemberId: "member-fin",
-        sourceMemberId: null,
-        paymentSource: "member" as const,
-        payerMemberId: "member-fin",
-        reimbursementStatus: "refundable" as const,
-        status: "active" as const,
-        note: "日用品代墊",
-      },
-    ]);
+    const ledgerRecordFindMany = vi.fn(async () => []);
     const dataSource = createHomeDashboardDataSource({
       member: { findMany: memberFindMany },
       category: { findMany: categoryFindMany },
@@ -165,12 +149,8 @@ describe("createHomeDashboardDataSource", () => {
 
     const data = await dataSource.getSearchPageData();
 
-    expect(data.records).toHaveLength(1);
-    expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        status: "active",
-      },
-    }));
+    expect(data.records).toEqual([]);
+    expect(ledgerRecordFindMany).not.toHaveBeenCalled();
   });
 });
 

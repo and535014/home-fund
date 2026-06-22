@@ -127,7 +127,7 @@ export async function createLedgerRecordAction(
   }
 
   revalidatePath("/");
-  revalidatePath("/reimbursements");
+  revalidatePath("/search");
   return actionSuccess("紀錄已新增。", {
     recordId: result.record.id,
   });
@@ -157,7 +157,7 @@ export async function updateLedgerRecordAction(
   }
 
   revalidatePath("/");
-  revalidatePath("/reimbursements");
+  revalidatePath("/search");
   return actionSuccess("紀錄已更新。", {
     recordId: result.record.id,
   });
@@ -187,7 +187,7 @@ export async function voidLedgerRecordAction(
   }
 
   revalidatePath("/");
-  revalidatePath("/reimbursements");
+  revalidatePath("/search");
   return actionSuccess("紀錄已刪除。", {
     recordId: result.record.id,
   });
@@ -219,7 +219,7 @@ export async function reimburseLedgerRecordAction(
   }
 
   revalidatePath("/");
-  revalidatePath("/reimbursements");
+  revalidatePath("/search");
   return actionSuccess("已完成退款。", {
     recordId: parsed.command.selectedExpenseIds[0],
   });

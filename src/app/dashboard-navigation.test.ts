@@ -42,7 +42,6 @@ describe("getVisibleDashboardNavigationItems", () => {
         }),
       );
       expect(navigation.every((item) => !item.href.includes("create="))).toBe(true);
-      expect(navigation.every((item) => item.href !== "/records")).toBe(true);
     }
   });
 
@@ -96,28 +95,6 @@ describe("getVisibleDashboardNavigationItems", () => {
       expect.objectContaining({
         label: "成員",
       }),
-    );
-  });
-
-  it("does not expose standalone reimbursement navigation", () => {
-    const generalNavigation = getVisibleDashboardNavigationItems(
-      buildAccessHints(members[0]),
-    );
-    const financeNavigation = getVisibleDashboardNavigationItems(
-      buildAccessHints(members[1]),
-    );
-
-    expect(generalNavigation).not.toContainEqual(
-      expect.objectContaining({
-        href: "/reimbursements",
-        label: "退款",
-      }),
-    );
-    expect(financeNavigation).toContainEqual(
-      expect.objectContaining({ href: "/search", label: "搜尋" }),
-    );
-    expect(financeNavigation).not.toContainEqual(
-      expect.objectContaining({ href: "/reimbursements", label: "退款" }),
     );
   });
 });

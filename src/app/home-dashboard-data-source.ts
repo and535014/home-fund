@@ -167,7 +167,7 @@ export function createHomeDashboardDataSource(
       };
     },
     async getSearchPageData(): Promise<HomeDashboardData> {
-      const [householdMembers, categories, records] = await Promise.all([
+      const [householdMembers, categories] = await Promise.all([
         prisma.member.findMany({
           select: {
             id: true,
@@ -203,19 +203,12 @@ export function createHomeDashboardDataSource(
           },
           orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         }),
-        prisma.ledgerRecord.findMany({
-          where: {
-            status: "active",
-          },
-          select: ledgerRecordSelect,
-          orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
-        }),
       ]);
 
       return {
         householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
         categories: categories.map(mapPrismaCategoryToCategory),
-        records: records.map(mapPrismaLedgerRecordToLedgerRecord),
+        records: [],
       };
     },
   };
