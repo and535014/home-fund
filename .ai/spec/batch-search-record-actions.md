@@ -1,7 +1,7 @@
 ---
 id: spec-batch-search-record-actions
 stage: behavior-spec
-status: review
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -52,7 +52,7 @@ reviewed_at: 2026-06-22
 
 ## Decision Summary
 
-- decision: proceed_to_feature_technical_design_after_review
+- decision: approved_for_feature_technical_design
 - prototype_status: accepted by user feedback for Behavior Spec
 - primary_route: `/search`
 - removed_route: `/reimbursements`
