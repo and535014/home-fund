@@ -1,7 +1,7 @@
 ---
 id: prototype-batch-search-record-actions
 stage: experience-prototype
-status: review
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -27,7 +27,7 @@ trace_links:
     - src/app/dashboard-navigation.ts
   tests:
     - src/app/dashboard-navigation.test.ts
-reviewed_at: 2026-06-21
+reviewed_at: 2026-06-22
 ---
 
 # Experience Prototype: Batch Search Record Actions
@@ -170,7 +170,7 @@ reviewed_at: 2026-06-21
 
 ## Review Gate
 
-- decision: review
+- decision: approved
 - reviewer_focus:
   - Check whether selection in search results is discoverable and not confused with opening record details.
   - Check whether batch action bar density works on desktop and mobile.
@@ -185,6 +185,6 @@ reviewed_at: 2026-06-21
   - User accepts the selection/action/confirmation pattern or requests concrete changes.
   - User confirms no standalone refund page should return.
 - unresolved_blockers:
-  - Partial-success semantics are not final.
+  - None for Behavior Spec.
 - next_step:
   - Behavior Spec / BDD / E2E for `batch-search-record-actions`.
