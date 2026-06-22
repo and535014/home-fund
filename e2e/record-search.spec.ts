@@ -173,3 +173,37 @@ test("shows batch delete count in parentheses for selected eligible records", as
 
   await expect(page.getByRole("button", { name: "批次刪除 (1)" })).toBeEnabled();
 });
+
+test("loads the next server page and keeps all-select scoped to loaded rows", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("搜尋分頁測試");
+
+  await expect(page.getByText("搜尋結果 105 筆")).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "查看搜尋分頁測試 105詳情",
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "查看搜尋分頁測試 001詳情",
+  })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "開啟選取模式" }).click();
+  await page.getByRole("button", { name: "全選目前顯示" }).click();
+
+  await expect(page.getByText("已選取 100 筆")).toBeVisible();
+
+  await page.getByText("載入更多紀錄...").scrollIntoViewIfNeeded();
+
+  await expect(page.getByRole("button", {
+    name: "查看搜尋分頁測試 001詳情",
+  })).toBeVisible();
+  await expect(page.getByText("已選取 100 筆")).toBeVisible();
+  await expect(page.getByRole("button", { name: "全選目前顯示" })).toBeEnabled();
+
+  await page.getByRole("button", { name: "全選目前顯示" }).click();
+
+  await expect(page.getByText("已選取 105 筆")).toBeVisible();
+  await expect(page.getByRole("button", { name: "已全選目前顯示" })).toBeDisabled();
+});

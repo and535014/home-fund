@@ -72,6 +72,7 @@ Tests were added before implementation for:
 - batch delete partial success and skipped records.
 - batch refund partial success, skipped records, no eligible records, and permission rejection.
 - browser selection mode, visible-row all-select, batch refund total, and batch delete count.
+- browser server pagination with 105 seeded records and all-select scoped to loaded rows.
 
 Verification commands run in this implementation gate:
 
@@ -97,6 +98,8 @@ Verification commands run in this implementation gate:
   - result: passed after extracting search UI components.
 - `corepack pnpm test:e2e e2e/record-search.spec.ts`
   - result: passed, 7 tests after extracting search UI components.
+- `corepack pnpm test:e2e e2e/record-search.spec.ts`
+  - result: passed, 8 tests after adding 105-record page-two fixture coverage.
 
 ## Implemented Contracts
 

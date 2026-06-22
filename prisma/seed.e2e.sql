@@ -375,6 +375,51 @@ SET "amountCents" = EXCLUDED."amountCents",
     "note" = EXCLUDED."note",
     "updatedAt" = CURRENT_TIMESTAMP;
 
+INSERT INTO "LedgerRecord" (
+  "id",
+  "householdId",
+  "type",
+  "name",
+  "amountCents",
+  "occurredOn",
+  "categoryId",
+  "createdByMemberId",
+  "sourceMemberId",
+  "paymentSource",
+  "payerMemberId",
+  "reimbursementStatus",
+  "note",
+  "updatedAt"
+)
+SELECT
+  'search-pagination-income-' || lpad(series::text, 3, '0'),
+  'household-demo',
+  'income',
+  '搜尋分頁測試 ' || lpad(series::text, 3, '0'),
+  10000 + series,
+  DATE '2026-06-15',
+  'income-living',
+  'member-fin',
+  'member-fin',
+  NULL,
+  NULL,
+  'not_applicable',
+  '搜尋分頁測試 ' || lpad(series::text, 3, '0'),
+  CURRENT_TIMESTAMP
+FROM generate_series(1, 105) AS series
+ON CONFLICT ("id") DO UPDATE
+SET "amountCents" = EXCLUDED."amountCents",
+    "name" = EXCLUDED."name",
+    "occurredOn" = EXCLUDED."occurredOn",
+    "categoryId" = EXCLUDED."categoryId",
+    "createdByMemberId" = EXCLUDED."createdByMemberId",
+    "sourceMemberId" = EXCLUDED."sourceMemberId",
+    "paymentSource" = EXCLUDED."paymentSource",
+    "payerMemberId" = EXCLUDED."payerMemberId",
+    "reimbursementStatus" = EXCLUDED."reimbursementStatus",
+    "note" = EXCLUDED."note",
+    "updatedAt" = CURRENT_TIMESTAMP;
+
 INSERT INTO "RecurringRule" (
   "id",
   "householdId",
