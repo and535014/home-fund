@@ -47,11 +47,11 @@ reviewed_at: 2026-06-22
 - Search results are now the primary record-oriented surface for multi-record actions.
 - Search has an icon-only selection-mode button next to the filter button.
 - Search results remain normal record-detail rows until selection mode is enabled.
-- Search results render progressively; the prototype loads the next result batch when the user scrolls near the bottom.
+- Search results render progressively; the prototype loads the next 100-result batch when the user scrolls near the bottom.
 - Selection mode exposes compact selection controls before the existing record summaries.
 - Page footer appears only after the user has entered a search or applied filters, and does not scroll with the record list.
 - In normal search mode, the footer shows search result count and total amount as an absolute value, with color indicating positive income net or negative expense net.
-- In selection mode, the footer shows only selected count, selected total amount as an absolute value, `全選搜尋結果`, `清除選取`, `批次刪除`, and `批次退款`.
+- In selection mode, the footer shows only selected count, selected total amount as an absolute value, `全選目前顯示`, `清除選取`, `批次刪除`, and `批次退款`.
 - The footer uses only a top border, without card styling, badges, or action icons.
 - Footer styling is provided by the shared `PageFooter` layout component.
 - Batch confirmations summarize how many selected records will be processed and how many will be skipped.
@@ -70,7 +70,7 @@ reviewed_at: 2026-06-22
 - progressive result loading with `載入更多紀錄...` sentinel near the bottom of the list.
 - selection mode on, where each result has a selection control.
 - one or more selected records.
-- select all current matched search results.
+- select all currently displayed rows.
 - selection-mode footer with selected count and selected total amount only, using absolute amount plus positive/negative color.
 - clear selection.
 - batch delete enabled/disabled based on eligible selected records.
@@ -97,14 +97,14 @@ reviewed_at: 2026-06-22
   - Uses only a top border; no card wrapper, rounded container, badge treatment, or icons inside the footer.
   - Shows search result count and total amount as an absolute value in normal mode, with color for positive/negative net.
   - Shows selected count and selected total amount as an absolute value in selection mode, with color for positive/negative net.
-  - Provides `全選搜尋結果` for all currently matched search results, then shows disabled `已全選搜尋結果` once every matched result is selected.
+  - Provides `全選目前顯示` for the currently displayed rows, then shows disabled `已全選目前顯示` once every currently displayed row is selected.
   - Uses `清除選取` as the only cancellation/reset control for selected records.
   - Disables batch actions when no selected records are eligible.
 - Progressive loading:
-  - The prototype uses client-side chunks over already-loaded records.
-  - Initial render loads the first result batch, then appends more as the list scrolls near the bottom.
+  - The prototype uses 100-row client-side chunks over already-loaded records.
+  - Initial render loads the first 100-result batch, then appends 100 more as the list scrolls near the bottom.
   - The footer still summarizes the full matched result set available to the current prototype data source.
-  - Behavior Spec and Technical Design must replace this with server pagination/cursor loading for large datasets.
+  - Behavior Spec and Technical Design must replace this with server pagination/cursor loading at 100 records per page for large datasets.
 - Confirmation:
   - `確認批次刪除` explains eligible records leave active views.
   - `確認批次退款` explains eligible member-paid expenses are marked `已退款` and shows the eligible refund total amount.
@@ -139,7 +139,7 @@ reviewed_at: 2026-06-22
 - Selection mode footer shows selected count and selected total amount as an absolute value with positive/negative color, without icons.
 - Search results progressively load more records as the user scrolls.
 - Users can clear all selected records.
-- Users can select all currently matched search results from the footer with explicit copy.
+- Users can select all currently displayed rows from the footer with explicit copy.
 - Users clear selection with `清除選取`; there is no separate `取消全選` control.
 - Search/filter changes clear selection to avoid hidden selected records.
 - Batch delete and batch refund are unavailable when no selected records are eligible.
@@ -161,9 +161,9 @@ reviewed_at: 2026-06-22
 ## Known Gaps
 
 - Batch server actions, persistence, transactions, and cache revalidation are not implemented in this prototype.
-- Infinite loading is client-side prototype behavior over already-fetched records; real server pagination, cursors, page size, result totals, and aggregate total strategy remain design work.
+- Infinite loading is client-side prototype behavior over already-fetched records; real server pagination, cursors, 100-record page size, result totals, and aggregate total strategy remain design work.
 - Partial-success versus all-or-nothing remains a Behavior Spec decision; this prototype demonstrates partial with skipped records for review.
-- Selection across unloaded server pages remains unresolved; intended UI language is "all currently matched search results", not only visible rows.
+- Selection does not cross unloaded server pages; all-select is intentionally scoped to currently displayed rows.
 - Prototype eligibility mirrors existing role/status rules client-side, but server-side authorization remains required in technical design.
 - Batch result history/audit display is not designed.
 - This prototype does not add E2E coverage yet; test candidates are recorded for the Behavior Spec gate.

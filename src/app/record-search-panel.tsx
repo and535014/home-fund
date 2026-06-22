@@ -43,7 +43,7 @@ import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 
-const SEARCH_PAGE_SIZE = 30;
+const SEARCH_PAGE_SIZE = 100;
 
 export function RecordSearchPanel({
   actor,
@@ -133,8 +133,12 @@ export function RecordSearchPanel({
     setSelectedRecordIds(new Set());
   }
 
-  function selectAllResults() {
-    setSelectedRecordIds(new Set(displayedRecords.map((record) => record.id)));
+  function selectVisibleResults() {
+    setSelectedRecordIds((current) => {
+      const next = new Set(current);
+      visibleRecords.forEach((record) => next.add(record.id));
+      return next;
+    });
   }
 
   const loadMoreRecords = useCallback(() => {
@@ -212,10 +216,11 @@ export function RecordSearchPanel({
           onClearSelection={clearSelection}
           onDelete={() => setBatchAction("delete")}
           onRefund={() => setBatchAction("refund")}
-          onSelectAll={selectAllResults}
+          onSelectVisible={selectVisibleResults}
           records={displayedRecords}
           selectedRecords={selectedRecords}
           selectedCount={selectedRecordIds.size}
+          visibleRecords={visibleRecords}
         />
       ) : null}
       <BatchActionDialog
@@ -235,20 +240,22 @@ function BatchSearchFooter({
   onClearSelection,
   onDelete,
   onRefund,
-  onSelectAll,
+  onSelectVisible,
   records,
   selectedCount,
   selectedRecords,
+  visibleRecords,
 }: {
   actor: HouseholdAccessProfile;
   isSelectionMode: boolean;
   onClearSelection: () => void;
   onDelete: () => void;
   onRefund: () => void;
-  onSelectAll: () => void;
+  onSelectVisible: () => void;
   records: LedgerRecord[];
   selectedCount: number;
   selectedRecords: LedgerRecord[];
+  visibleRecords: LedgerRecord[];
 }) {
   const refundableCount = selectedRecords.filter((record) =>
     canBatchRefundRecord(actor, record),
@@ -259,7 +266,11 @@ function BatchSearchFooter({
   const resultNetCents = sumRecordNetAmount(records);
   const selectedNetCents = sumRecordNetAmount(selectedRecords);
   const displayedNetCents = isSelectionMode ? selectedNetCents : resultNetCents;
-  const hasSelectedAll = records.length > 0 && selectedCount === records.length;
+  const hasSelectedAllVisible =
+    visibleRecords.length > 0 &&
+    visibleRecords.every((record) =>
+      selectedRecords.some((selectedRecord) => selectedRecord.id === record.id),
+    );
 
   return (
     <PageFooter className="-mx-5 lg:-mx-6">
@@ -277,13 +288,13 @@ function BatchSearchFooter({
       {isSelectionMode ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            disabled={records.length === 0 || hasSelectedAll}
-            onClick={onSelectAll}
+            disabled={visibleRecords.length === 0 || hasSelectedAllVisible}
+            onClick={onSelectVisible}
             size="sm"
             type="button"
             variant="ghost"
           >
-            {hasSelectedAll ? "已全選搜尋結果" : "全選搜尋結果"}
+            {hasSelectedAllVisible ? "已全選目前顯示" : "全選目前顯示"}
           </Button>
           {selectedCount > 0 ? (
             <Button

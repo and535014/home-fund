@@ -57,11 +57,11 @@ reviewed_at: 2026-06-22
 - primary_route: `/search`
 - removed_route: `/reimbursements`
 - selection_entry: icon-only `開啟選取模式` button next to filter
-- all_select_copy: `全選搜尋結果`
-- all_select_scope: all records matching the current search/filter query, not only visible rows
+- all_select_copy: `全選目前顯示`
+- all_select_scope: currently displayed rows only
 - batch_outcome_policy: partial success with skipped records summary
 - amount_summary_policy: income contributes positive amount, expense contributes negative amount; UI shows absolute total with income/expense color
-- pagination_policy: real server pagination/cursor design required in Technical Design; prototype infinite loading is not persistence behavior
+- pagination_policy: real server pagination/cursor design required in Technical Design with 100 records per page; prototype infinite loading is not persistence behavior
 - next_gate: Feature Technical Design
 
 ## Final Acceptance Criteria
@@ -79,33 +79,34 @@ reviewed_at: 2026-06-22
 11. When selection mode is on, the page footer shows `已選取 <n> 筆` and the selected-record total only.
 12. The selection-mode total uses income as positive and expense as negative, then displays the absolute value with positive/negative color.
 13. The page footer uses the shared `PageFooter` component, stays outside the scrolling result list, has only a top border, and does not use card, badge, or icon treatment.
-14. `全選搜尋結果` selects all records matching the current query result set represented by the search backend, not only rows currently rendered in the viewport.
-15. Once all current query results are selected, the all-select control is disabled and reads `已全選搜尋結果`.
+14. `全選目前顯示` selects only rows currently displayed in the result list.
+15. Once all currently displayed rows are selected, the all-select control is disabled and reads `已全選目前顯示`.
 16. `清除選取` is the only control that clears the selected set.
 17. Search results progressively load more rows as the user scrolls near the bottom.
-18. The progressive loading sentinel uses Traditional Chinese copy `載入更多紀錄...`.
-19. Batch delete is disabled when no selected record is eligible for deletion.
-20. Batch refund is disabled when no selected record is eligible for reimbursement.
-21. Batch delete button count is shown in parentheses, for example `批次刪除 (3)`.
-22. Batch refund button count is shown in parentheses, for example `批次退款 (2)`.
-23. Batch delete opens `確認批次刪除`.
-24. Batch refund opens `確認批次退款`.
-25. Batch confirmations show processed and skipped counts before mutation.
-26. Batch refund confirmation shows `退款總金額` for the eligible records that will be processed.
-27. Batch actions use partial success: eligible selected records are processed, and ineligible or unauthorized selected records are skipped.
-28. Skipped records remain unchanged and are clearly explained in the confirmation/result flow.
-29. Batch delete voids eligible active ledger records using the existing deletion semantics; it does not hard-delete records.
-30. Batch refund marks eligible active member-paid refundable expenses as reimbursed once using the existing reimbursement semantics.
-31. Already reimbursed, voided, fund-paid, income, and unauthorized records are never reimbursed by batch refund.
-32. Unauthorized or ineligible records are never voided by batch delete.
-33. Server-side authorization and eligibility checks are authoritative; client-side disabled states are not the security boundary.
-34. Successful batch delete refreshes search results, active totals, category summaries, and reimbursement-derived read models.
-35. Successful batch refund refreshes search results, reimbursement status, and unpaid reimbursement totals.
-36. Successful batch actions show Traditional Chinese success feedback.
-37. `/reimbursements` is not present in primary navigation.
-38. Direct visits to `/reimbursements` show the framework default 404 behavior; there is no redirect and no replacement reimbursement page.
-39. Existing E2E tests that expected `/reimbursements` as a placeholder must be updated or removed.
-40. UI copy remains Traditional Chinese and must not imply external money transfer.
+18. Server-backed search pagination returns 100 records per page.
+19. The progressive loading sentinel uses Traditional Chinese copy `載入更多紀錄...`.
+20. Batch delete is disabled when no selected record is eligible for deletion.
+21. Batch refund is disabled when no selected record is eligible for reimbursement.
+22. Batch delete button count is shown in parentheses, for example `批次刪除 (3)`.
+23. Batch refund button count is shown in parentheses, for example `批次退款 (2)`.
+24. Batch delete opens `確認批次刪除`.
+25. Batch refund opens `確認批次退款`.
+26. Batch confirmations show processed and skipped counts before mutation.
+27. Batch refund confirmation shows `退款總金額` for the eligible records that will be processed.
+28. Batch actions use partial success: eligible selected records are processed, and ineligible or unauthorized selected records are skipped.
+29. Skipped records remain unchanged and are clearly explained in the confirmation/result flow.
+30. Batch delete voids eligible active ledger records using the existing deletion semantics; it does not hard-delete records.
+31. Batch refund marks eligible active member-paid refundable expenses as reimbursed once using the existing reimbursement semantics.
+32. Already reimbursed, voided, fund-paid, income, and unauthorized records are never reimbursed by batch refund.
+33. Unauthorized or ineligible records are never voided by batch delete.
+34. Server-side authorization and eligibility checks are authoritative; client-side disabled states are not the security boundary.
+35. Successful batch delete refreshes search results, active totals, category summaries, and reimbursement-derived read models.
+36. Successful batch refund refreshes search results, reimbursement status, and unpaid reimbursement totals.
+37. Successful batch actions show Traditional Chinese success feedback.
+38. `/reimbursements` is not present in primary navigation.
+39. Direct visits to `/reimbursements` show the framework default 404 behavior; there is no redirect and no replacement reimbursement page.
+40. Existing E2E tests that expected `/reimbursements` as a placeholder must be updated or removed.
+41. UI copy remains Traditional Chinese and must not imply external money transfer.
 
 ## BDD Scenarios
 
@@ -141,20 +142,21 @@ And no hidden previous selection remains available for batch actions
 ### Scenario: User Selects All Current Search Results
 
 Given a member is in selection mode with active search results  
-When they activate `全選搜尋結果`  
-Then all records matching the current search/filter query are selected  
+When they activate `全選目前顯示`  
+Then all currently displayed rows are selected  
 And the footer total reflects the selected set  
-And the all-select control reads `已全選搜尋結果` and is disabled  
+And the all-select control reads `已全選目前顯示` and is disabled  
 When they activate `清除選取`  
 Then the selected set is empty
 
 ### Scenario: Search Results Load Progressively
 
-Given a query has more results than the initial page size  
+Given a query has more than 100 matching results  
 When the member scrolls near the bottom of the result list  
-Then more matching rows are loaded automatically  
+Then the next 100 matching rows are loaded automatically  
 And the footer remains fixed outside the scrolling result list  
 And the footer count and total continue to represent the current matched result set
+And newly loaded rows are not automatically selected unless the member selects them or activates `全選目前顯示` again
 
 ### Scenario: Batch Delete Processes Eligible Records And Skips Others
 
@@ -204,8 +206,8 @@ And the browser is not redirected to `/search` or `/`
 | Normal search footer and detail flow | `/search` | authenticated member, active records | desktop | Search input `搜尋紀錄`; result row button `查看<name>詳情`; footer text `搜尋結果`; footer text `總額`; no selection controls before mode toggle. |
 | Selection mode toggle | `/search` | active records | desktop | Button `開啟選取模式`; selection buttons `選取<name>`; selected footer `已選取 0 筆`; button `關閉選取模式`; selection controls disappear. |
 | Select and clear records | `/search` | at least two visible records | desktop | Select two records; footer `已選取 2 筆`; button `清除選取`; footer `已選取 0 筆`. |
-| All selected state | `/search` | query with multiple results | desktop | Button `全選搜尋結果`; after click, button `已全選搜尋結果` is disabled; `清除選取` clears selected state. |
-| Progressive loading | `/search` | seed more records than page size or test fixture override | desktop | Scroll result list to `載入更多紀錄...`; next batch appears; footer remains visible and outside scroll region. |
+| All selected state | `/search` | query with multiple visible results | desktop | Button `全選目前顯示`; after click, button `已全選目前顯示` is disabled; newly loaded rows are not selected automatically; `清除選取` clears selected state. |
+| Progressive loading | `/search` | seed more than 100 matching records or test fixture override | desktop | Scroll result list to `載入更多紀錄...`; next 100-record batch appears; footer remains visible and outside scroll region. |
 | Batch delete confirmation | `/search` | selected records with delete eligible and skipped cases | desktop | Button `批次刪除 (<n>)`; dialog heading `確認批次刪除`; texts `將處理`, `略過`; confirm `確認刪除`; success feedback. |
 | Batch refund confirmation | `/search` | selected refundable and ineligible records | desktop | Button `批次退款 (<n>)`; dialog heading `確認批次退款`; texts `將處理`, `略過`, `退款總金額`; confirm `確認退款`; success feedback. |
 | Navigation removal | `/` or `/search` | finance/admin user | desktop | Link `搜尋` visible; link `退款` absent; direct `/reimbursements` shows heading/text for default 404. |
@@ -215,7 +217,7 @@ And the browser is not redirected to `/search` or `/`
 
 - Reuse `2026-06` E2E seed where possible.
 - Add or extend fixtures for:
-  - more than one page of searchable results.
+  - more than one 100-record page of searchable results.
   - mixed income and expense results to verify total amount sign/color behavior.
   - owner deletable records.
   - other-member records that are visible but not deletable by general members.
@@ -236,7 +238,7 @@ And the browser is not redirected to `/search` or `/`
 - Record detail trigger: `查看<record name>詳情`.
 - Footer count text: `搜尋結果 <n> 筆`, `已選取 <n> 筆`.
 - Footer amount label: `總額`.
-- All select: `全選搜尋結果`, disabled `已全選搜尋結果`.
+- All select: `全選目前顯示`, disabled `已全選目前顯示`.
 - Clear selection: `清除選取`.
 - Batch actions: `批次刪除 (<n>)`, `批次退款 (<n>)`.
 - Confirmation headings: `確認批次刪除`, `確認批次退款`.
@@ -267,7 +269,7 @@ And the browser is not redirected to `/search` or `/`
 | Data/integration | Batch delete voids eligible records and leaves skipped records unchanged in one explicit transaction/outcome contract. |
 | Data/integration | Batch refund creates reimbursement batch items only for eligible refundable expenses and prevents duplicates. |
 | Server action/integration | Direct batch submissions reject unauthorized records, cross-household IDs, missing IDs, voided records, and duplicate reimbursements. |
-| Server/API contract | Search supports server pagination/cursor and returns enough metadata for current-query count, total amount, and all-select semantics. |
+| Server/API contract | Search supports 100-record server pagination/cursor and returns enough metadata for current-query count and total amount; all-select remains scoped to currently displayed rows. |
 | Component | Selection mode toggle, row selection, footer normal/selection states, all-select disabled state, and confirmation dialogs. |
 | Component | Shared `PageFooter` renders top-border footer without cards/badges/icons and supports mobile wrapping. |
 | E2E | Normal search, selection mode, clear selection, all-select, progressive loading, batch delete confirmation, batch refund confirmation with amount, navigation removal, `/reimbursements` 404, mobile footer. |
@@ -277,11 +279,9 @@ And the browser is not redirected to `/search` or `/`
 ## Technical Design Inputs
 
 - Design server-side search pagination/cursor and avoid loading all active records into the client.
-- Decide page size and cursor shape for `/search`.
+- Use 100 records as the page size for `/search`.
 - Decide how the backend returns current-query total count and signed net total for footer display.
-- Decide all-select contract for server pagination:
-  - query-token/query-fingerprint plus exclusion list, or
-  - selected IDs only with explicit limitation.
+- Preserve all-select as currently displayed rows only under server pagination; do not implement query-wide cross-page selection in this slice.
 - Design batch delete and batch refund server actions.
 - Define processed/skipped outcome shape and Traditional Chinese messages.
 - Decide transaction boundaries for partial success.
@@ -293,7 +293,7 @@ And the browser is not redirected to `/search` or `/`
 ## Accepted Risks
 
 - Prototype currently simulates infinite loading client-side over already-fetched records.
-- Real server pagination, aggregate totals, and all-select query contracts are deferred to Feature Technical Design.
+- Real server pagination and aggregate totals are deferred to Feature Technical Design; query-wide all-select is explicitly out of scope.
 - Batch result audit/history UI is out of scope.
 - Reimbursement reversal remains out of scope.
 - Production readiness is not assessed in this gate.
@@ -304,16 +304,16 @@ And the browser is not redirected to `/search` or `/`
 - reviewer_focus:
   - Confirm final AC matches the reviewed prototype and latest feedback.
   - Confirm partial-success with skipped records is acceptable for batch actions.
-  - Confirm all-select means current query results, not only visible loaded rows.
+  - Confirm all-select means currently displayed rows only.
   - Confirm `/reimbursements` default 404 and navigation removal are final.
 - must_check:
   - Behavior Spec does not assume client-only pagination is final.
   - Server-side authorization remains authoritative.
   - Stale route references are addressed in Technical Design/TDD.
 - acceptance_signals:
-  - Feature Technical Design can decide API shape, pagination, all-select contract, transactions, and revalidation.
+  - Feature Technical Design can decide API shape, pagination, currently displayed-row selection, transactions, and revalidation.
   - TDD can begin with domain/server-action/component/E2E tests.
 - unresolved_blockers:
-  - Server pagination and all-select contract require Feature Technical Design before implementation.
+  - Server pagination requires Feature Technical Design before implementation.
 - next_step:
   - Feature Technical Design for `batch-search-record-actions`.
