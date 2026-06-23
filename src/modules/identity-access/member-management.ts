@@ -27,6 +27,7 @@ export type MemberManagementContext = {
 export type CreateMemberCommand = {
   displayName: string;
   googleAccountEmail?: string;
+  role?: MemberRole;
 };
 
 export type UpdateMemberDisplayNameCommand = {
@@ -96,8 +97,8 @@ export function createMember(
     member: {
       id: context.generateId?.() ?? crypto.randomUUID(),
       displayName,
-      googleAccountEmail,
-      roles: ["general_member"],
+      ...(googleAccountEmail ? { googleAccountEmail } : {}),
+      roles: [command.role ?? "general_member"],
       capabilities: [],
       status: "invited",
     },

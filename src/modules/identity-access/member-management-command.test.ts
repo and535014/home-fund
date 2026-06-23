@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedMember } from "./authorization";
-import { updateMemberDisplayNameInDatabase } from "./member-management-command";
+import {
+  createMemberInDatabase,
+  updateMemberDisplayNameInDatabase,
+} from "./member-management-command";
 
 const admin: AuthenticatedMember = {
   id: "member-admin",
@@ -17,6 +20,7 @@ const generalMember: AuthenticatedMember = {
 const memberRows = [
   {
     id: "member-admin",
+    householdId: "household-demo",
     displayName: "Admin",
     avatarUrl: null,
     googleAccountEmail: "admin@example.com",
@@ -27,6 +31,7 @@ const memberRows = [
   },
   {
     id: "member-mei",
+    householdId: "household-demo",
     displayName: "Mei",
     avatarUrl: "https://example.com/mei.png",
     googleAccountEmail: "mei@example.com",
@@ -36,6 +41,79 @@ const memberRows = [
     capabilities: [],
   },
 ];
+
+describe("createMemberInDatabase", () => {
+  it("persists an invited member with the selected role", async () => {
+    const create = vi.fn(async () => ({
+      id: "member-kai",
+      householdId: "household-demo",
+      displayName: "Kai",
+      avatarUrl: null,
+      googleAccountEmail: null,
+      googleSubject: null,
+      status: "invited" as const,
+      roles: [{ role: "finance_manager" as const }],
+      capabilities: [],
+    }));
+
+    await expect(createMemberInDatabase(admin, {
+      displayName: " Kai ",
+      role: "finance_manager",
+    }, {
+      prisma: {
+        member: {
+          findMany: vi.fn(async () => memberRows),
+          create,
+          update: vi.fn(),
+        },
+      },
+    })).resolves.toMatchObject({
+      ok: true,
+      member: {
+        id: "member-kai",
+        displayName: "Kai",
+        roles: ["finance_manager"],
+        status: "invited",
+      },
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        displayName: "Kai",
+        householdId: "household-demo",
+        status: "invited",
+        roles: {
+          create: [
+            {
+              role: "finance_manager",
+            },
+          ],
+        },
+      },
+      select: expect.any(Object),
+    });
+  });
+
+  it("does not write when the display name is invalid", async () => {
+    const create = vi.fn();
+
+    await expect(createMemberInDatabase(admin, {
+      displayName: " ",
+      role: "general_member",
+    }, {
+      prisma: {
+        member: {
+          findMany: vi.fn(async () => memberRows),
+          create,
+          update: vi.fn(),
+        },
+      },
+    })).resolves.toEqual({
+      ok: false,
+      reason: "invalid_display_name",
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+});
 
 describe("updateMemberDisplayNameInDatabase", () => {
   it("persists an admin display-name change", async () => {
@@ -48,6 +126,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
+          create: vi.fn(),
           update,
         },
       },
@@ -79,6 +158,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
+          create: vi.fn(),
           update,
         },
       },
@@ -99,6 +179,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
+          create: vi.fn(),
           update,
         },
       },

@@ -380,7 +380,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
         </CategoryPanel>
       </section>
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>新增分類</DialogTitle>
           </DialogHeader>
@@ -406,7 +406,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
           }
         }}
       >
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>修改分類</DialogTitle>
           </DialogHeader>

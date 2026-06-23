@@ -30,6 +30,7 @@ export type GoogleSignInAuthApi = {
 export type StartGoogleSignInInput = {
   headers: Headers;
   auth: GoogleSignInAuthApi;
+  bindToken?: string;
   inviteToken?: string;
 };
 
@@ -57,12 +58,8 @@ async function startBetterAuthGoogleSignIn(
       returnHeaders: true,
       body: {
         provider: "google",
-        callbackURL: input.inviteToken
-          ? `/invite/accept/callback?token=${encodeURIComponent(input.inviteToken)}`
-          : "/",
-        errorCallbackURL: input.inviteToken
-          ? `/invite/accept?token=${encodeURIComponent(input.inviteToken)}&auth_error=google_sign_in`
-          : "/",
+        callbackURL: googleCallbackUrl(input),
+        errorCallbackURL: googleErrorCallbackUrl(input),
       },
     });
   } catch {
@@ -80,6 +77,30 @@ async function startBetterAuthGoogleSignIn(
       },
     };
   }
+}
+
+function googleCallbackUrl(input: StartGoogleSignInInput): string {
+  if (input.bindToken) {
+    return `/members/bind/callback?token=${encodeURIComponent(input.bindToken)}`;
+  }
+
+  if (input.inviteToken) {
+    return `/invite/accept/callback?token=${encodeURIComponent(input.inviteToken)}`;
+  }
+
+  return "/";
+}
+
+function googleErrorCallbackUrl(input: StartGoogleSignInInput): string {
+  if (input.bindToken) {
+    return `/members/bind?token=${encodeURIComponent(input.bindToken)}&auth_error=google_sign_in`;
+  }
+
+  if (input.inviteToken) {
+    return `/invite/accept?token=${encodeURIComponent(input.inviteToken)}&auth_error=google_sign_in`;
+  }
+
+  return "/";
 }
 
 function originFrom(headers: Headers): string {

@@ -8,20 +8,48 @@ import {
 } from "@/app/action-state";
 import { requireServerActionAccess } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
-import { createMemberInvitationInDatabase } from "@/modules/identity-access/member-invitation-command";
-import { updateMemberDisplayNameInDatabase } from "@/modules/identity-access/member-management-command";
+import {
+  generateMemberBindingLinkInDatabase,
+  isBindingTokenConfigurationError,
+} from "@/modules/identity-access/member-invitation-command";
+import {
+  createMemberInDatabase,
+  updateMemberDisplayNameInDatabase,
+} from "@/modules/identity-access/member-management-command";
+import type { MemberRole } from "@/modules/identity-access/authorization";
 
-export type InviteMemberActionField = never;
-export type InviteMemberActionCode =
+export type CreateMemberActionField = "displayName" | "role";
+export type CreateMemberActionCode =
+  | "invalid_display_name"
+  | "invalid_role"
   | "permission_denied"
   | "unknown_error";
-export type InviteMemberActionResult = {
-  invitationLink: string;
+export type CreateMemberActionResult = {
+  memberId: string;
+  displayName: string;
 };
-export type InviteMemberActionState = ActionState<
-  InviteMemberActionResult,
-  InviteMemberActionField,
-  InviteMemberActionCode
+export type CreateMemberActionState = ActionState<
+  CreateMemberActionResult,
+  CreateMemberActionField,
+  CreateMemberActionCode
+>;
+
+export type CreateMemberBindingLinkActionField = "memberId";
+export type CreateMemberBindingLinkActionCode =
+  | "configuration_error"
+  | "member_not_found"
+  | "member_already_bound"
+  | "member_disabled"
+  | "permission_denied"
+  | "unknown_error";
+export type CreateMemberBindingLinkActionResult = {
+  bindingLink: string;
+  expiresAt: string;
+};
+export type CreateMemberBindingLinkActionState = ActionState<
+  CreateMemberBindingLinkActionResult,
+  CreateMemberBindingLinkActionField,
+  CreateMemberBindingLinkActionCode
 >;
 
 export type UpdateMemberDisplayNameActionField = "displayName";
@@ -30,33 +58,66 @@ export type UpdateMemberDisplayNameActionCode =
   | "member_not_found"
   | "permission_denied"
   | "unknown_error";
+export type UpdateMemberDisplayNameActionResult = {
+  memberId: string;
+  displayName: string;
+};
 export type UpdateMemberDisplayNameActionState = ActionState<
-  { memberId: string; displayName: string },
+  UpdateMemberDisplayNameActionResult,
   UpdateMemberDisplayNameActionField,
   UpdateMemberDisplayNameActionCode
 >;
 
-export async function createMemberInvitationAction(
-  _previousState: InviteMemberActionState,
+export async function createMemberAction(
+  _previousState: CreateMemberActionState,
   formData: FormData,
-): Promise<InviteMemberActionState> {
-  void formData;
+): Promise<CreateMemberActionState> {
+  const displayName = readFormValue(formData, "displayName") ?? "";
+  const role = readMemberRole(formData);
+
+  if (!role) {
+    return createMemberError("invalid_role");
+  }
+
   const session = await requireServerActionAccess({ type: "manage_members" });
-  const result = await createMemberInvitationInDatabase(
+  const result = await createMemberInDatabase(
     session.access.member,
-    {
-      baseUrl: readBaseUrl(),
-      prisma: getPrismaClient(),
-    },
+    { displayName, role },
+    { prisma: getPrismaClient() },
   );
 
   if (!result.ok) {
-    return inviteMemberError(result.reason);
+    return createMemberError(result.reason);
   }
 
   revalidateMemberPaths();
-  return actionSuccess("邀請連結已建立", {
-    invitationLink: result.invitationLink,
+  return actionSuccess("成員已建立。", {
+    memberId: result.member.id,
+    displayName: result.member.displayName,
+  });
+}
+
+export async function createMemberBindingLinkAction(
+  _previousState: CreateMemberBindingLinkActionState,
+  formData: FormData,
+): Promise<CreateMemberBindingLinkActionState> {
+  const memberId = readFormValue(formData, "memberId");
+
+  if (!memberId) {
+    return bindingLinkError("member_not_found");
+  }
+
+  const session = await requireServerActionAccess({ type: "manage_members" });
+  const result = await tryGenerateMemberBindingLink(session.access.member, memberId);
+
+  if (!result.ok) {
+    return bindingLinkError(result.reason);
+  }
+
+  revalidateMemberPaths();
+  return actionSuccess("綁定連結已建立", {
+    bindingLink: result.bindingLink,
+    expiresAt: result.expiresAt.toISOString(),
   });
 }
 
@@ -95,6 +156,18 @@ function readFormValue(formData: FormData, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function readMemberRole(formData: FormData): MemberRole | undefined {
+  const role = readFormValue(formData, "role");
+
+  return isMemberRole(role) ? role : undefined;
+}
+
+function isMemberRole(role: string | undefined): role is MemberRole {
+  return role === "admin" ||
+    role === "finance_manager" ||
+    role === "general_member";
+}
+
 function revalidateMemberPaths() {
   revalidatePath("/");
   revalidatePath("/settings/members");
@@ -104,17 +177,83 @@ function readBaseUrl(): string | undefined {
   return process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
 }
 
-function inviteMemberError(
-  code: InviteMemberActionCode,
-): InviteMemberActionState {
-  const messages: Record<InviteMemberActionCode, string> = {
+async function tryGenerateMemberBindingLink(
+  member: Awaited<ReturnType<typeof requireServerActionAccess>>["access"]["member"],
+  memberId: string,
+) {
+  try {
+    return await generateMemberBindingLinkInDatabase(
+      member,
+      {
+        memberId,
+        baseUrl: readBaseUrl(),
+        prisma: getPrismaClient(),
+      },
+    );
+  } catch (error) {
+    if (isBindingTokenConfigurationError(error)) {
+      return { ok: false as const, reason: "configuration_error" as const };
+    }
+
+    throw error;
+  }
+}
+
+function bindingLinkError(
+  code: CreateMemberBindingLinkActionCode,
+): CreateMemberBindingLinkActionState {
+  const messages: Record<CreateMemberBindingLinkActionCode, string> = {
+    configuration_error: "綁定連結設定尚未完成，請確認環境變數。",
+    member_already_bound: "這位成員已綁定 Google 帳號。",
+    member_disabled: "停用成員不能產生綁定連結。",
+    member_not_found: "找不到這位成員。",
     permission_denied: "你沒有權限管理成員。",
-    unknown_error: "成員邀請無法建立。",
+    unknown_error: "綁定連結無法建立。",
   };
 
   return actionError(messages[code], {
     code,
   });
+}
+
+function createMemberError(
+  code:
+    | CreateMemberActionCode
+    | "duplicate_google_account_email"
+    | "member_not_found"
+    | "cannot_remove_last_admin"
+    | "member_must_have_role",
+): CreateMemberActionState {
+  const normalizedCode = isCreateMemberActionCode(code)
+    ? code
+    : "unknown_error";
+  const messages: Record<CreateMemberActionCode, string> = {
+    invalid_display_name: "顯示名稱不能空白。",
+    invalid_role: "請選擇有效的角色。",
+    permission_denied: "你沒有權限管理成員。",
+    unknown_error: "成員無法建立。",
+  };
+
+  return actionError(messages[normalizedCode], {
+    code: normalizedCode,
+    ...(normalizedCode === "invalid_display_name"
+      ? { fieldErrors: { displayName: [messages[normalizedCode]] } }
+      : {}),
+    ...(normalizedCode === "invalid_role"
+      ? { fieldErrors: { role: [messages[normalizedCode]] } }
+      : {}),
+  });
+}
+
+function isCreateMemberActionCode(
+  code: string,
+): code is CreateMemberActionCode {
+  return [
+    "invalid_display_name",
+    "invalid_role",
+    "permission_denied",
+    "unknown_error",
+  ].includes(code);
 }
 
 function updateDisplayNameError(

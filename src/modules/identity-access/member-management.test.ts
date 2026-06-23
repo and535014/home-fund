@@ -42,7 +42,7 @@ describe("member management", () => {
   it("allows admins to create invited household members", () => {
     expect(createMember(admin, {
       displayName: "Kai",
-      googleAccountEmail: "kai@example.com",
+      role: "finance_manager",
     }, {
       members,
       generateId: () => "member-kai",
@@ -51,8 +51,7 @@ describe("member management", () => {
       member: {
         id: "member-kai",
         displayName: "Kai",
-        googleAccountEmail: "kai@example.com",
-        roles: ["general_member"],
+        roles: ["finance_manager"],
         capabilities: [],
         status: "invited",
       },

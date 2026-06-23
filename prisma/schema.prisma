@@ -119,7 +119,9 @@ model MemberInvitation {
   memberId           String?
   googleAccountEmail String?
   tokenHash          String                 @unique
-  previewToken       String?
+  tokenCiphertext    String?
+  tokenIv            String?
+  tokenAuthTag       String?
   status             MemberInvitationStatus @default(pending)
   expiresAt          DateTime
   acceptedAt         DateTime?

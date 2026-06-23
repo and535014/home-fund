@@ -5,11 +5,13 @@ export async function POST(request: Request): Promise<Response> {
   const auth = await createAuth();
   const formData = await request.formData();
   const inviteToken = readFormValue(formData, "inviteToken");
+  const bindToken = readFormValue(formData, "bindToken");
 
   return startGoogleSignIn({
     headers: request.headers,
     auth,
     inviteToken,
+    bindToken,
   });
 }
 

@@ -1,84 +1,127 @@
-import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
-test("general login is separate from invitation acceptance", async ({ page }) => {
+test("general login is separate from member binding", async ({ page }) => {
   await page.goto("/login");
 
   await expect(page.getByRole("heading", { name: "使用 Google 登入" })).toBeVisible();
   await expect(page.getByText("和家庭成員一起記錄支出、收入與退款")).toBeVisible();
   await expect(page.getByRole("button", { name: "使用 Google 登入" })).toBeVisible();
-  await expect(page.getByText("接受成員邀請")).toHaveCount(0);
+  await expect(page.getByText("綁定 Google 帳號")).toHaveCount(0);
 });
 
-test("invitation acceptance keeps invite sign-in isolated", async ({ page }) => {
-  await page.goto("/invite/accept?token=seed-invite-token");
+test("public binding links validate token states", async ({ page }) => {
+  await page.goto("/members/bind");
+  await expect(page.getByRole("heading", { name: "綁定連結無法使用" })).toBeVisible();
+  await expect(page.getByText("這個綁定連結缺少必要資訊")).toBeVisible();
+  await expect(page.getByRole("button", { name: "使用 Google 登入" })).toHaveCount(0);
 
-  await expect(page.getByRole("heading", { name: "接受成員邀請" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "使用 Google 登入" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "一般登入" })).toHaveCount(0);
+  await page.goto("/members/bind?token=not-a-real-token");
+  await expect(page.getByText("這個綁定連結無法使用")).toBeVisible();
 
-  await page.goto("/invite/accept");
-  await expect(page.getByText("這個邀請連結缺少 token")).toBeVisible();
-  await expect(page.getByRole("button", { name: "使用 Google 登入" })).toBeDisabled();
+  await page.goto("/members/bind?token=seed-bind-expired-token");
+  await expect(page.getByText("這個綁定連結已過期")).toBeVisible();
+
+  await page.goto("/members/bind?token=seed-bind-used-token");
+  await expect(page.getByText("這個綁定連結已使用過")).toBeVisible();
+
+  await page.goto("/members/bind?token=seed-bind-waiting-token");
+  await expect(page.getByRole("heading", { name: "綁定 Google 帳號" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "使用 Google 登入" })).toBeVisible();
+  await expect(page.locator('input[name="bindToken"]')).toHaveValue("seed-bind-waiting-token");
 });
 
-test("admin member preview uses shared page layout without record actions", async ({
-  page,
-}) => {
-  await signInAsAdmin(page);
-  await page.goto("/settings/members");
-
-  await expect(page.getByRole("heading", { name: "成員" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "邀請成員" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "登出" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "新增紀錄" })).toBeVisible();
-  await expect(page.getByText("Google：")).toHaveCount(0);
-
-  const firstRow = page
-    .getByText("Admin", { exact: true })
-    .locator('xpath=ancestor::*[@data-slot="item"]');
-  const secondRow = page
-    .getByText("Kai", { exact: true })
-    .locator('xpath=ancestor::*[@data-slot="item"]');
-  const thirdRow = page
-    .getByText("Lin", { exact: true })
-    .locator('xpath=ancestor::*[@data-slot="item"]');
-
-  const firstBox = await firstRow.boundingBox();
-  const secondBox = await secondRow.boundingBox();
-  const thirdBox = await thirdRow.boundingBox();
-
-  expect(firstBox).not.toBeNull();
-  expect(secondBox).not.toBeNull();
-  expect(thirdBox).not.toBeNull();
-  expect(secondBox?.x ?? 0).toBeGreaterThan(firstBox?.x ?? 0);
-  expect(thirdBox?.x ?? 0).toBeGreaterThan(secondBox?.x ?? 0);
-});
-
-test("admin creates an expiring invitation link and copies it automatically", async ({
-  page,
-}) => {
+test("admin manages created member binding links", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await signInAsAdmin(page);
   await page.goto("/settings/members");
 
-  await page.getByRole("button", { name: "邀請成員" }).click();
-  await page.getByRole("button", { name: "建立邀請連結" }).click();
+  await expect(page.getByRole("heading", { name: "成員" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "建立成員" })).toBeVisible();
+  await expect(page.getByText("Google：")).toHaveCount(0);
 
-  const dialog = page.getByRole("dialog", { name: "邀請連結已建立" });
-  await expect(dialog).toBeVisible();
-  const inviteLink = dialog.getByRole("textbox", { name: "邀請連結" });
-  await expect(inviteLink).toHaveValue(/\/invite\/accept\?token=/u);
-  await expect(dialog.getByText("此連結 7 天內有效")).toBeVisible();
-  await expect(page.getByText("邀請連結已複製").first()).toBeVisible();
-  await expect(page.getByText("待接受邀請", { exact: true })).toHaveCount(0);
+  const waitingRow = memberRow(page, "待綁定測試成員");
+  await expect(waitingRow.getByText("待綁定", { exact: true })).toBeVisible();
+  await waitingRow.getByRole("button", {
+    name: "管理 待綁定測試成員 的綁定帳號連結",
+  }).click();
 
-  const copiedLink = await page.evaluate(() => navigator.clipboard.readText());
-  expect(copiedLink).toContain("/invite/accept?token=");
+  let dialog = page.getByRole("dialog", { name: "綁定 Google 帳號" });
+  const existingLink = dialog.getByRole("textbox", { name: "綁定帳號連結" });
+  await expect(existingLink).toHaveValue(/\/members\/bind\?token=seed-bind-waiting-token/u);
+  await expect(dialog.getByText("有效期限：")).toBeVisible();
+  await dialog.getByRole("button", {
+    name: "複製 待綁定測試成員 的綁定帳號連結",
+  }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+    "/members/bind?token=seed-bind-waiting-token",
+  );
+  await dialog.getByRole("button", { name: "關閉" }).first().click();
 
-  await page.getByRole("button", { name: "完成" }).click();
-  await expect(page.getByRole("button", { name: /複製 .* 的邀請連結/u })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /撤銷 .* 的邀請/u })).toHaveCount(0);
+  const expiredRow = memberRow(page, "失效測試成員");
+  await expect(expiredRow.getByText("已失效", { exact: true })).toBeVisible();
+  await expiredRow.getByRole("button", {
+    name: "管理 失效測試成員 的綁定帳號連結",
+  }).click();
+  dialog = page.getByRole("dialog", { name: "綁定 Google 帳號" });
+  await expect(dialog.getByText("的綁定連結已失效")).toBeVisible();
+  await dialog.getByRole("button", { name: "重新產生連結" }).click();
+  const regeneratedLink = dialog.getByRole("textbox", { name: "綁定帳號連結" });
+  await expect(regeneratedLink).toHaveValue(/\/members\/bind\?token=/u);
+  await expect(regeneratedLink).not.toHaveValue(/seed-bind-expired-token/u);
+  await dialog.getByRole("button", { name: "關閉" }).first().click();
+
+  const disabledRow = memberRow(page, "Disabled Lin");
+  await expect(disabledRow.getByText("已停用", { exact: true })).toBeVisible();
+  await expect(disabledRow.getByRole("button", {
+    name: /管理 Disabled Lin 的綁定帳號連結/u,
+  })).toHaveCount(0);
+});
+
+test("admin creates an unbound member then generates a binding link", async ({
+  page,
+}) => {
+  await signInAsAdmin(page);
+  await page.goto("/settings/members");
+
+  await page.getByRole("button", { name: "建立成員" }).click();
+  let dialog = page.getByRole("dialog", { name: "建立成員" });
+  await dialog.getByRole("textbox", { name: "顯示名稱" }).fill("柏宇 E2E");
+  await dialog.getByLabel("角色").selectOption("general_member");
+  await dialog.getByRole("button", { name: "建立成員" }).click();
+  await expect(page.getByText("成員已建立。")).toBeVisible();
+
+  const createdRow = memberRow(page, "柏宇 E2E");
+  await expect(createdRow.getByText("未綁定", { exact: true })).toBeVisible();
+  await createdRow.getByRole("button", {
+    name: "管理 柏宇 E2E 的綁定帳號連結",
+  }).click();
+
+  dialog = page.getByRole("dialog", { name: "綁定 Google 帳號" });
+  await expect(dialog.getByText("請產生綁定連結")).toBeVisible();
+  await dialog.getByRole("button", { name: "產生綁定連結" }).click();
+
+  await expect(dialog.getByRole("textbox", { name: "綁定帳號連結" })).toHaveValue(
+    /\/members\/bind\?token=/u,
+  );
+  await expect(dialog.getByText("有效期限：")).toBeVisible();
+});
+
+test("bound and disabled members hide binding actions", async ({ page }) => {
+  await signInAsAdmin(page);
+  await page.goto("/settings/members");
+
+  const adminRow = memberRow(page, "Admin");
+  await expect(adminRow.getByText("已綁定", { exact: true })).toBeVisible();
+  await expect(adminRow.getByRole("button", {
+    name: /管理 Admin 的綁定帳號連結/u,
+  })).toHaveCount(0);
+
+  const disabledRow = memberRow(page, "Disabled Lin");
+  await expect(disabledRow.getByText("已停用", { exact: true })).toBeVisible();
+  await expect(disabledRow.getByRole("button", {
+    name: /管理 Disabled Lin 的綁定帳號連結/u,
+  })).toHaveCount(0);
 });
 
 test("admin display-name changes persist after reload", async ({ page }) => {
@@ -104,9 +147,15 @@ test("non-admin members are redirected away from member management", async ({ pa
 
   await expect(page).toHaveURL(/\/$/u);
   await expect(page.getByRole("heading", { name: "總覽" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "邀請成員" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "建立成員" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /修改 .* 的顯示名稱/u })).toHaveCount(0);
 });
+
+function memberRow(page: Page, displayName: string) {
+  return page
+    .getByText(displayName, { exact: true })
+    .locator('xpath=ancestor::*[@data-slot="item"]');
+}
 
 async function signInAsAdmin(page: Page) {
   await page.setExtraHTTPHeaders({

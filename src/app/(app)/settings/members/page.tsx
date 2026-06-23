@@ -1,18 +1,20 @@
 import { CreateMemberHeaderButton, MemberList } from "./member-list";
+import { loadMemberManagementMembers } from "@/app/member-management-members";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 
-export default function MembersPage() {
+export default async function MembersPage() {
+  const members = await loadMemberManagementMembers();
+
   return (
     <PageLayout
       header={
         <PageHeader
           actions={<CreateMemberHeaderButton />}
-          description="管理者先建立成員，再產生成員專屬連結讓使用者綁定 Google 帳號。"
           title="成員"
         />
       }
     >
-      <MemberList />
+      <MemberList members={members} />
     </PageLayout>
   );
 }

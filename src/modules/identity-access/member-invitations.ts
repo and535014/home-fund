@@ -8,7 +8,9 @@ export type MemberInvitationRecord = {
   memberId?: string;
   googleAccountEmail?: string;
   tokenHash: string;
-  previewToken?: string;
+  tokenCiphertext?: string;
+  tokenIv?: string;
+  tokenAuthTag?: string;
   status: MemberInvitationStatus;
   expiresAt: Date;
 };

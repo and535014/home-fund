@@ -59,6 +59,37 @@ describe("startGoogleSignIn", () => {
     });
   });
 
+  it("preserves member binding tokens through Google sign-in callbacks", async () => {
+    const headers = new Headers({ origin: "http://localhost:3000" });
+    const signInSocial = vi.fn(async () => ({
+      headers: new Headers({
+        location: "https://accounts.google.com/o/oauth2/v2/auth",
+      }),
+      response: {
+        redirect: true,
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+      },
+    }));
+
+    await startGoogleSignIn({
+      headers,
+      bindToken: "bind token",
+      auth: {
+        api: { signInSocial },
+      },
+    });
+
+    expect(signInSocial).toHaveBeenCalledWith({
+      headers,
+      returnHeaders: true,
+      body: {
+        provider: "google",
+        callbackURL: "/members/bind/callback?token=bind%20token",
+        errorCallbackURL: "/members/bind?token=bind%20token&auth_error=google_sign_in",
+      },
+    });
+  });
+
   it("returns a login error redirect when Better Auth cannot start Google sign-in", async () => {
     const response = await startGoogleSignIn({
       headers: new Headers({ origin: "http://localhost:3000" }),

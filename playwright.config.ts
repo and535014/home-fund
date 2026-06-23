@@ -14,6 +14,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: e2eDatabaseUrl,
       BETTER_AUTH_URL: e2eBaseUrl,
+      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     },
     reuseExistingServer: false,
     timeout: 120_000,

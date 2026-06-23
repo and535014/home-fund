@@ -31,6 +31,7 @@ cp .env.example .env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
 BETTER_AUTH_URL="http://localhost:3000"
 BETTER_AUTH_SECRET="replace-with-a-long-random-secret"
+MEMBER_BINDING_TOKEN_ENCRYPTION_KEY="replace-with-32-random-bytes-base64"
 GOOGLE_CLIENT_ID="your-google-oauth-client-id"
 GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
 SEED_GOOGLE_ACCOUNT_EMAIL="your-google-account@example.com"
@@ -94,6 +95,25 @@ BETTER_AUTH_SECRET="generated-secret"
 ```
 
 不同環境請使用不同 secret。
+
+#### `MEMBER_BINDING_TOKEN_ENCRYPTION_KEY`
+
+成員綁定 Google 帳號連結會把可重新複製的 token 以 AES-256-GCM 加密後儲存。
+這個值必須是 32 bytes 的 base64 字串，不能共用 `BETTER_AUTH_SECRET`。
+
+產生方式：
+
+```sh
+openssl rand -base64 32
+```
+
+把輸出填入：
+
+```env
+MEMBER_BINDING_TOKEN_ENCRYPTION_KEY="generated-base64-key"
+```
+
+本機、preview、production 請各自使用不同 key。正式環境若更換 key，尚未失效的既有綁定連結將無法再由管理者重新複製，需要等連結失效後重新產生。
 
 #### `GOOGLE_CLIENT_ID` 和 `GOOGLE_CLIENT_SECRET`
 

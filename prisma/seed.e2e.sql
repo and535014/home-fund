@@ -53,6 +53,33 @@ VALUES
     'google-e2e-disabled',
     'disabled',
     CURRENT_TIMESTAMP
+  ),
+  (
+    'member-bind-unbound',
+    'household-demo',
+    '未綁定測試成員',
+    NULL,
+    NULL,
+    'invited',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'member-bind-waiting',
+    'household-demo',
+    '待綁定測試成員',
+    NULL,
+    NULL,
+    'invited',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'member-bind-expired',
+    'household-demo',
+    '失效測試成員',
+    NULL,
+    NULL,
+    'invited',
+    CURRENT_TIMESTAMP
   )
 ON CONFLICT ("id") DO UPDATE
 SET "displayName" = EXCLUDED."displayName",
@@ -66,7 +93,10 @@ VALUES
   ('member-mei', 'general_member'),
   ('member-kai', 'general_member'),
   ('member-fin', 'finance_manager'),
-  ('member-e2e-disabled', 'general_member')
+  ('member-e2e-disabled', 'general_member'),
+  ('member-bind-unbound', 'general_member'),
+  ('member-bind-waiting', 'finance_manager'),
+  ('member-bind-expired', 'general_member')
 ON CONFLICT ("memberId", "role") DO NOTHING;
 
 INSERT INTO "MemberInvitation" (
@@ -75,7 +105,9 @@ INSERT INTO "MemberInvitation" (
   "memberId",
   "googleAccountEmail",
   "tokenHash",
-  "previewToken",
+  "tokenCiphertext",
+  "tokenIv",
+  "tokenAuthTag",
   "status",
   "expiresAt",
   "createdById",
@@ -84,10 +116,12 @@ INSERT INTO "MemberInvitation" (
 VALUES (
   'invite-seed-invited',
   'household-demo',
-  NULL,
+  'member-kai',
   NULL,
   'fb6bd43e35b03ee100246562795d5393a4973b110770b5d5aeda04f398d79cdb',
-  'seed-invite-token',
+  'vcIlWWAJBRhuOqD-zpz2fRw',
+  'AAAAAAAAAAAAAAAA',
+  'sfVjNJsDNX8cp26lPxDJsA',
   'pending',
   CURRENT_TIMESTAMP + INTERVAL '7 days',
   'member-admin',
@@ -96,9 +130,84 @@ VALUES (
 ON CONFLICT ("id") DO UPDATE
 SET "googleAccountEmail" = EXCLUDED."googleAccountEmail",
     "tokenHash" = EXCLUDED."tokenHash",
-    "previewToken" = EXCLUDED."previewToken",
+    "tokenCiphertext" = EXCLUDED."tokenCiphertext",
+    "tokenIv" = EXCLUDED."tokenIv",
+    "tokenAuthTag" = EXCLUDED."tokenAuthTag",
     "status" = EXCLUDED."status",
     "expiresAt" = EXCLUDED."expiresAt",
+    "updatedAt" = CURRENT_TIMESTAMP;
+
+INSERT INTO "MemberInvitation" (
+  "id",
+  "householdId",
+  "memberId",
+  "googleAccountEmail",
+  "tokenHash",
+  "tokenCiphertext",
+  "tokenIv",
+  "tokenAuthTag",
+  "status",
+  "expiresAt",
+  "acceptedAt",
+  "createdById",
+  "updatedAt"
+)
+VALUES
+  (
+    'invite-bind-waiting',
+    'household-demo',
+    'member-bind-waiting',
+    NULL,
+    '7b7f3ca2ecde44cd7a8b0d216422c52597a219d5b82dd8dda258ef5f10059365',
+    'vcIlWWACAgBjY7Ky04f0dhVNd6Vcw0Q',
+    'AAAAAAAAAAAAAAAA',
+    'oYWU-BUKe2o-G0bv6Jt9eg',
+    'pending',
+    CURRENT_TIMESTAMP + INTERVAL '7 days',
+    NULL,
+    'member-admin',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'invite-bind-expired',
+    'household-demo',
+    'member-bind-expired',
+    NULL,
+    '718787f67d6f60856c0de6df7c2c18cce70dbf59d9a59759ea4144e4f9114d2a',
+    'vcIlWWACAgBjY6CryprvfRZNd6Vcw0Q',
+    'AAAAAAAAAAAAAAAA',
+    'G59RKDFmSAvtbeagq99Mng',
+    'pending',
+    CURRENT_TIMESTAMP - INTERVAL '1 day',
+    NULL,
+    'member-admin',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'invite-bind-used',
+    'household-demo',
+    'member-bind-waiting',
+    NULL,
+    '49af168cd435107c5396259c7178152c4a20929efcc52c837bbf7c6191cd9b0b',
+    'vcIlWWACAgBjY7Cg35ewbB0LZqQ',
+    'AAAAAAAAAAAAAAAA',
+    'OPMNLggAYjwCrELLqO_OqQ',
+    'accepted',
+    CURRENT_TIMESTAMP + INTERVAL '7 days',
+    CURRENT_TIMESTAMP,
+    'member-admin',
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT ("id") DO UPDATE
+SET "memberId" = EXCLUDED."memberId",
+    "googleAccountEmail" = EXCLUDED."googleAccountEmail",
+    "tokenHash" = EXCLUDED."tokenHash",
+    "tokenCiphertext" = EXCLUDED."tokenCiphertext",
+    "tokenIv" = EXCLUDED."tokenIv",
+    "tokenAuthTag" = EXCLUDED."tokenAuthTag",
+    "status" = EXCLUDED."status",
+    "expiresAt" = EXCLUDED."expiresAt",
+    "acceptedAt" = EXCLUDED."acceptedAt",
     "updatedAt" = CURRENT_TIMESTAMP;
 
 INSERT INTO "MemberCapabilityAssignment" ("memberId", "capability")
@@ -397,7 +506,7 @@ SELECT
   'income',
   '搜尋分頁測試 ' || lpad(series::text, 3, '0'),
   10000 + series,
-  DATE '2026-06-15',
+  DATE '2026-06-01',
   'income-living',
   'member-fin',
   'member-fin',

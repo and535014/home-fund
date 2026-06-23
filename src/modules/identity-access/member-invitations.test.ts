@@ -25,7 +25,6 @@ const pendingInvitation: MemberInvitationRecord = {
   id: "invite-kai",
   householdId: "household-demo",
   tokenHash: "hash-kai",
-  previewToken: "raw-kai",
   status: "pending",
   expiresAt: new Date("2026-06-26T10:00:00.000Z"),
 };

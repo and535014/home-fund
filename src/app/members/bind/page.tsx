@@ -7,6 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getPrismaClient } from "@/db/prisma";
+import { validateMemberBindingTokenInDatabase } from "@/modules/identity-access/member-invitation-command";
+import {
+  mapMemberBindTokenState,
+  memberBindAuthErrorMessage,
+  memberBindErrorMessage,
+} from "./member-bind-state";
 
 type BindPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -15,8 +22,12 @@ type BindPageProps = {
 export default async function MemberBindPage({ searchParams }: BindPageProps) {
   const resolvedSearchParams = await searchParams;
   const token = readSearchParam(resolvedSearchParams, "token");
-  const state = readSearchParam(resolvedSearchParams, "state");
-  const errorState = resolveBindErrorState(token, state);
+  const authError = readSearchParam(resolvedSearchParams, "auth_error");
+  const validation = await validateMemberBindingTokenInDatabase(token, {
+    prisma: getPrismaClient(),
+  });
+  const bindState = mapMemberBindTokenState(token, validation);
+  const errorState = bindState.kind === "valid" ? undefined : bindState.kind;
 
   return (
     <main className="grid min-h-screen place-items-center bg-background px-4 py-8 text-foreground">
@@ -33,7 +44,7 @@ export default async function MemberBindPage({ searchParams }: BindPageProps) {
             <>
               <Alert variant="destructive">
                 <AlertTriangle aria-hidden="true" />
-                <AlertDescription>{bindErrorMessage(errorState)}</AlertDescription>
+                <AlertDescription>{memberBindErrorMessage(errorState)}</AlertDescription>
               </Alert>
               <Button asChild variant="secondary">
                 <a href="/login">返回登入頁</a>
@@ -44,8 +55,20 @@ export default async function MemberBindPage({ searchParams }: BindPageProps) {
               <p className="text-body text-muted-foreground">
                 使用 Google 登入後，這個帳號會綁定到管理者建立的成員資料。
               </p>
+              {authError ? (
+                <Alert variant="destructive">
+                  <AlertTriangle aria-hidden="true" />
+                  <AlertDescription>
+                    {memberBindAuthErrorMessage(authError)}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               <form action="/auth/google" method="post">
-                <input name="bindToken" type="hidden" value={token ?? ""} />
+                <input
+                  name="bindToken"
+                  type="hidden"
+                  value={bindState.kind === "valid" ? bindState.token : ""}
+                />
                 <Button className="w-full" size="lg" type="submit">
                   <LogIn aria-hidden="true" size={18} />
                   使用 Google 登入
@@ -57,38 +80,6 @@ export default async function MemberBindPage({ searchParams }: BindPageProps) {
       </Card>
     </main>
   );
-}
-
-function resolveBindErrorState(
-  token: string | undefined,
-  state: string | undefined,
-): "missing" | "expired" | "invalid" | "used" | undefined {
-  if (!token) {
-    return "missing";
-  }
-
-  if (
-    state === "expired" ||
-    state === "invalid" ||
-    state === "used"
-  ) {
-    return state;
-  }
-
-  return undefined;
-}
-
-function bindErrorMessage(
-  state: "missing" | "expired" | "invalid" | "used",
-): string {
-  const messages = {
-    expired: "這個綁定連結已過期，請向管理者索取新的連結。",
-    invalid: "這個綁定連結無法使用，請向管理者確認。",
-    missing: "這個綁定連結缺少必要資訊，請向管理者索取新的連結。",
-    used: "這個綁定連結已使用過，請直接登入或向管理者確認。",
-  };
-
-  return messages[state];
 }
 
 function readSearchParam(
