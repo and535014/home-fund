@@ -144,7 +144,7 @@ corepack pnpm dev
 
 ## Review Gate
 
-- decision: review
+- decision: approve
 - reviewer_focus:
   - Confirm `/settings/members` is the right surface for admin-created membership.
   - Confirm `建立成員 -> 產生綁定連結 -> 使用者 Google 綁定` is the intended task flow.
