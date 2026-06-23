@@ -84,6 +84,7 @@ trace_links:
   - .ai/archive/archive-batch-search-record-actions-2026-06-22.md
   - .ai/intent/admin-created-member-google-binding.md
   - .ai/domain-impact/admin-created-member-google-binding.md
+  - .ai/prototype/admin-created-member-google-binding.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -190,9 +191,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: admin-created-member-google-binding
 - latest_completed_slice: batch search record actions, compressed in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`.
-- current_stage: Domain Discovery review for admin-created member Google binding.
-- recommended_resume_gate: Experience Prototype for `admin-created-member-google-binding` after approval.
-- recommended_next_skill: experience-prototype after this Domain Discovery review is approved.
+- current_stage: Experience Prototype review for admin-created member Google binding.
+- recommended_resume_gate: Behavior Spec / BDD / E2E for `admin-created-member-google-binding` after approval.
+- recommended_next_skill: behavior-spec after this Experience Prototype review is approved.
 
 ## Artifact Inventory
 
