@@ -38,14 +38,15 @@ reviewed_at: 2026-06-24
 | events | Reimbursement payment details captured; Reimbursement payment recorded. | Existing Expenses reimbursed and Record detail expense reimbursed now require payment evidence before completion. | None. | Payment evidence needs observable domain events for audit, BDD, and learning. |
 | commands | Enter reimbursement payment details; Record reimbursement payment. | Mark selected expenses reimbursed now validates payment details and records them in the settlement. | None. | The command boundary must collect and validate money-movement details, not only flip status. |
 | policies | MVP reimbursement payment capture is one payment to one paid-to member per reimbursement batch; payment amount must match selected reimbursed expense total; payment evidence is not a second ordinary expense. | Batch reimbursement should reject or split cross-member selections before settlement, pending downstream UX decision. | Status-only reimbursement as the completed happy path. | One payment record across multiple payees is ambiguous and double-counting reimbursement as expense would corrupt reports. |
-| aggregates_or_invariants | ReimbursementBatch owns reimbursement payment evidence for MVP. | ReimbursementBatch must link reimbursed expense IDs, paid-to member, paid-from source, method, paid time, amount, actor, and optional reference/note. | None. | The existing settlement aggregate should gain payment traceability instead of creating a parallel workflow. |
+| aggregates_or_invariants | ReimbursementBatch owns reimbursement payment evidence for MVP. | ReimbursementBatch must link reimbursed expense IDs, paid-to member, fixed household-fund paid-from source, method, paid date, amount, actor, and optional reference/note. | None. | The existing settlement aggregate should gain payment traceability without exposing derived facts as editable inputs. |
 | bounded_contexts | Reporting consumes reimbursement payment evidence for detail/readback without counting it as income or expense. | Reimbursement now owns payment-path trace in addition to reimbursed status. | None. | Ledger remains source of household income/expense truth; Reimbursement owns settlement evidence. |
 | lifecycle_or_states | Payment details missing/invalid, payment details captured, payment recorded, reimbursed with payment evidence. | `已退款` should imply payment evidence exists for new settlements after this slice. | None. | UI, BDD, and technical design need distinct validation and readback states. |
 
 ## Domain Decisions
 
 - Reimbursement payment flow records evidence that a real-world reimbursement happened; the app does not initiate an external transfer.
-- Required payment evidence for MVP: amount, paid-to member, paid-from source, payment method, paid date/time, actor, and optional reference/note.
+- Required payment evidence for MVP: derived amount, derived paid-to member, fixed household-fund paid-from source, payment method, paid date, actor, and optional reference/note.
+- Paid-to member, amount, and payment source are not user-editable in the refund action because this slice does not support another recipient, partial reimbursement, or another paid-from source.
 - The paid-to member must be the payer member on all selected member-paid expenses in the reimbursement batch.
 - The payment amount must equal the sum of selected eligible expenses for that paid-to member.
 - A reimbursement batch with payment evidence does not create a new ordinary `LedgerRecord`; monthly income/expense reports stay based on original ledger records.
@@ -58,7 +59,7 @@ reviewed_at: 2026-06-24
 - prototype_states_or_flows:
   - Record detail reimbursement confirmation must collect or display required payment details before final confirmation.
   - Batch reimbursement UX must prevent or explain cross-member selections, or split the flow into clear per-member settlements if approved later.
-  - Reimbursed record detail/readback should show payment source, payment method, paid date/time, paid-to member, and amount.
+  - Reimbursed record detail/readback should show payment source, payment method, paid date, paid-to member, and amount.
   - Invalid states must cover missing method/source/date, amount mismatch, cross-member selection, already reimbursed, voided, fund-paid, income, and unauthorized actor.
 - bdd_scenarios:
   - Finance-capable actor reimburses one member-paid expense and records payment evidence.
@@ -82,14 +83,13 @@ reviewed_at: 2026-06-24
 - release_or_learning_signals:
   - Local_dev readiness must include migration evidence and seed/test data updates if schema changes.
   - Learning should check whether users understand the app records payment evidence but does not perform the transfer.
-  - Local review should check whether paid-from source and payment method labels are understandable in Traditional Chinese.
+  - Local review should check whether users understand the fixed household-fund payment source and payment method labels in Traditional Chinese.
 
 ## Open Questions and Risks
 
 - product:
-  - Which paid-from sources are allowed in MVP: household fund, cash, bank account label, other, or a controlled household account list?
-  - Which payment methods are allowed in MVP: cash, bank transfer, LINE Pay, other, or free-form?
-  - Should payment date/time default to now, or require explicit user selection?
+  - Which payment method labels should be used for the approved MVP options: bank transfer, cash, and other?
+  - Should payment date default to today, or require explicit user selection?
 - domain:
   - Cross-member batch reimbursement is rejected by the MVP domain rule; a later slice may split one selected set into multiple per-member reimbursement payments.
   - Partial reimbursement and split methods are intentionally deferred; this may be too strict if real household reimbursement often happens in chunks.
@@ -116,6 +116,6 @@ reviewed_at: 2026-06-24
   - Behavior Spec can define same-member, amount-match, missing-detail, and no-double-count scenarios.
   - Technical Design can decide schema, transaction, validation, and reporting boundaries.
 - unresolved_blockers:
-  - Exact paid-from source and payment method option sets need prototype/spec/design decision.
+  - Exact payment method option set needs prototype/spec/design decision.
 - next_step:
   - Experience Prototype for `reimbursement-payment-flow`.

@@ -59,6 +59,7 @@ import {
   compareCategoryVisualOrder,
   getCategoryVisual,
 } from "@/app/category-visuals";
+import { ReimbursementPaymentFields } from "@/app/reimbursement-payment-fields";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
@@ -388,7 +389,7 @@ function RecordDetailDialog({
           setIsRefundedLocally(true);
           setMode("detail");
           toast.success("已完成退款", {
-            description: "這筆紀錄已標記為已退款。",
+            description: "這筆紀錄已標記為已退款，並保留退款金流資訊。",
             id: `refund-record-success-${record.id}`,
           });
           onRefresh();
@@ -530,7 +531,6 @@ function RefundRecordDialog({
     <DialogContent className="max-w-md">
       <DialogHeader>
         <DialogTitle>確認退款</DialogTitle>
-        <DialogDescription>將此紀錄標記為已退款。</DialogDescription>
       </DialogHeader>
 
       <form action={formAction}>
@@ -548,12 +548,9 @@ function RefundRecordDialog({
               record={record}
             />
           </Item>
-          <Alert variant="warning">
-            <AlertTriangle />
-            <AlertDescription>
-              確認後，狀態會顯示為已退款，且無法編輯或刪除。
-            </AlertDescription>
-          </Alert>
+          <ReimbursementPaymentFields
+            idPrefix={`record-${record.id}-reimbursement`}
+          />
         </DialogBody>
 
         <DialogFooter className="mt-4">
