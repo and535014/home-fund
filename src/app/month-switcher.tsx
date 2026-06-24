@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
 import { MonthPickerDialog } from "./month-picker-dialog";
 import { addDashboardMonths } from "./month-selection";
 import { Button } from "@/components/ui/button";
@@ -27,9 +28,9 @@ export function MonthSwitcher({
         size="icon"
         variant="ghost"
       >
-        <a href={buildMonthHref(previousMonth)}>
+        <Link href={buildMonthHref(previousMonth)}>
           <ChevronLeft aria-hidden="true" size={18} />
-        </a>
+        </Link>
       </Button>
       <MonthPickerDialog currentMonth={currentMonth} />
       <Button
@@ -39,9 +40,9 @@ export function MonthSwitcher({
         size="icon"
         variant="ghost"
       >
-        <a href={buildMonthHref(nextMonth)}>
+        <Link href={buildMonthHref(nextMonth)}>
           <ChevronRight aria-hidden="true" size={18} />
-        </a>
+        </Link>
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useRecordCreate } from "@/app/record-create-context";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,10 @@ import {
   isActiveNavigationItem,
   navigationIcons,
 } from "./authenticated-sidebar-nav";
+import {
+  mobileNavigationLabel,
+  orderMobileNavigationItems,
+} from "./mobile-navigation-order";
 
 export function AuthenticatedMobileNav({
   canCreateRecord,
@@ -20,6 +25,7 @@ export function AuthenticatedMobileNav({
   const pathname = usePathname() ?? "";
   const hideMobileNavigation = pathname === "/search";
   const hideRecordCreateFab = pathname === "/settings" || pathname.startsWith("/settings/");
+  const mobileNavigationItems = orderMobileNavigationItems(navigationItems);
 
   if (hideMobileNavigation) {
     return null;
@@ -33,7 +39,7 @@ export function AuthenticatedMobileNav({
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-14px_34px_rgba(0,0,0,0.34)] backdrop-blur md:hidden"
       >
         <div className="mx-auto flex max-w-md items-stretch gap-1">
-          {navigationItems.map((item) => (
+          {mobileNavigationItems.map((item) => (
             <AuthenticatedMobileNavItem item={item} key={item.href} />
           ))}
         </div>
@@ -51,13 +57,14 @@ function AuthenticatedMobileNavItem({ item }: { item: AppNavigationItem }) {
       : pathname;
   const active = isActiveNavigationItem(item.href, pathname, currentHref);
   const Icon = navigationIcons[item.icon];
+  const label = mobileNavigationLabel(item);
 
   return (
-    <a
+    <Link
       aria-current={active ? "page" : undefined}
-      aria-label={item.label}
+      aria-label={label}
       className={cn(
-        "grid min-h-14 flex-1 place-items-center gap-1 rounded-button px-1 py-1.5 text-center text-[0.75rem] leading-none text-muted-foreground transition focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "grid min-h-14 flex-1 place-items-center rounded-button px-1 py-1.5 text-center text-[0.75rem] leading-none text-muted-foreground transition focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
         active && "bg-secondary text-foreground",
       )}
       href={item.href}
@@ -66,8 +73,7 @@ function AuthenticatedMobileNavItem({ item }: { item: AppNavigationItem }) {
         aria-hidden="true"
         className={cn("size-5", active && "text-primary")}
       />
-      <span className="max-w-full truncate">{item.label}</span>
-    </a>
+    </Link>
   );
 }
 

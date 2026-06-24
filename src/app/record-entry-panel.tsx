@@ -2,7 +2,7 @@
 
 import {
   useActionState,
-  useEffect,
+  useCallback,
   useMemo,
   useState,
   type ReactNode,
@@ -31,6 +31,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useActionStateEffect } from "./use-action-state-effect";
 
 const RECORD_ENTRY_MODE = {
   expense: "expense",
@@ -190,11 +191,14 @@ function RecordEntryFormShell({
   );
   const feedbackMessage = createRecordFeedbackMessage(actionState);
 
-  useEffect(() => {
-    if (actionState.status === "success") {
-      onRecordCreated();
-    }
-  }, [actionState.status, onRecordCreated]);
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
+        onRecordCreated();
+      }
+    }, [onRecordCreated]),
+  );
 
   return (
     <section

@@ -77,7 +77,7 @@ describe("getVisibleDashboardNavigationItems", () => {
     ]);
     expect(navigation).toContainEqual(
       expect.objectContaining({
-        href: "/settings",
+        href: "/settings/account",
         label: "設定",
       }),
     );

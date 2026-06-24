@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   SidebarMenu,
@@ -29,9 +30,9 @@ export function SettingsSidebarNav({
         return (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton asChild isActive={active} size="lg">
-              <a aria-current={active ? "page" : undefined} href={item.href}>
+              <Link aria-current={active ? "page" : undefined} href={item.href}>
                 <span>{item.label}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
@@ -52,7 +53,7 @@ export function SettingsMobileNav({ items }: { items: SettingsSidebarItem[] }) {
         const active = pathname === item.href;
 
         return (
-          <a
+          <Link
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex h-10 min-w-0 items-center justify-center rounded-button px-3 text-label whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -64,7 +65,7 @@ export function SettingsMobileNav({ items }: { items: SettingsSidebarItem[] }) {
             key={item.href}
           >
             {item.label}
-          </a>
+          </Link>
         );
       })}
     </nav>

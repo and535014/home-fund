@@ -1,7 +1,7 @@
 "use client";
 
 import { UserPlus } from "lucide-react";
-import { useActionState, useEffect } from "react";
+import { useActionState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { initialActionState } from "@/app/action-state";
@@ -29,6 +29,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { useActionStateEffect } from "@/app/use-action-state-effect";
 
 export function CreateMemberDialog({
   onOpenChange,
@@ -47,17 +48,20 @@ export function CreateMemberDialog({
     >(),
   );
 
-  useEffect(() => {
-    if (actionState.status === "success") {
-      toast.success(actionState.message ?? "成員已建立。");
-      onOpenChange(false);
-      router.refresh();
-    }
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
+        toast.success(handledState.message ?? "成員已建立。");
+        onOpenChange(false);
+        router.refresh();
+      }
 
-    if (actionState.status === "error" && actionState.message) {
-      toast.error(actionState.message);
-    }
-  }, [actionState, onOpenChange, router]);
+      if (handledState.status === "error" && handledState.message) {
+        toast.error(handledState.message);
+      }
+    }, [onOpenChange, router]),
+  );
 
   return (
     <Dialog

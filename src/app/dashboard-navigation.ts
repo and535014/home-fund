@@ -24,7 +24,7 @@ export function getVisibleDashboardNavigationItems(
     },
     {
       label: "設定",
-      href: "/settings",
+      href: "/settings/account",
       icon: APP_NAVIGATION_ICONS.settings,
       visible:
         accessHints.navigation.canOpenReports ||

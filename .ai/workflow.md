@@ -96,6 +96,7 @@ trace_links:
   - .ai/prototype/mobile-sitewide-layout-redesign.md
   - .ai/spec/mobile-sitewide-layout-redesign.md
   - .ai/technical-design/mobile-sitewide-layout-redesign.md
+  - .ai/implementation/mobile-sitewide-layout-redesign.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -202,9 +203,9 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 - project_classification: existing_with_ai
 - active_change: mobile-sitewide-layout-redesign
 - latest_completed_slice: admin-created member Google binding, compressed in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`.
-- current_stage: Feature Technical Design ready for review for mobile sitewide layout redesign.
-- recommended_resume_gate: Review Gate for `.ai/technical-design/mobile-sitewide-layout-redesign.md`.
-- recommended_next_skill: tdd-implementation after explicit technical design approval; otherwise revise the technical design from review feedback.
+- current_stage: TDD Implementation ready for review for mobile sitewide layout redesign.
+- recommended_resume_gate: Review Gate for `.ai/implementation/mobile-sitewide-layout-redesign.md`.
+- recommended_next_skill: verification after explicit implementation approval; otherwise revise implementation from review feedback.
 
 ## Artifact Inventory
 

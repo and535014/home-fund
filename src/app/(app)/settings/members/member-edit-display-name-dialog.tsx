@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { initialActionState } from "@/app/action-state";
@@ -25,6 +25,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useActionStateEffect } from "@/app/use-action-state-effect";
 
 export function EditMemberDisplayNameDialog({
   member,
@@ -43,17 +44,20 @@ export function EditMemberDisplayNameDialog({
     >(),
   );
 
-  useEffect(() => {
-    if (actionState.status === "success") {
-      toast.success(actionState.message ?? "顯示名稱已更新");
-      onOpenChange(false);
-      router.refresh();
-    }
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
+        toast.success(handledState.message ?? "顯示名稱已更新");
+        onOpenChange(false);
+        router.refresh();
+      }
 
-    if (actionState.status === "error" && actionState.message) {
-      toast.error(actionState.message);
-    }
-  }, [actionState, onOpenChange, router]);
+      if (handledState.status === "error" && handledState.message) {
+        toast.error(handledState.message);
+      }
+    }, [onOpenChange, router]),
+  );
 
   return (
     <Dialog onOpenChange={onOpenChange} open={Boolean(member)}>

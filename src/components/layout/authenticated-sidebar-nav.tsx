@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   CalendarClock,
   CircleDollarSign,
@@ -64,14 +65,14 @@ export function AuthenticatedSidebarNav({
               isActive={active}
               tooltip={item.label}
             >
-              <a
+              <Link
                 aria-current={active ? "page" : undefined}
                 aria-label={item.label}
                 href={item.href}
                 title={item.label}
               >
                 <Icon aria-hidden="true" size={18} />
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );

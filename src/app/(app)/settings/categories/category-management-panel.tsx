@@ -59,6 +59,7 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
+import { getCategoryMoveState } from "./category-ordering";
 
 type CategoryType = Category["type"];
 
@@ -679,83 +680,131 @@ function CategoryList({
   return (
     <div className="grid gap-3">
       {categories.map((category) => (
-        <CategoryItem
-          actions={
-            <>
-              <Button
-                aria-label={`修改 ${category.name}`}
-                aria-pressed={editingId === category.id}
-                onClick={() => onEdit(category)}
-                size="icon-sm"
-                type="button"
-                variant="secondary"
-              >
-                <Edit3 aria-hidden="true" />
-              </Button>
-              <Button
-                aria-label={`封存 ${category.name}`}
-                onClick={() => onArchive(category)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <Archive aria-hidden="true" />
-              </Button>
-            </>
-          }
+        <CategoryListItem
           category={category}
-          isActive={editingId === category.id}
-          isDragging={draggingId === category.id}
-          isFirst={categories[0]?.id === category.id}
-          isLast={categories[categories.length - 1]?.id === category.id}
+          categories={categories}
+          draggingId={draggingId}
+          editingId={editingId}
           key={category.id}
-          onDragEnd={() => setDraggingId(null)}
-          onDragEnter={(targetCategory) => {
-            if (!draggingId || draggingId === targetCategory.id) {
-              return;
-            }
-
-            onReorder({
-              draggedCategoryId: draggingId,
-              targetCategoryId: targetCategory.id,
-              type,
-            });
-          }}
-          onDragStart={(draggedCategory) => {
-            setDraggingId(draggedCategory.id);
-          }}
-          onMove={(direction) => {
-            const currentIndex = categories.findIndex(
-              (candidate) => candidate.id === category.id,
-            );
-            const targetCategory = categories[
-              direction === "up" ? currentIndex - 1 : currentIndex + 1
-            ];
-
-            if (!targetCategory) {
-              return;
-            }
-
-            onReorder({
-              draggedCategoryId: category.id,
-              targetCategoryId: targetCategory.id,
-              type,
-            });
-          }}
+          onArchive={onArchive}
+          onEdit={onEdit}
+          onReorder={onReorder}
+          onSetDraggingId={setDraggingId}
           pending={pending}
+          type={type}
         />
       ))}
     </div>
   );
 }
 
+function CategoryListItem({
+  category,
+  categories,
+  draggingId,
+  editingId,
+  onArchive,
+  onEdit,
+  onReorder,
+  onSetDraggingId,
+  pending,
+  type,
+}: {
+  category: EditableCategory;
+  categories: EditableCategory[];
+  draggingId: string | null;
+  editingId: string | null;
+  onArchive: (category: EditableCategory) => void;
+  onEdit: (category: EditableCategory) => void;
+  onReorder: (input: {
+    draggedCategoryId: string;
+    targetCategoryId: string;
+    type: CategoryType;
+  }) => void;
+  onSetDraggingId: (categoryId: string | null) => void;
+  pending?: boolean;
+  type: CategoryType;
+}) {
+  const { canMoveDown, canMoveUp } = getCategoryMoveState({
+    categories,
+    categoryId: category.id,
+  });
+
+  return (
+    <CategoryItem
+      actions={
+        <>
+          <Button
+            aria-label={`修改 ${category.name}`}
+            aria-pressed={editingId === category.id}
+            onClick={() => onEdit(category)}
+            size="icon-sm"
+            type="button"
+            variant="secondary"
+          >
+            <Edit3 aria-hidden="true" />
+          </Button>
+          <Button
+            aria-label={`封存 ${category.name}`}
+            onClick={() => onArchive(category)}
+            size="icon-sm"
+            type="button"
+            variant="outline"
+          >
+            <Archive aria-hidden="true" />
+          </Button>
+        </>
+      }
+      canMoveDown={canMoveDown}
+      canMoveUp={canMoveUp}
+      category={category}
+      isActive={editingId === category.id}
+      isDragging={draggingId === category.id}
+      onDragEnd={() => onSetDraggingId(null)}
+      onDragEnter={(targetCategory) => {
+        if (!draggingId || draggingId === targetCategory.id) {
+          return;
+        }
+
+        onReorder({
+          draggedCategoryId: draggingId,
+          targetCategoryId: targetCategory.id,
+          type,
+        });
+      }}
+      onDragStart={(draggedCategory) => {
+        onSetDraggingId(draggedCategory.id);
+      }}
+      onMove={(direction) => {
+        const currentIndex = categories.findIndex(
+          (candidate) => candidate.id === category.id,
+        );
+        const targetCategory = categories[
+          direction === "up" ? currentIndex - 1 : currentIndex + 1
+        ];
+
+        if (!targetCategory) {
+          return;
+        }
+
+        onReorder({
+          draggedCategoryId: category.id,
+          targetCategoryId: targetCategory.id,
+          type,
+        });
+      }}
+      pending={pending}
+    />
+  );
+}
+
 function CategoryItem({
   actions,
+  canMoveDown = false,
+  canMoveUp = false,
   category,
   isActive = false,
   isDragging = false,
-  isFirst = false,
-  isLast = false,
   onDragEnd,
   onDragEnter,
   onDragStart,
@@ -763,11 +812,11 @@ function CategoryItem({
   pending = false,
 }: {
   actions?: ReactNode;
+  canMoveDown?: boolean;
+  canMoveUp?: boolean;
   category: EditableCategory;
   isActive?: boolean;
   isDragging?: boolean;
-  isFirst?: boolean;
-  isLast?: boolean;
   onDragEnd?: () => void;
   onDragEnter?: (category: EditableCategory) => void;
   onDragStart?: (category: EditableCategory) => void;
@@ -823,7 +872,7 @@ function CategoryItem({
           <div className="flex shrink-0 flex-col gap-1 md:hidden">
             <Button
               aria-label={`上移 ${category.name}`}
-              disabled={pending || isFirst}
+              disabled={pending || !canMoveUp}
               onClick={() => onMove?.("up")}
               size="icon-xs"
               type="button"
@@ -833,7 +882,7 @@ function CategoryItem({
             </Button>
             <Button
               aria-label={`下移 ${category.name}`}
-              disabled={pending || isLast}
+              disabled={pending || !canMoveDown}
               onClick={() => onMove?.("down")}
               size="icon-xs"
               type="button"
