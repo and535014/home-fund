@@ -101,12 +101,14 @@ trace_links:
   - .ai/release/mobile-sitewide-layout-redesign-local-dev-readiness.md
   - .ai/learning/mobile-sitewide-layout-redesign.md
   - .ai/archive/archive-mobile-sitewide-layout-redesign-2026-06-24.md
+  - .ai/intent/reimbursement-payment-flow.md
+  - .ai/domain-impact/reimbursement-payment-flow.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
   - .ai/release/home-family-fund-local-dev-readiness.md
   - .ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md
-reviewed_at: 2026-06-21
+reviewed_at: 2026-06-24
 ---
 
 # DDD Harness Workflow
@@ -205,18 +207,18 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
-- latest_completed_slice: admin-created member Google binding, compressed in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`.
-- current_stage: mobile sitewide layout redesign compressed in `.ai/archive/archive-mobile-sitewide-layout-redesign-2026-06-24.md`.
-- recommended_resume_gate: Optional artifact-prune for completed mobile sitewide layout artifacts, production release intent, or next Intent Intake.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change.
+- active_change: reimbursement-payment-flow
+- latest_completed_slice: mobile sitewide layout redesign, compressed in `.ai/archive/archive-mobile-sitewide-layout-redesign-2026-06-24.md`.
+- current_stage: Domain Discovery / Domain Impact review for `.ai/domain-impact/reimbursement-payment-flow.md`.
+- recommended_resume_gate: Experience Prototype for `reimbursement-payment-flow` after explicit user approval.
+- recommended_next_skill: experience-prototype after Domain Impact approval.
 
 ## Artifact Inventory
 
-- idea: maintained `.ai/intent/home-family-fund.md`; completed admin-created member Google binding intent is summarized in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`; completed batch search record actions intent is summarized in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`; completed record search, sort, and filter intent is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement intent is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records intent is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
+- idea: active `.ai/intent/reimbursement-payment-flow.md`; maintained `.ai/intent/home-family-fund.md`; completed admin-created member Google binding intent is summarized in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`; completed batch search record actions intent is summarized in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`; completed record search, sort, and filter intent is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement intent is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records intent is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed remove standalone create-record entry and desktop layout redesign intent artifacts are summarized in archives.
 - completed record list detail modal: summarized in `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`; source intent/prototype/spec/technical-design/implementation/verification/release artifacts were manually pruned after compression.
 - ddd: 1 maintained artifact, `.ai/domain/home-family-fund.md`.
-- domain-impact: completed admin-created member Google binding impact is summarized in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`; completed batch search record actions impact is summarized in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`; completed record search, sort, and filter impact is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement impact is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records impact is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
+- domain-impact: active `.ai/domain-impact/reimbursement-payment-flow.md`; completed admin-created member Google binding impact is summarized in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`; completed batch search record actions impact is summarized in `.ai/archive/archive-batch-search-record-actions-2026-06-22.md`; completed record search, sort, and filter impact is summarized in `.ai/archive/archive-record-search-sort-filter-2026-06-21.md`; completed record detail reimbursement impact is summarized in `.ai/archive/archive-record-detail-reimbursement-2026-06-21.md`; completed edit/delete ledger records impact is summarized in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`; completed category visual identity and ordering impact is summarized in `.ai/archive/archive-category-visual-identity-2026-06-21.md`; completed admin Google OAuth and member invitations impact is summarized in `.ai/archive/archive-admin-google-oauth-member-invitations-2026-06-20.md`; completed admin-only category management impact is summarized in `.ai/archive/archive-admin-only-category-management-2026-06-19.md`.
 - code-understanding: 1 artifact, `.ai/code-understanding/home-family-fund.md`.
 - impact-analysis: 1 artifact, `.ai/impact-analysis/home-family-fund-mvp-hardening.md`.
 - stories: 15 story artifacts remain under `.ai/spec/` for future slice selection and historical story context.
