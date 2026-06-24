@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export function SummaryMetric({
   label,
@@ -17,10 +18,19 @@ export function SummaryMetric({
         : "text-foreground";
 
   return (
-    <Card>
-      <CardContent>
-        <p className="text-label text-muted-foreground">{label}</p>
-        <p className={`mt-2 text-heading ${valueColor}`}>{value}</p>
+    <Card className="gap-2 py-3 sm:gap-4 sm:py-4">
+      <CardContent className="px-2.5 sm:px-4">
+        <p className="text-center text-caption text-muted-foreground sm:text-left sm:text-label">
+          {label}
+        </p>
+        <p
+          className={cn(
+            "mt-1 truncate text-center text-body-strong sm:mt-2 sm:text-left sm:text-heading",
+            valueColor,
+          )}
+        >
+          {value}
+        </p>
       </CardContent>
     </Card>
   );

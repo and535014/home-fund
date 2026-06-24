@@ -9,6 +9,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import type { AppNavigationIconName } from "./app-navigation-icons";
+import { AuthenticatedMobileNav } from "./authenticated-mobile-nav";
 import { AuthenticatedSidebarNav } from "./authenticated-sidebar-nav";
 import { RecordCreateSidebarButton } from "./record-create-sidebar-button";
 
@@ -53,6 +54,10 @@ export async function AuthenticatedLayout({
       <SidebarInset className="h-svh min-h-0 min-w-0 overflow-hidden">
         {children}
       </SidebarInset>
+      <AuthenticatedMobileNav
+        canCreateRecord={canCreateRecord}
+        navigationItems={navigation}
+      />
     </SidebarProvider>
   );
 }

@@ -238,20 +238,22 @@ export function RecordSearchPanel({
         options={queryOptions}
         query={query}
       />
-      <RecordListDetail
-        actor={actor}
-        categories={categories}
-        categoriesById={categoriesById}
-        emptyMessage={emptyMessage}
-        hasMoreRecords={hasMoreRecords}
-        memberNames={memberNames}
-        onLoadMoreRecords={loadMoreRecords}
-        onToggleRecordSelection={
-          isSelectionMode ? toggleRecordSelection : undefined
-        }
-        records={displayedRecords}
-        selectedRecordIds={isSelectionMode ? selectedRecordIds : undefined}
-      />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <RecordListDetail
+          actor={actor}
+          categories={categories}
+          categoriesById={categoriesById}
+          emptyMessage={emptyMessage}
+          hasMoreRecords={hasMoreRecords}
+          memberNames={memberNames}
+          onLoadMoreRecords={loadMoreRecords}
+          onToggleRecordSelection={
+            isSelectionMode ? toggleRecordSelection : undefined
+          }
+          records={displayedRecords}
+          selectedRecordIds={isSelectionMode ? selectedRecordIds : undefined}
+        />
+      </div>
       {loadError ? (
         <p className="px-1 text-caption text-expense" role="alert">
           {loadError}

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -114,7 +115,7 @@ export function MemberBindingDialog({
                 </FieldDescription>
               ) : null}
             </Field>
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 onClick={() => onOpenChange(false)}
                 type="button"
@@ -122,7 +123,7 @@ export function MemberBindingDialog({
               >
                 關閉
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         ) : member && status === "link_expired" ? (
           <div className="grid gap-4">
@@ -135,7 +136,7 @@ export function MemberBindingDialog({
                 原有效期限：{formatBindingExpiry(expiresAt)}
               </p>
             ) : null}
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 onClick={() => onOpenChange(false)}
                 type="button"
@@ -151,7 +152,7 @@ export function MemberBindingDialog({
                 <Link aria-hidden="true" size={18} />
                 重新產生連結
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         ) : member ? (
           <div className="grid gap-4">
@@ -159,7 +160,7 @@ export function MemberBindingDialog({
               {member.displayName}
               尚未綁定 Google 帳號，請產生綁定連結，複製並傳給成員來進行綁定。
             </p>
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 onClick={() => onOpenChange(false)}
                 type="button"
@@ -175,7 +176,7 @@ export function MemberBindingDialog({
                 <Link aria-hidden="true" size={18} />
                 產生綁定連結
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         ) : null}
       </DialogContent>

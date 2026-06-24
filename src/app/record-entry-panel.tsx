@@ -141,7 +141,7 @@ function RecordEntryForm({
           recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
         }
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <MemberSelectField
           canSelectOthers={canSelectOthers}
           defaultMemberId={profile.id}
@@ -301,7 +301,7 @@ function CategoryField({ categories }: { categories: Category[] }) {
       ) : (
         <div
           aria-label="分類"
-          className="grid grid-cols-3 gap-x-4 gap-y-5 sm:grid-cols-5"
+          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-cols-5 sm:gap-x-4 sm:gap-y-5 sm:overflow-visible sm:px-1 sm:pb-3 sm:pt-1"
           role="radiogroup"
         >
         {orderedCategories.map((category) => {
@@ -309,7 +309,7 @@ function CategoryField({ categories }: { categories: Category[] }) {
 
           return (
           <label
-            className="group grid cursor-pointer justify-items-center gap-2 text-center"
+            className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-auto"
             key={category.id}
           >
             <input
@@ -325,7 +325,7 @@ function CategoryField({ categories }: { categories: Category[] }) {
               icon={visual.icon}
               size="lg"
             />
-            <span className="max-w-20 truncate text-label text-muted-foreground peer-checked:text-foreground">
+            <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
               {category.name}
             </span>
           </label>

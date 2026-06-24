@@ -20,7 +20,7 @@ export default async function SearchPage() {
   );
 
   return (
-    <PageLayout contentClassName="flex h-full min-h-0 flex-col">
+    <PageLayout contentClassName="flex h-full min-h-0 flex-col pb-5">
       <section
         aria-label="搜尋紀錄"
         className="flex min-h-0 flex-1 flex-col overflow-hidden"

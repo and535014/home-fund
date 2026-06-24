@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -74,7 +75,7 @@ export function EditMemberDisplayNameDialog({
               <FieldError key={error}>{error}</FieldError>
             ))}
           </Field>
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               onClick={() => onOpenChange(false)}
               type="button"
@@ -85,7 +86,7 @@ export function EditMemberDisplayNameDialog({
             <Button disabled={isPending} type="submit">
               儲存
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

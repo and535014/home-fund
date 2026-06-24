@@ -53,19 +53,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 	return (
 		<PageLayout
-			contentClassName="h-full min-h-0 pb-5"
+			contentClassName="md:h-full md:min-h-0 md:pb-5"
 			header={
 				<PageHeader
 					actions={<MonthSwitcher currentMonth={month} />}
+					hideTitleOnMobile
 					title="總覽"
 				/>
 			}
 		>
-			<div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(18rem,0.85fr)] xl:grid-cols-[minmax(0,2fr)_minmax(22rem,0.92fr)]">
-				<div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_minmax(0,1.15fr)] gap-4">
+			<div className="grid gap-7 md:h-full md:min-h-0 md:gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(18rem,0.85fr)] xl:grid-cols-[minmax(0,2fr)_minmax(22rem,0.92fr)]">
+				<div className="grid gap-7 md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)_minmax(0,1.15fr)] md:gap-4">
 					<section
 						aria-label="月報摘要"
-						className="grid h-full min-h-0 gap-3 lg:grid-cols-3"
+						className="grid grid-cols-3 gap-2 sm:gap-3 md:h-full md:min-h-0"
 					>
 						<SummaryMetric
 							label="餘額"
@@ -86,7 +87,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 					<MonthlyTrendPanel data={trendPoints} />
 
-					<div className="grid min-h-0 gap-4 lg:grid-cols-2">
+					<div className="grid gap-7 md:min-h-0 md:gap-4 lg:grid-cols-2">
 						<PendingReimbursementsPanel
 							feedback={reimbursementFeedback}
 							pendingCount={reimbursementTable.groups.reduce(
@@ -102,7 +103,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 				</div>
 
 				<DashboardPanel
-					className="lg:border-l lg:border-border lg:pl-4"
+					className="min-h-[22rem] lg:min-h-0 lg:border-l lg:border-border lg:pl-4"
 					title="紀錄"
 				>
 					<RecordListDetail
@@ -133,14 +134,14 @@ function DashboardPanel({
 		<section
 			aria-label={title}
 			className={cn(
-				"flex h-full min-h-0 min-w-0 flex-col justify-start gap-3 overflow-hidden",
+				"flex min-w-0 flex-col justify-start gap-3 md:h-full md:min-h-0 md:overflow-hidden",
 				className,
 			)}
 		>
 			<h3 className="shrink-0 text-body-strong text-foreground">{title}</h3>
 			<div
 				className={cn(
-					"min-h-0 min-w-0 flex-1 overflow-hidden",
+					"min-w-0 md:min-h-0 md:flex-1 md:overflow-hidden",
 					contentClassName,
 				)}
 			>
@@ -154,9 +155,9 @@ function MonthlyTrendPanel({ data }: { data: MonthlyTrendPoint[] }) {
 	return (
 		<section
 			aria-label="收支趨勢"
-			className="h-full min-h-0 min-w-0 overflow-hidden pt-3"
+			className="hidden min-w-0 overflow-hidden pt-3 md:block md:h-full md:min-h-0"
 		>
-			<div className="h-full min-h-0 min-w-0">
+			<div className="h-[13rem] min-w-0 md:h-full md:min-h-0">
 				<MonthlyTrendChart data={data} />
 			</div>
 		</section>

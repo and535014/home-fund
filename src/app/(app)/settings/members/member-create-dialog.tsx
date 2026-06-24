@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -98,7 +99,7 @@ export function CreateMemberDialog({
               <FieldError key={error}>{error}</FieldError>
             ))}
           </Field>
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               onClick={() => onOpenChange(false)}
               type="button"
@@ -110,7 +111,7 @@ export function CreateMemberDialog({
               <UserPlus aria-hidden="true" size={18} />
               建立成員
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -2,6 +2,7 @@ import { loadCategoryManagementContext } from "@/app/category-management-context
 import type { AppSearchParams } from "@/app/route-search-params";
 import {
   AddCategoryHeaderButton,
+  AddCategoryMobileFab,
   CategoryManagementPanel,
 } from "./category-management-panel";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
@@ -20,10 +21,15 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   return (
     <PageLayout
       header={
-        <PageHeader actions={<AddCategoryHeaderButton />} title="分類" />
+        <PageHeader
+          actions={<AddCategoryHeaderButton />}
+          hideOnMobile
+          title="分類"
+        />
       }
     >
       <CategoryManagementPanel categories={context.categories} />
+      <AddCategoryMobileFab />
     </PageLayout>
   );
 }

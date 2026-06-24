@@ -11,14 +11,32 @@ import { MemberListItem } from "./member-list-item";
 
 const OPEN_CREATE_MEMBER_EVENT = "home-fund:open-create-member";
 
+function openCreateMemberDialog() {
+  window.dispatchEvent(new Event(OPEN_CREATE_MEMBER_EVENT));
+}
+
 export function CreateMemberHeaderButton() {
   return (
     <Button
-      onClick={() => window.dispatchEvent(new Event(OPEN_CREATE_MEMBER_EVENT))}
+      onClick={openCreateMemberDialog}
       type="button"
     >
       <UserPlus aria-hidden="true" size={18} />
       建立成員
+    </Button>
+  );
+}
+
+export function CreateMemberMobileFab() {
+  return (
+    <Button
+      aria-label="建立成員"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-40 size-14 rounded-full shadow-[0_16px_34px_rgba(0,0,0,0.38)] md:hidden"
+      onClick={openCreateMemberDialog}
+      size="icon-lg"
+      type="button"
+    >
+      <UserPlus aria-hidden="true" className="size-6" />
     </Button>
   );
 }

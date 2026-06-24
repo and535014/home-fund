@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckSquare, Eraser, HandCoins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageFooter } from "@/components/layout/page-layout";
 import { cn } from "@/lib/utils";
@@ -55,59 +56,87 @@ export function BatchSearchFooter({
     );
 
   return (
-    <PageFooter className="-mx-5 lg:-mx-6">
-      <div className="flex min-w-0 items-center gap-2">
+    <PageFooter className="-mx-4 gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:-mx-5 sm:pb-3 lg:-mx-6">
+      <div className="flex min-w-0 items-center justify-between gap-3">
         <span className="text-label">
           {isSelectionMode
             ? `已選取 ${selectedCount} 筆`
             : `搜尋結果 ${totalCount} 筆`}
         </span>
-        <span className="text-caption text-muted-foreground">總額</span>
-        <span className={cn("text-label", netAmountTone(displayedNetCents))}>
-          {formatAmount(Math.abs(displayedNetCents))}
-        </span>
+        <div className="flex min-w-0 items-center gap-2 text-right">
+          <span className="text-caption text-muted-foreground">總額</span>
+          <span className={cn("text-label", netAmountTone(displayedNetCents))}>
+            {formatAmount(Math.abs(displayedNetCents))}
+          </span>
+        </div>
       </div>
       {isSelectionMode ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            disabled={isPending || visibleRecords.length === 0 || hasSelectedAllVisible}
-            onClick={onSelectVisible}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {hasSelectedAllVisible ? "已全選目前顯示" : "全選目前顯示"}
-          </Button>
-          {selectedCount > 0 ? (
+        <div className="flex min-w-0 items-start justify-between gap-3 sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Button
-              onClick={onClearSelection}
-              size="sm"
+              aria-label={hasSelectedAllVisible ? "已全選目前顯示" : "全選目前顯示"}
+              className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
+              disabled={isPending || visibleRecords.length === 0 || hasSelectedAllVisible}
+              onClick={onSelectVisible}
+              size="icon-sm"
               type="button"
               variant="ghost"
             >
-              清除選取
+              <CheckSquare aria-hidden="true" className="sm:hidden" />
+              <span className="sr-only sm:not-sr-only">
+                {hasSelectedAllVisible ? "已全選目前顯示" : "全選目前顯示"}
+              </span>
             </Button>
-          ) : null}
-          <Button
-            disabled={selectedCount === 0 || deletableCount === 0}
-            onClick={onDelete}
-            size="sm"
-            type="button"
-            variant="destructive"
-          >
-            批次刪除
-            {selectedCount > 0 ? ` (${deletableCount})` : ""}
-          </Button>
-          <Button
-            disabled={selectedCount === 0 || refundableCount === 0}
-            onClick={onRefund}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            批次退款
-            {selectedCount > 0 ? ` (${refundableCount})` : ""}
-          </Button>
+            {selectedCount > 0 ? (
+              <Button
+                aria-label="清除選取"
+                className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
+                onClick={onClearSelection}
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+              >
+                <Eraser aria-hidden="true" className="sm:hidden" />
+                <span className="sr-only sm:not-sr-only">清除選取</span>
+              </Button>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              aria-label={
+                selectedCount > 0 ? `批次刪除 ${deletableCount} 筆` : "批次刪除"
+              }
+              className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
+              disabled={selectedCount === 0 || deletableCount === 0}
+              onClick={onDelete}
+              size="icon-sm"
+              type="button"
+              variant="destructive"
+            >
+              <Trash2 aria-hidden="true" className="sm:hidden" />
+              <span className="sr-only sm:not-sr-only">
+                批次刪除
+                {selectedCount > 0 ? ` ${deletableCount} 筆` : ""}
+              </span>
+            </Button>
+            <Button
+              aria-label={
+                selectedCount > 0 ? `批次退款 ${refundableCount} 筆` : "批次退款"
+              }
+              className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
+              disabled={selectedCount === 0 || refundableCount === 0}
+              onClick={onRefund}
+              size="icon-sm"
+              type="button"
+              variant="secondary"
+            >
+              <HandCoins aria-hidden="true" className="sm:hidden" />
+              <span className="sr-only sm:not-sr-only">
+                批次退款
+                {selectedCount > 0 ? ` ${refundableCount} 筆` : ""}
+              </span>
+            </Button>
+          </div>
         </div>
       ) : null}
     </PageFooter>

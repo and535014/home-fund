@@ -9,7 +9,11 @@ import {
   SidebarGroupContent,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { SettingsLogoutButton, SettingsSidebarNav } from "./settings-sidebar-nav";
+import {
+  SettingsLogoutButton,
+  SettingsMobileNav,
+  SettingsSidebarNav,
+} from "./settings-sidebar-nav";
 
 export default async function SettingsLayout({
   children,
@@ -34,8 +38,27 @@ export default async function SettingsLayout({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden">
-        <Sidebar collapsible="none" className="w-full border-r border-border bg-background">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:grid md:grid-cols-[18rem_minmax(0,1fr)]">
+        <section className="shrink-0 border-b border-border bg-background/95 pt-4 md:hidden">
+          <div className="flex min-w-0 items-center justify-between gap-3 px-4 pb-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar className="size-10">
+                <AvatarImage alt={`${displayName} 的頭像`} src={session.profile.avatarUrl} />
+                <AvatarFallback>{avatarFallbackFor(displayName)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-body-strong text-foreground">
+                  {displayName}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <SettingsLogoutButton />
+            </div>
+          </div>
+          <SettingsMobileNav items={settingsItems} />
+        </section>
+        <Sidebar collapsible="none" className="hidden w-full border-r border-border bg-background md:flex">
           <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
             <div className="flex min-w-0 items-center gap-3">
               <Avatar className="size-11">
@@ -60,7 +83,7 @@ export default async function SettingsLayout({
             <SettingsLogoutButton />
           </SidebarFooter>
         </Sidebar>
-        <main className="min-h-0 overflow-hidden">
+        <main className="min-h-0 flex-1 overflow-hidden">
           {children}
         </main>
       </div>

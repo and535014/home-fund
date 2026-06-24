@@ -115,6 +115,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (max-width: 767.98px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .app-muted {
   color: var(--muted-foreground);
 }

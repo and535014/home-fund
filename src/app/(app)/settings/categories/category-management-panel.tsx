@@ -2,6 +2,8 @@
 
 import {
   Archive,
+  ChevronDown,
+  ChevronUp,
   Edit3,
   GripVertical,
   Tags,
@@ -70,6 +72,10 @@ type CategoryManagementPanelProps = {
 
 const OPEN_CATEGORY_CREATE_EVENT = "home-fund:open-category-create";
 
+function openCategoryCreateDialog() {
+  window.dispatchEvent(new Event(OPEN_CATEGORY_CREATE_EVENT));
+}
+
 export function AddCategoryHeaderButton({
   className,
   size,
@@ -80,14 +86,26 @@ export function AddCategoryHeaderButton({
   return (
     <Button
       className={className}
-      onClick={() => {
-        window.dispatchEvent(new Event(OPEN_CATEGORY_CREATE_EVENT));
-      }}
+      onClick={openCategoryCreateDialog}
       size={size}
       type="button"
     >
       <Tags aria-hidden="true" size={18} />
       新增分類
+    </Button>
+  );
+}
+
+export function AddCategoryMobileFab() {
+  return (
+    <Button
+      aria-label="新增分類"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-40 size-14 rounded-full shadow-[0_16px_34px_rgba(0,0,0,0.38)] md:hidden"
+      onClick={openCategoryCreateDialog}
+      size="icon-lg"
+      type="button"
+    >
+      <Tags aria-hidden="true" className="size-6" />
     </Button>
   );
 }
@@ -688,6 +706,8 @@ function CategoryList({
           category={category}
           isActive={editingId === category.id}
           isDragging={draggingId === category.id}
+          isFirst={categories[0]?.id === category.id}
+          isLast={categories[categories.length - 1]?.id === category.id}
           key={category.id}
           onDragEnd={() => setDraggingId(null)}
           onDragEnter={(targetCategory) => {
@@ -734,6 +754,8 @@ function CategoryItem({
   category,
   isActive = false,
   isDragging = false,
+  isFirst = false,
+  isLast = false,
   onDragEnd,
   onDragEnter,
   onDragStart,
@@ -744,6 +766,8 @@ function CategoryItem({
   category: EditableCategory;
   isActive?: boolean;
   isDragging?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
   onDragEnd?: () => void;
   onDragEnter?: (category: EditableCategory) => void;
   onDragStart?: (category: EditableCategory) => void;
@@ -770,31 +794,55 @@ function CategoryItem({
       variant="outline"
     >
       {canReorder ? (
-        <button
-          aria-label={`排序 ${category.name}`}
-          className="grid size-8 shrink-0 cursor-grab place-items-center rounded-input text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing"
-          disabled={pending}
-          draggable
-          onDragStart={(event) => {
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", category.id);
-            onDragStart?.(category);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowUp") {
-              event.preventDefault();
-              onMove?.("up");
-            }
+        <>
+          <button
+            aria-label={`排序 ${category.name}`}
+            className="hidden size-8 shrink-0 cursor-grab place-items-center rounded-input text-muted-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing md:grid"
+            disabled={pending}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", category.id);
+              onDragStart?.(category);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                onMove?.("up");
+              }
 
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              onMove?.("down");
-            }
-          }}
-          type="button"
-        >
-          <GripVertical aria-hidden="true" size={17} />
-        </button>
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                onMove?.("down");
+              }
+            }}
+            type="button"
+          >
+            <GripVertical aria-hidden="true" size={17} />
+          </button>
+          <div className="flex shrink-0 flex-col gap-1 md:hidden">
+            <Button
+              aria-label={`上移 ${category.name}`}
+              disabled={pending || isFirst}
+              onClick={() => onMove?.("up")}
+              size="icon-xs"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronUp aria-hidden="true" />
+            </Button>
+            <Button
+              aria-label={`下移 ${category.name}`}
+              disabled={pending || isLast}
+              onClick={() => onMove?.("down")}
+              size="icon-xs"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronDown aria-hidden="true" />
+            </Button>
+          </div>
+        </>
       ) : null}
       <ItemContent className="min-w-0">
         <ItemTitle className="block">

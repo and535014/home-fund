@@ -1,7 +1,7 @@
 ---
 id: mobile-sitewide-layout-redesign
 stage: intent-intake
-status: draft
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -40,7 +40,7 @@ reviewed_at: 2026-06-23
 
 ## Decision Summary
 
-- decision: awaiting_approval
+- decision: approved
 - first_next_gate: Experience Prototype
 - owning_skill: experience-prototype
 - reason: The request restarts sitewide mobile layout design for the authenticated app and changes primary navigation and create-record action placement. This is user-facing website work, so it needs a production-stack mobile prototype before behavior spec, technical design, or implementation.
@@ -214,4 +214,4 @@ Scope clarification: 可以說是全站手機排版重新設計。
 - unresolved_blockers:
   - Mobile tab set and FAB default behavior need confirmation during or before Experience Prototype review.
 - next_step:
-  - Experience Prototype
+  - Experience Prototype started in `.ai/prototype/mobile-sitewide-layout-redesign.md`

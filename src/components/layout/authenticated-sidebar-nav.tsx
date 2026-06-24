@@ -24,7 +24,7 @@ import {
 import { APP_NAVIGATION_ICONS } from "./app-navigation-icons";
 import type { AppNavigationItem } from "./authenticated-layout";
 
-const navigationIcons: Record<AppNavigationItem["icon"], LucideIcon> = {
+export const navigationIcons: Record<AppNavigationItem["icon"], LucideIcon> = {
   [APP_NAVIGATION_ICONS.calendarClock]: CalendarClock,
   [APP_NAVIGATION_ICONS.circleDollarSign]: CircleDollarSign,
   [APP_NAVIGATION_ICONS.handCoins]: HandCoins,
@@ -80,7 +80,7 @@ export function AuthenticatedSidebarNav({
   );
 }
 
-function isActiveNavigationItem(
+export function isActiveNavigationItem(
   href: string,
   pathname: string,
   currentHref: string,

@@ -92,6 +92,8 @@ trace_links:
   - .ai/release/admin-created-member-google-binding-local-dev-readiness.md
   - .ai/learning/admin-created-member-google-binding.md
   - .ai/archive/archive-admin-created-member-google-binding-2026-06-23.md
+  - .ai/intent/mobile-sitewide-layout-redesign.md
+  - .ai/prototype/mobile-sitewide-layout-redesign.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
@@ -196,11 +198,11 @@ Do not create a downstream artifact just because it exists in the workflow. Crea
 ## Current State
 
 - project_classification: existing_with_ai
-- active_change: none
+- active_change: mobile-sitewide-layout-redesign
 - latest_completed_slice: admin-created member Google binding, compressed in `.ai/archive/archive-admin-created-member-google-binding-2026-06-23.md`.
-- current_stage: idle after artifact compression for admin-created member Google binding.
-- recommended_resume_gate: Optional artifact-prune, stricter-target release readiness, or next Intent Intake.
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake or target-aware-release for the next approved target.
+- current_stage: Experience Prototype ready for review for mobile sitewide layout redesign.
+- recommended_resume_gate: Review Gate for `.ai/prototype/mobile-sitewide-layout-redesign.md`.
+- recommended_next_skill: behavior-spec after explicit prototype approval; otherwise revise the prototype from review feedback.
 
 ## Artifact Inventory
 

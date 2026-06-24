@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
@@ -53,7 +54,11 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
-import { CategoryVisualMark, getCategoryVisual } from "@/app/category-visuals";
+import {
+  CategoryVisualMark,
+  compareCategoryVisualOrder,
+  getCategoryVisual,
+} from "@/app/category-visuals";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
@@ -418,27 +423,31 @@ function RecordDetailDialog({
           </Alert>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <DetailField
-            icon={<CalendarDays />}
-            label="日期"
-            value={formatDate(record.occurredOn)}
-          />
-          <DetailField
-            icon={<ReceiptText />}
-            label="分類"
-            value={categoryName}
-          />
-          <DetailField
-            icon={<WalletCards />}
-            label="狀態"
-            value={ledgerRecordStatusLabel(displayedRecord)}
-          />
-          <DetailField
-            icon={<UserRound />}
-            label="支付者"
-            value={recordActorLabel(displayedRecord, memberNames)}
-          />
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <DetailField
+              icon={<UserRound />}
+              label="支付者"
+              value={recordActorLabel(displayedRecord, memberNames)}
+            />
+            <DetailField
+              icon={<CalendarDays />}
+              label="日期"
+              value={formatDate(record.occurredOn)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <DetailField
+              icon={<ReceiptText />}
+              label="分類"
+              value={categoryName}
+            />
+            <DetailField
+              icon={<WalletCards />}
+              label="狀態"
+              value={ledgerRecordStatusLabel(displayedRecord)}
+            />
+          </div>
         </div>
 
         <div className="rounded-card border border-border p-4">
@@ -586,13 +595,47 @@ function EditRecordDialog({
     >(),
   );
   const [isPending, startTransition] = useTransition();
-  const activeCategories = categories.filter(
-    (category) => category.type === record.type && category.status === "active",
-  );
+  const editableCategories = categories
+    .filter(
+      (category) =>
+        category.type === record.type &&
+        (category.status === "active" || category.id === record.categoryId),
+    )
+    .sort(compareCategoryVisualOrder);
   const members = Object.entries(memberNames).map(([id, displayName]) => ({
     id,
     displayName,
   }));
+  const payerField =
+    record.type === "income" ? (
+      <Field className="min-w-0">
+        <FieldLabel>支付者</FieldLabel>
+        <NativeSelect
+          defaultValue={record.sourceMemberId}
+          name="sourceMemberId"
+        >
+          {members.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.displayName}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+    ) : paymentSource === "member" ? (
+      <Field className="min-w-0">
+        <FieldLabel>支付者</FieldLabel>
+        <NativeSelect
+          defaultValue={record.payerMemberId ?? ""}
+          name="payerMemberId"
+        >
+          {members.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.displayName}
+            </option>
+          ))}
+        </NativeSelect>
+      </Field>
+    ) : null;
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -610,7 +653,6 @@ function EditRecordDialog({
     <DialogContent className="max-w-xl">
       <DialogHeader>
         <DialogTitle>編輯紀錄</DialogTitle>
-        <DialogDescription>更新這筆紀錄的內容。</DialogDescription>
       </DialogHeader>
 
       <form action={formAction}>
@@ -622,91 +664,59 @@ function EditRecordDialog({
         <input name="recordId" type="hidden" value={record.id} />
         <input name="recordType" type="hidden" value={record.type} />
         <DialogBody className="grid gap-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2 text-label">
-              名稱
-              <Input defaultValue={record.name} name="name" />
-            </label>
-            <label className="grid gap-2 text-label">
-              金額
-              <Input
-                defaultValue={String(record.amountCents / 100)}
-                inputMode="decimal"
-                name="amountTwd"
-              />
-            </label>
-            <label className="grid gap-2 text-label">
-              日期
+          <EditCategoryField
+            categories={editableCategories}
+            defaultCategoryId={record.categoryId}
+          />
+
+          {record.type === "expense" ? (
+            <Field className="min-w-0">
+              <FieldLabel>支出類型</FieldLabel>
+              <NativeSelect
+                name="paymentSource"
+                onChange={(event) =>
+                  setPaymentSource(
+                    event.currentTarget.value as "fund" | "member",
+                  )
+                }
+                value={paymentSource}
+              >
+                <option value="member">成員代墊</option>
+                <option value="fund">基金支出</option>
+              </NativeSelect>
+            </Field>
+          ) : null}
+
+          <Field className="min-w-0">
+            <FieldLabel>金額</FieldLabel>
+            <Input
+              defaultValue={String(record.amountCents / 100)}
+              inputMode="decimal"
+              name="amountTwd"
+            />
+          </Field>
+
+          <Field className="min-w-0">
+            <FieldLabel>名稱</FieldLabel>
+            <Input defaultValue={record.name} name="name" />
+          </Field>
+
+          <div className={cn("grid min-w-0 gap-3", payerField && "grid-cols-2")}>
+            {payerField}
+            <Field className="min-w-0">
+              <FieldLabel>日期</FieldLabel>
               <Input
                 defaultValue={record.occurredOn}
                 name="occurredOn"
                 type="date"
               />
-            </label>
-            <label className="grid gap-2 text-label">
-              分類
-              <NativeSelect defaultValue={record.categoryId} name="categoryId">
-                {activeCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            {record.type === "expense" ? (
-              <>
-                <label className="grid gap-2 text-label">
-                  支出類型
-                  <NativeSelect
-                    name="paymentSource"
-                    onChange={(event) =>
-                      setPaymentSource(
-                        event.currentTarget.value as "fund" | "member",
-                      )
-                    }
-                    value={paymentSource}
-                  >
-                    <option value="member">成員代墊</option>
-                    <option value="fund">基金支出</option>
-                  </NativeSelect>
-                </label>
-                {paymentSource === "member" ? (
-                  <label className="grid gap-2 text-label">
-                    支付者
-                    <NativeSelect
-                      defaultValue={record.payerMemberId ?? ""}
-                      name="payerMemberId"
-                    >
-                      {members.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.displayName}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </label>
-                ) : null}
-              </>
-            ) : (
-              <label className="grid gap-2 text-label">
-                支付者
-                <NativeSelect
-                  defaultValue={record.sourceMemberId}
-                  name="sourceMemberId"
-                >
-                  {members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.displayName}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
-            )}
+            </Field>
           </div>
 
-          <label className="grid gap-2 text-label">
-            備註
+          <Field className="min-w-0">
+            <FieldLabel>備註</FieldLabel>
             <Textarea defaultValue={record.note ?? ""} name="note" />
-          </label>
+          </Field>
         </DialogBody>
 
         <DialogFooter className="mt-4">
@@ -721,6 +731,59 @@ function EditRecordDialog({
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+function EditCategoryField({
+  categories,
+  defaultCategoryId,
+}: {
+  categories: Category[];
+  defaultCategoryId: string;
+}) {
+  return (
+    <Field>
+      {categories.length === 0 ? (
+        <p className="text-caption text-muted-foreground">
+          尚未建立可用分類。
+        </p>
+      ) : (
+        <div
+          aria-label="分類"
+          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-cols-5 sm:gap-x-4 sm:gap-y-5 sm:overflow-visible sm:px-1 sm:pb-3 sm:pt-1"
+          role="radiogroup"
+        >
+          {categories.map((category) => {
+            const visual = getCategoryVisual(category);
+
+            return (
+              <label
+                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-auto"
+                key={category.id}
+              >
+                <input
+                  className="peer sr-only"
+                  defaultChecked={category.id === defaultCategoryId}
+                  name="categoryId"
+                  required
+                  type="radio"
+                  value={category.id}
+                />
+                <CategoryVisualMark
+                  className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
+                  color={visual.color}
+                  icon={visual.icon}
+                  size="lg"
+                />
+                <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
+                  {category.name}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </Field>
   );
 }
 

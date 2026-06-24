@@ -6,7 +6,7 @@ export default async function AccountSettingsPage() {
   const session = await requireAuthenticatedMember();
 
   return (
-    <PageLayout header={<PageHeader title="帳號資訊" />}>
+    <PageLayout header={<PageHeader hideOnMobile title="帳號資訊" />}>
       <ItemGroup>
         <Item>
           <ItemContent>

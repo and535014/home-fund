@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -116,9 +117,9 @@ function MonthPickerDialogContent({
               </Select>
             </Field>
           </div>
-          <div className="flex justify-end">
+          <DialogFooter>
             <Button type="submit">套用月份</Button>
-          </div>
+          </DialogFooter>
         </FieldGroup>
       </form>
     </DialogContent>

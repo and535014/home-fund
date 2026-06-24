@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckSquare, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, CheckSquare, Search, SlidersHorizontal, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ export function RecordSearchControls({
   options: RecordQueryOptions;
   query: RecordQueryState;
 }) {
+  const router = useRouter();
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [draftQuery, setDraftQuery] = useState(query);
   const activeFilterCount = recordFilterCount(query);
@@ -62,9 +64,28 @@ export function RecordSearchControls({
     setIsFilterDialogOpen(false);
   }
 
+  function navigateBack() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  }
+
   return (
     <div className="grid shrink-0 gap-3">
       <div className="flex items-center gap-2 p-0.5">
+        <Button
+          aria-label="返回上一頁"
+          className="md:hidden"
+          onClick={navigateBack}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <ArrowLeft />
+        </Button>
         <label className="relative block min-w-0 flex-1">
           <Search
             aria-hidden="true"
@@ -137,7 +158,7 @@ export function RecordSearchControls({
           </DialogHeader>
 
           <DialogBody className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <label className="grid gap-2 text-label">
                 類型
                 <NativeSelect
@@ -176,7 +197,9 @@ export function RecordSearchControls({
                   ))}
                 </NativeSelect>
               </label>
+            </div>
 
+            <div className="grid grid-cols-2 gap-3">
               <label className="grid gap-2 text-label">
                 收支對象
                 <NativeSelect
@@ -237,23 +260,25 @@ export function RecordSearchControls({
               </label>
             </div>
 
-            <label className="grid gap-2 text-label">
-              排序
-              <NativeSelect
-                aria-label="紀錄排序"
-                onChange={(event) =>
-                  patchDraftQuery({
-                    sort: event.currentTarget.value as RecordSortOrder,
-                  })
-                }
-                value={draftQuery.sort}
-              >
-                <option value="newest">新到舊</option>
-                <option value="oldest">舊到新</option>
-                <option value="amount_desc">金額高到低</option>
-                <option value="amount_asc">金額低到高</option>
-              </NativeSelect>
-            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-2 text-label">
+                排序
+                <NativeSelect
+                  aria-label="紀錄排序"
+                  onChange={(event) =>
+                    patchDraftQuery({
+                      sort: event.currentTarget.value as RecordSortOrder,
+                    })
+                  }
+                  value={draftQuery.sort}
+                >
+                  <option value="newest">新到舊</option>
+                  <option value="oldest">舊到新</option>
+                  <option value="amount_desc">金額高到低</option>
+                  <option value="amount_asc">金額低到高</option>
+                </NativeSelect>
+              </label>
+            </div>
           </DialogBody>
 
           <DialogFooter className="mt-4">
