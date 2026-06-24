@@ -22,7 +22,8 @@ trace_links:
     - /search
   target_components:
     - src/app/record-list-detail.tsx
-    - src/app/batch-action-dialog.tsx
+    - src/app/batch-delete-dialog.tsx
+    - src/app/batch-refund-dialog.tsx
     - src/app/record-search-panel.tsx
     - src/app/reimbursement-payment-fields.tsx
     - src/app/ledger-record-actions.ts
@@ -76,15 +77,15 @@ This component does not own validation rules beyond browser input shape; server 
 
 ### Search Batch Refund
 
-`src/app/batch-action-dialog.tsx` remains the shared delete/refund confirmation dialog. For refund:
+`src/app/batch-delete-dialog.tsx` and `src/app/batch-refund-dialog.tsx` keep delete and refund confirmation concerns separate. For refund:
 
 - top summary shows `將處理` and `略過` side by side.
 - `退款總金額` is on a separate row.
 - payment fields render only when eligible selected records have exactly one payer member.
 - confirm is disabled when there are no eligible records or when eligible records contain multiple payer members.
-- no cross-member explanatory warning is shown in this prototype-approved slice.
+- cross-member eligible selections show a warning that one batch can only include records from the same paid-to member.
 
-`src/app/record-search-panel.tsx` must pass payment form data to the batch refund action instead of only passing record IDs.
+`src/app/record-search-panel.tsx` must pass payment form data to the batch refund action instead of only passing record IDs. Delete actions stay ID-only through `BatchDeleteDialog`.
 
 ## Persistence Design
 
@@ -210,7 +211,7 @@ batchRefundSearchRecordsAction(input: {
 })
 ```
 
-`RecordSearchPanel.completeBatchAction` must collect `FormData` from `BatchActionDialog` for refund actions. Delete actions stay ID-only.
+`RecordSearchPanel` must collect `FormData` from `BatchRefundDialog` for refund actions. Delete actions stay ID-only through `BatchDeleteDialog`.
 
 Return existing `BatchSearchRecordActionResult`, adding validation failure reasons if needed:
 

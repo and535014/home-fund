@@ -29,7 +29,8 @@ trace_links:
     - /search
   target_components:
     - src/app/record-list-detail.tsx
-    - src/app/batch-action-dialog.tsx
+    - src/app/batch-delete-dialog.tsx
+    - src/app/batch-refund-dialog.tsx
     - src/app/record-search-panel.tsx
     - src/app/reimbursement-payment-fields.tsx
     - src/app/ledger-record-actions.ts
@@ -83,7 +84,7 @@ reviewed_at: 2026-06-24
 17. Batch refund confirmation shows `退款總金額` on a separate row.
 18. Batch refund payment fields appear only when eligible selected records belong to one paid-to member.
 19. Batch refund confirmation is disabled when eligible selected records include more than one paid-to member.
-20. Cross-member batch refund does not show an extra explanatory warning in this slice.
+20. Cross-member batch refund shows a warning that one batch can only include records from the same paid-to member.
 21. Batch refund uses the same payment method, payment date, and transaction note fields as single-record refund.
 22. Batch refund records one payment evidence item for the reimbursement batch and marks all eligible same-member selected expenses `已退款` atomically.
 23. The recorded payment amount equals the sum of eligible reimbursed expense amounts for the paid-to member.
@@ -142,7 +143,7 @@ And all eligible selected expenses are marked `已退款`
 Given a finance-capable member selects refundable expenses for more than one payer member on `/search`  
 When they activate `批次退款`  
 Then `確認退款` is disabled  
-And no additional cross-member explanatory warning is shown  
+And a warning explains that one batch can only include records from the same paid-to member  
 When a direct submission attempts to reimburse the cross-member selection  
 Then the server rejects it  
 And no selected expense is marked reimbursed
@@ -171,7 +172,7 @@ And it does not fabricate payment method, payment date, amount, or source data
 | Single refund success | `/` | finance-capable actor, active refundable member-paid expense | desktop | Select `銀行轉帳`; date input has local date; confirm `確認退款`; success feedback mentions refund payment information; reopened detail shows `已退款`. |
 | Required validation | server action or browser form | missing payment method/date | desktop | Submit without required payment evidence; assert error and unchanged `待退款`; no payment evidence readback. |
 | Batch refund same member | `/search` | finance-capable actor, same-member refundable expenses | desktop | Enter selection mode; select two same-member refundable records; button `批次退款`; dialog heading `確認批次退款`; texts `將處理`, `略過`, `退款總金額`; fields `付款方式`, `付款日期`, `交易備註`; confirm success. |
-| Batch refund cross member | `/search` | finance-capable actor, refundable expenses from two payer members | desktop | Select cross-member records; open `確認批次退款`; `確認退款` is disabled; no cross-member warning copy appears. |
+| Batch refund cross member | `/search` | finance-capable actor, refundable expenses from two payer members | desktop | Select cross-member records; open `確認批次退款`; `確認退款` is disabled; warning text `批次退款一次只能選擇同一位代墊成員的紀錄。` appears. |
 | No double count | `/` or report read model | reimbursed expense with payment evidence | desktop | Capture refund; refresh monthly report; income/expense totals remain based on original ledger records; unpaid reimbursement total decreases. |
 | Mobile refund form | `/` and `/search` | refundable expense and same-member batch | mobile | Payment method and payment date stack without clipping; transaction note remains single-line; footer buttons do not overlap. |
 
@@ -206,7 +207,7 @@ And it does not fabricate payment method, payment date, amount, or source data
 - Component tests:
   - `ReimbursementPaymentFields` renders only three visible fields and no field-level icons.
   - batch refund dialog shows total on its own row.
-  - cross-member batch disables confirm without showing extra warning copy.
+  - cross-member batch disables confirm and shows the warning copy.
 
 ## Accessible Selectors
 

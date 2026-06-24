@@ -21,9 +21,7 @@ test("edits and voids an own ledger record from the dashboard detail", async ({
   await editDialog.locator('input[name="name"]').fill("E2E 已更新刪除");
   await editDialog.locator('input[name="amountTwd"]').fill("4321");
   await editDialog.locator('input[name="occurredOn"]').fill("2026-06-21");
-  await editDialog.locator('select[name="categoryId"]').selectOption({
-    label: "網路費",
-  });
+  await editDialog.getByText("網路費", { exact: true }).click();
   await editDialog.locator('textarea[name="note"]').fill("E2E 編輯後備註");
   await editDialog.getByRole("button", { name: "儲存變更" }).click();
 

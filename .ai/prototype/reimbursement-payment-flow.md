@@ -21,7 +21,8 @@ trace_links:
     - src/app/(app)/search/page.tsx
   components:
     - src/app/record-list-detail.tsx
-    - src/app/batch-action-dialog.tsx
+    - src/app/batch-delete-dialog.tsx
+    - src/app/batch-refund-dialog.tsx
     - src/app/record-search-panel.tsx
     - src/app/reimbursement-payment-fields.tsx
 reviewed_at: 2026-06-24
@@ -50,7 +51,7 @@ reviewed_at: 2026-06-24
   - 付款日期
   - 交易備註
 - Copy explicitly says the app records payment evidence, does not execute transfer, and does not create another household expense.
-- Cross-member batch reimbursement is blocked in the prototype by disabling confirmation.
+- Cross-member batch reimbursement is blocked by disabling confirmation and showing a warning.
 
 ## States Covered
 
@@ -60,7 +61,7 @@ reviewed_at: 2026-06-24
 - Payment date defaults to the current local date and remains editable.
 - Optional transaction note uses a single-line text input.
 - Batch refund with one paid-to member shows the same payment field block.
-- Batch refund with multiple paid-to members disables `確認退款`.
+- Batch refund with multiple paid-to members disables `確認退款` and shows split-by-member guidance.
 - Batch refund dialog shows `將處理` and `略過` side by side, with `退款總金額` on its own row.
 - Existing ineligible-record warning still appears for mixed eligibility.
 
@@ -95,7 +96,7 @@ reviewed_at: 2026-06-24
 - Editable inputs and selects have explicit text labels without field-level icons.
 - Static settlement facts are not focusable form controls, reducing false affordance.
 - Existing Dialog focus trapping and close behavior remain in place.
-- Disabled cross-member confirmation does not show additional explanatory text in this prototype.
+- Disabled cross-member confirmation shows warning text explaining that a batch can only include one paid-to member.
 
 ## Draft UX Acceptance Criteria
 
@@ -104,7 +105,7 @@ reviewed_at: 2026-06-24
 - Users can understand that the app records payment evidence but does not initiate transfer.
 - Users can understand that refund payment evidence will not create another household expense.
 - Batch refund is reviewable only when eligible records belong to one paid-to member.
-- Cross-member batch selections keep confirmation unavailable.
+- Cross-member batch selections keep confirmation unavailable and show a warning.
 - Existing skipped/ineligible selected-record copy remains visible when relevant.
 - Existing refunded success feedback is updated to mention refund payment information.
 

@@ -528,7 +528,7 @@ function RefundRecordDialog({
   }
 
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent aria-describedby={undefined} className="max-w-md">
       <DialogHeader>
         <DialogTitle>確認退款</DialogTitle>
       </DialogHeader>
@@ -647,7 +647,7 @@ function EditRecordDialog({
   }
 
   return (
-    <DialogContent className="max-w-xl">
+    <DialogContent aria-describedby={undefined} className="max-w-xl">
       <DialogHeader>
         <DialogTitle>編輯紀錄</DialogTitle>
       </DialogHeader>

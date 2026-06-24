@@ -72,9 +72,9 @@ test("reimburses a refundable expense from the record detail", async ({ page }) 
 
   await expect(dialog.getByRole("heading", { name: "確認退款" })).toBeVisible();
   await expect(dialog).toContainText("補充用品代墊");
-  await expect(dialog).toContainText(
-    "確認後，狀態會顯示為已退款，且無法編輯或刪除。",
-  );
+  await expect(dialog.getByLabel("付款方式")).toBeVisible();
+  await expect(dialog.getByLabel("付款日期")).toBeVisible();
+  await expect(dialog.getByLabel("交易備註")).toBeVisible();
 
   await dialog.getByRole("button", { name: "確認退款" }).click();
 

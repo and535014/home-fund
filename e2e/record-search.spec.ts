@@ -127,7 +127,7 @@ test("sorts filtered records by amount", async ({ page }) => {
   ]);
 });
 
-test("selects currently displayed rows and shows batch refund total", async ({
+test("blocks cross-member batch refund and shows the refund total", async ({
   page,
 }) => {
   await page.goto("/search");
@@ -146,18 +146,18 @@ test("selects currently displayed rows and shows batch refund total", async ({
 
   await expect(page.getByText("已選取 2 筆")).toBeVisible();
   await expect(page.getByRole("button", { name: "已全選目前顯示" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "批次刪除 (0)" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "批次退款 (2)" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "批次刪除 0 筆" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "批次退款 2 筆" })).toBeEnabled();
 
-  await page.getByRole("button", { name: "批次退款 (2)" }).click();
+  await page.getByRole("button", { name: "批次退款 2 筆" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "確認批次退款" })).toBeVisible();
   await expect(dialog).toContainText("退款總金額");
   await expect(dialog).toContainText("$8,300");
-
-  await dialog.getByRole("button", { name: "確認退款" }).click();
-
-  await expect(page.getByText("已完成批次退款")).toBeVisible();
+  await expect(dialog).toContainText(
+    "批次退款一次只能選擇同一位代墊成員的紀錄。",
+  );
+  await expect(dialog.getByRole("button", { name: "確認退款" })).toBeDisabled();
 });
 
 test("shows batch delete count in parentheses for selected eligible records", async ({
@@ -171,7 +171,7 @@ test("shows batch delete count in parentheses for selected eligible records", as
   await page.getByRole("button", { name: "開啟選取模式" }).click();
   await page.getByRole("button", { name: "全選目前顯示" }).click();
 
-  await expect(page.getByRole("button", { name: "批次刪除 (1)" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "批次刪除 1 筆" })).toBeEnabled();
 });
 
 test("loads the next server page and keeps all-select scoped to loaded rows", async ({
