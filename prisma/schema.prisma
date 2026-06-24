@@ -62,6 +62,16 @@ enum ReimbursementStatus {
   reimbursed
 }
 
+enum ReimbursementPaymentSource {
+  household_fund
+}
+
+enum ReimbursementPaymentMethod {
+  bank_transfer
+  cash
+  other
+}
+
 enum RecurringPostingMode {
   immediate
   reminder
@@ -86,6 +96,7 @@ model Household {
   recurringRules       RecurringRule[]
   recurringOccurrences RecurringOccurrence[]
   reimbursementBatches ReimbursementBatch[]
+  reimbursementPayments ReimbursementPayment[]
 }
 
 model Member {
@@ -107,6 +118,8 @@ model Member {
   sourcedIncomeRecords LedgerRecord[]               @relation("IncomeSourceMember")
   paidExpenseRecords   LedgerRecord[]               @relation("ExpensePayerMember")
   reimbursementBatches ReimbursementBatch[]         @relation("ReimbursementBatchActor")
+  reimbursementPaymentsPaidTo ReimbursementPayment[] @relation("ReimbursementPaymentPaidTo")
+  reimbursementPaymentsRecorded ReimbursementPayment[] @relation("ReimbursementPaymentRecorder")
   createdInvitations   MemberInvitation[]           @relation("MemberInvitationCreator")
   invitations          MemberInvitation[]           @relation("MemberInvitationTarget")
 
@@ -270,8 +283,31 @@ model ReimbursementBatch {
   household    Household                @relation(fields: [householdId], references: [id], onDelete: Restrict)
   reimbursedBy Member                   @relation("ReimbursementBatchActor", fields: [reimbursedById], references: [id], onDelete: Restrict)
   items        ReimbursementBatchItem[]
+  payment      ReimbursementPayment?
 
   @@index([householdId, reimbursedAt])
+}
+
+model ReimbursementPayment {
+  id                   String                     @id @default(cuid())
+  householdId           String
+  reimbursementBatchId  String                     @unique
+  paidToMemberId        String
+  paidFromSource        ReimbursementPaymentSource @default(household_fund)
+  method                ReimbursementPaymentMethod
+  amountCents           Int
+  paidOn                DateTime                   @db.Date
+  note                  String?
+  recordedByMemberId    String
+  createdAt             DateTime                   @default(now())
+
+  household          Household          @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  reimbursementBatch ReimbursementBatch @relation(fields: [reimbursementBatchId], references: [id], onDelete: Restrict)
+  paidToMember       Member             @relation("ReimbursementPaymentPaidTo", fields: [paidToMemberId], references: [id], onDelete: Restrict)
+  recordedByMember   Member             @relation("ReimbursementPaymentRecorder", fields: [recordedByMemberId], references: [id], onDelete: Restrict)
+
+  @@index([householdId, paidOn])
+  @@index([paidToMemberId, paidOn])
 }
 
 model ReimbursementBatchItem {

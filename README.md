@@ -198,6 +198,30 @@ corepack pnpm db:migrate
 corepack pnpm db:seed
 ```
 
+重設本機 dev DB。這會清空 `DATABASE_URL` 指向的資料庫、重跑 migrations，然後重新匯入 seed data：
+
+```sh
+corepack pnpm db:up
+corepack pnpm exec prisma migrate reset
+corepack pnpm db:seed
+```
+
+若要跳過 Prisma 的互動確認，可加上 `--force`：
+
+```sh
+corepack pnpm exec prisma migrate reset --force
+corepack pnpm db:seed
+```
+
+若本機 Docker Postgres volume 也要整個重建，使用這個比較重的流程：
+
+```sh
+docker compose down -v
+corepack pnpm db:up
+corepack pnpm db:migrate
+corepack pnpm db:seed
+```
+
 開啟 Prisma Studio：
 
 ```sh

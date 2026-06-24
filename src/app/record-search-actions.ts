@@ -13,6 +13,11 @@ import {
   batchMarkLedgerRecordsReimbursed,
   type BatchReimbursementSkippedRecord,
 } from "@/modules/reimbursement/reimbursement-batch-actions";
+import { writeReimbursementPaymentSettlement } from "@/modules/reimbursement/reimbursement-command";
+import {
+  validateReimbursementPaymentEvidence,
+  type ReimbursementPaymentEvidenceRejectionReason,
+} from "@/modules/reimbursement/reimbursement-payment";
 import {
   buildRecordSearchPageQuery,
   buildRecordSearchWhere,
@@ -57,6 +62,8 @@ export type BatchSearchRecordActionResult =
   | {
       ok: false;
       reason:
+        | ReimbursementPaymentEvidenceRejectionReason
+        | "cross_member_batch"
         | "empty_selection"
         | "no_eligible_records"
         | "permission_denied"
@@ -206,7 +213,9 @@ export async function batchDeleteSearchRecordsAction(
       skippedCount: result.skippedRecords.length,
       message: `已刪除 ${result.processedRecords.length} 筆紀錄。`,
     };
-  } catch {
+  } catch (error) {
+    console.error("Batch refund failed", error);
+
     return {
       ok: false,
       reason: "mutation_failed",
@@ -215,17 +224,32 @@ export async function batchDeleteSearchRecordsAction(
   }
 }
 
-export async function batchRefundSearchRecordsAction(
-  recordIds: string[],
-): Promise<BatchSearchRecordActionResult> {
+export async function batchRefundSearchRecordsAction(input: {
+  recordIds: string[];
+  payment: {
+    method?: string | null;
+    paidOn?: string | null;
+    note?: string | null;
+  };
+}): Promise<BatchSearchRecordActionResult> {
   const session = await requireAuthenticatedMember();
-  const selectedRecordIds = [...new Set(recordIds)];
+  const selectedRecordIds = [...new Set(input.recordIds)];
 
   if (selectedRecordIds.length === 0) {
     return {
       ok: false,
       reason: "empty_selection",
       message: "請先選取要退款的紀錄。",
+    };
+  }
+
+  const payment = validateReimbursementPaymentEvidence(input.payment);
+
+  if (!payment.ok) {
+    return {
+      ok: false,
+      reason: payment.reason,
+      message: messageForPaymentError(payment.reason),
     };
   }
 
@@ -245,42 +269,28 @@ export async function batchRefundSearchRecordsAction(
       const domainResult = batchMarkLedgerRecordsReimbursed(
         session.access.member,
         rows.map(mapPrismaLedgerRecordToLedgerRecord),
-        { selectedRecordIds },
+        { selectedRecordIds, requireSinglePayerMember: true },
       );
 
       if (!domainResult.ok) {
         return domainResult;
       }
 
-      const reimbursedRecordIds = domainResult.reimbursedRecords.map(
-        (record) => record.id,
-      );
+      const settlement = await writeReimbursementPaymentSettlement({
+        tx,
+        householdId: DEFAULT_HOUSEHOLD_ID,
+        actorId: session.access.member.id,
+        reimbursedRecords: domainResult.reimbursedRecords,
+        payment: payment.payment,
+      });
 
-      await tx.reimbursementBatch.create({
-        data: {
-          id: crypto.randomUUID(),
-          householdId: DEFAULT_HOUSEHOLD_ID,
-          reimbursedById: session.access.member.id,
-          reimbursedAt: new Date(),
-          items: {
-            create: reimbursedRecordIds.map((ledgerRecordId) => ({
-              ledgerRecordId,
-            })),
-          },
-        },
-      });
-      await tx.ledgerRecord.updateMany({
-        where: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
-          id: {
-            in: reimbursedRecordIds,
-          },
-          status: "active",
-        },
-        data: {
-          reimbursementStatus: "reimbursed",
-        },
-      });
+      if (!settlement.ok) {
+        return {
+          ok: false as const,
+          reason: "cross_member_batch" as const,
+          skippedRecords: domainResult.skippedRecords,
+        };
+      }
 
       return domainResult;
     });
@@ -290,9 +300,7 @@ export async function batchRefundSearchRecordsAction(
         ok: false,
         reason: result.reason,
         skippedRecords: result.skippedRecords,
-        message: result.reason === "permission_denied"
-          ? "目前帳號沒有批次退款權限。"
-          : "沒有符合退款條件的紀錄。",
+        message: messageForBatchRefundError(result.reason),
       };
     }
 
@@ -315,4 +323,29 @@ export async function batchRefundSearchRecordsAction(
       message: "批次退款失敗，請稍後再試。",
     };
   }
+}
+
+function messageForPaymentError(
+  reason: ReimbursementPaymentEvidenceRejectionReason,
+): string {
+  const messages: Record<ReimbursementPaymentEvidenceRejectionReason, string> = {
+    invalid_payment_date: "付款日期格式不正確。",
+    invalid_payment_method: "付款方式不支援。",
+    missing_payment_date: "請填寫付款日期。",
+    missing_payment_method: "請選擇付款方式。",
+  };
+
+  return messages[reason];
+}
+
+function messageForBatchRefundError(reason: string): string {
+  if (reason === "permission_denied") {
+    return "目前帳號沒有批次退款權限。";
+  }
+
+  if (reason === "cross_member_batch") {
+    return "請一次退款同一位代墊成員的紀錄。";
+  }
+
+  return "沒有符合退款條件的紀錄。";
 }

@@ -71,12 +71,19 @@ export type VoidLedgerRecordActionField = "recordId";
 
 export type ReimburseLedgerRecordActionCode =
   | "already_reimbursed"
+  | "invalid_payment_date"
+  | "invalid_payment_method"
+  | "missing_payment_date"
+  | "missing_payment_method"
   | "missing_record_id"
   | "not_refundable"
   | "permission_denied"
   | "record_not_found";
 
-export type ReimburseLedgerRecordActionField = "recordId";
+export type ReimburseLedgerRecordActionField =
+  | "recordId"
+  | "reimbursementMethod"
+  | "reimbursementPaidOn";
 
 export type CreateLedgerRecordActionState = ActionState<
   { recordId: string },
@@ -209,6 +216,7 @@ export async function reimburseLedgerRecordAction(
     parsed.command,
     {
       prisma: getPrismaClient(),
+      payment: parsed.command.payment,
     },
   );
 
@@ -304,6 +312,10 @@ function reimburseLedgerRecordError(
 ): ReimburseLedgerRecordActionState {
   const messages: Record<ReimburseLedgerRecordActionCode, string> = {
     already_reimbursed: "這筆代墊支出已退款，無法編輯或刪除。",
+    invalid_payment_date: "付款日期格式不正確。",
+    invalid_payment_method: "付款方式不支援。",
+    missing_payment_date: "請填寫付款日期。",
+    missing_payment_method: "請選擇付款方式。",
     missing_record_id: "找不到要退款的紀錄。",
     not_refundable: "這筆紀錄無法退款。",
     permission_denied: "目前帳號沒有退款這筆紀錄的權限。",
@@ -312,7 +324,7 @@ function reimburseLedgerRecordError(
 
   return actionError(messages[code], {
     code,
-    fieldErrors: { recordId: [messages[code]] },
+    fieldErrors: { [fieldForReimbursementError(code)]: [messages[code]] },
   });
 }
 
@@ -333,6 +345,23 @@ function reimbursementErrorCodeForResult(
   }
 
   return reason;
+}
+
+function fieldForReimbursementError(
+  code: ReimburseLedgerRecordActionCode,
+): ReimburseLedgerRecordActionField {
+  if (
+    code === "missing_payment_method" ||
+    code === "invalid_payment_method"
+  ) {
+    return "reimbursementMethod";
+  }
+
+  if (code === "missing_payment_date" || code === "invalid_payment_date") {
+    return "reimbursementPaidOn";
+  }
+
+  return "recordId";
 }
 
 function fieldForError(

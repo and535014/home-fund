@@ -119,4 +119,23 @@ describe("batchMarkLedgerRecordsReimbursed", () => {
       ],
     });
   });
+
+  it("rejects payment-flow reimbursement when eligible records span multiple payer members", () => {
+    const otherPayerExpense: ExpenseLedgerRecord = {
+      ...refundableExpense,
+      id: "expense-other-payer",
+      payerMemberId: "member-other",
+    };
+
+    expect(batchMarkLedgerRecordsReimbursed(financeManager, [
+      refundableExpense,
+      otherPayerExpense,
+    ], {
+      selectedRecordIds: ["expense-refundable", "expense-other-payer"],
+      requireSinglePayerMember: true,
+    })).toEqual({
+      ok: false,
+      reason: "cross_member_batch",
+    });
+  });
 });

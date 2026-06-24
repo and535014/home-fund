@@ -7,6 +7,7 @@ import type { ExpenseLedgerRecord, LedgerRecord } from "../fund-ledger/ledger-re
 
 export type BatchMarkLedgerRecordsReimbursedCommand = {
   selectedRecordIds: string[];
+  requireSinglePayerMember?: boolean;
 };
 
 export type BatchReimbursementSkippedReason =
@@ -35,7 +36,8 @@ export type BatchMarkLedgerRecordsReimbursedResult =
       reason:
         | "permission_denied"
         | "empty_selection"
-        | "no_eligible_records";
+        | "no_eligible_records"
+        | "cross_member_batch";
       skippedRecords?: BatchReimbursementSkippedRecord[];
       authorizationReason?: Exclude<AuthorizationResult, { allowed: true }>["reason"];
     };
@@ -94,6 +96,16 @@ export function batchMarkLedgerRecordsReimbursed(
       reason: "no_eligible_records",
       skippedRecords,
     };
+  }
+
+  if (command.requireSinglePayerMember) {
+    const payerMemberIds = new Set(
+      reimbursedRecords.map((record) => record.payerMemberId),
+    );
+
+    if (payerMemberIds.size !== 1) {
+      return { ok: false, reason: "cross_member_batch" };
+    }
   }
 
   return {

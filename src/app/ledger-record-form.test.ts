@@ -146,11 +146,19 @@ describe("parseReimburseLedgerRecordForm", () => {
   it("parses a refund form into a reimbursement command", () => {
     const formData = new FormData();
     formData.set("recordId", "expense-1");
+    formData.set("reimbursementMethod", "bank_transfer");
+    formData.set("reimbursementPaidOn", "2026-06-24");
+    formData.set("reimbursementReference", "末五碼 12345");
 
     expect(parseReimburseLedgerRecordForm(formData)).toEqual({
       ok: true,
       command: {
         selectedExpenseIds: ["expense-1"],
+        payment: {
+          method: "bank_transfer",
+          paidOn: "2026-06-24",
+          note: "末五碼 12345",
+        },
       },
     });
   });
@@ -161,6 +169,37 @@ describe("parseReimburseLedgerRecordForm", () => {
     expect(parseReimburseLedgerRecordForm(formData)).toEqual({
       ok: false,
       reason: "missing_record_id",
+    });
+  });
+
+  it("requires valid payment evidence before refunding", () => {
+    const missingMethod = new FormData();
+    missingMethod.set("recordId", "expense-1");
+    missingMethod.set("reimbursementPaidOn", "2026-06-24");
+
+    expect(parseReimburseLedgerRecordForm(missingMethod)).toEqual({
+      ok: false,
+      reason: "missing_payment_method",
+    });
+
+    const invalidMethod = new FormData();
+    invalidMethod.set("recordId", "expense-1");
+    invalidMethod.set("reimbursementMethod", "line_pay");
+    invalidMethod.set("reimbursementPaidOn", "2026-06-24");
+
+    expect(parseReimburseLedgerRecordForm(invalidMethod)).toEqual({
+      ok: false,
+      reason: "invalid_payment_method",
+    });
+
+    const invalidDate = new FormData();
+    invalidDate.set("recordId", "expense-1");
+    invalidDate.set("reimbursementMethod", "cash");
+    invalidDate.set("reimbursementPaidOn", "2026-06-24T12:30");
+
+    expect(parseReimburseLedgerRecordForm(invalidDate)).toEqual({
+      ok: false,
+      reason: "invalid_payment_date",
     });
   });
 });

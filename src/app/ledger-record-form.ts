@@ -8,6 +8,10 @@ import type {
 import type {
   MarkExpensesReimbursedCommand,
 } from "@/modules/reimbursement/reimbursements";
+import {
+  validateReimbursementPaymentEvidence,
+  type ReimbursementPaymentEvidenceInput,
+} from "@/modules/reimbursement/reimbursement-payment";
 
 export type ParseCreateLedgerRecordFormResult =
   | {
@@ -146,11 +150,18 @@ export type ParseVoidLedgerRecordFormResult =
 export type ParseReimburseLedgerRecordFormResult =
   | {
       ok: true;
-      command: MarkExpensesReimbursedCommand;
+      command: MarkExpensesReimbursedCommand & {
+        payment: ReimbursementPaymentEvidenceInput;
+      };
     }
   | {
       ok: false;
-      reason: "missing_record_id";
+      reason:
+        | "missing_record_id"
+        | "missing_payment_method"
+        | "invalid_payment_method"
+        | "missing_payment_date"
+        | "invalid_payment_date";
     };
 
 export function parseUpdateLedgerRecordForm(
@@ -219,14 +230,30 @@ export function parseReimburseLedgerRecordForm(
   formData: FormData,
 ): ParseReimburseLedgerRecordFormResult {
   const recordId = readFormString(formData, "recordId");
+  const method = readFormString(formData, "reimbursementMethod");
+  const paidOn = readFormString(formData, "reimbursementPaidOn");
+  const note = readOptionalFormString(formData, "reimbursementReference");
 
   if (!recordId) {
     return { ok: false, reason: "missing_record_id" };
   }
 
+  const payment = validateReimbursementPaymentEvidence({
+    method,
+    paidOn,
+    note,
+  });
+
+  if (!payment.ok) {
+    return payment;
+  }
+
   return {
     ok: true,
-    command: { selectedExpenseIds: [recordId] },
+    command: {
+      selectedExpenseIds: [recordId],
+      payment: payment.payment,
+    },
   };
 }
 

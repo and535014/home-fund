@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { BatchActionDialog } from "@/app/batch-action-dialog";
+import { BatchDeleteDialog } from "@/app/batch-delete-dialog";
+import { BatchRefundDialog } from "@/app/batch-refund-dialog";
 import { BatchSearchFooter } from "@/app/batch-search-footer";
 import { RecordListDetail } from "@/app/record-list-detail";
 import { RecordSearchControls } from "@/app/record-search-controls";
@@ -193,14 +194,31 @@ export function RecordSearchPanel({
     });
   }
 
-  function completeBatchAction(selectedRecordsForAction: LedgerRecord[]) {
+  function completeBatchDelete(selectedRecordsForAction: LedgerRecord[]) {
     const recordIds = selectedRecordsForAction.map((record) => record.id);
-    const action = batchAction === "delete"
-      ? batchDeleteSearchRecordsAction
-      : batchRefundSearchRecordsAction;
 
     startTransition(() => {
-      action(recordIds).then((result) => {
+      batchDeleteSearchRecordsAction(recordIds).then((result) => {
+        handleBatchActionResult(result);
+      });
+    });
+  }
+
+  function completeBatchRefund(
+    selectedRecordsForAction: LedgerRecord[],
+    formData: FormData,
+  ) {
+    const recordIds = selectedRecordsForAction.map((record) => record.id);
+
+    startTransition(() => {
+      batchRefundSearchRecordsAction({
+        recordIds,
+        payment: {
+          method: String(formData?.get("reimbursementMethod") ?? ""),
+          paidOn: String(formData?.get("reimbursementPaidOn") ?? ""),
+          note: String(formData?.get("reimbursementReference") ?? ""),
+        },
+      }).then((result) => {
         handleBatchActionResult(result);
       });
     });
@@ -275,11 +293,18 @@ export function RecordSearchPanel({
           visibleRecords={displayedRecords}
         />
       ) : null}
-      <BatchActionDialog
-        action={batchAction}
+      <BatchDeleteDialog
         actor={actor}
         onCancel={() => setBatchAction(null)}
-        onConfirm={completeBatchAction}
+        onConfirm={completeBatchDelete}
+        open={batchAction === "delete"}
+        records={selectedRecords}
+      />
+      <BatchRefundDialog
+        actor={actor}
+        onCancel={() => setBatchAction(null)}
+        onConfirm={completeBatchRefund}
+        open={batchAction === "refund"}
         records={selectedRecords}
       />
     </div>

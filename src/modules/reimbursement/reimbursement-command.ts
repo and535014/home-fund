@@ -6,6 +6,7 @@ import {
   type MarkExpensesReimbursedCommand,
   type MarkExpensesReimbursedResult,
 } from "./reimbursements";
+import type { ReimbursementPaymentEvidenceInput } from "./reimbursement-payment";
 
 const DEFAULT_HOUSEHOLD_ID = "household-demo";
 
@@ -13,6 +14,19 @@ export type MarkExpensesReimbursedInDatabaseContext = {
   prisma: PrismaClient;
   householdId?: string;
   generateBatchId?: () => string;
+  generatePaymentId?: () => string;
+  reimbursedAt?: Date;
+  payment: ReimbursementPaymentEvidenceInput;
+};
+
+export type WriteReimbursementPaymentSettlementContext = {
+  tx: Prisma.TransactionClient;
+  householdId: string;
+  actorId: string;
+  reimbursedRecords: ExpenseLedgerRecord[];
+  payment: ReimbursementPaymentEvidenceInput;
+  generateBatchId?: () => string;
+  generatePaymentId?: () => string;
   reimbursedAt?: Date;
 };
 
@@ -59,34 +73,90 @@ export async function markExpensesReimbursedInDatabase(
       return result;
     }
 
-    await tx.reimbursementBatch.create({
-      data: {
-        id: context.generateBatchId?.() ?? crypto.randomUUID(),
-        householdId,
-        reimbursedById: actor.id,
-        reimbursedAt: context.reimbursedAt ?? new Date(),
-        items: {
-          create: result.reimbursedExpenses.map((expense) => ({
-            ledgerRecordId: expense.id,
-          })),
-        },
-      },
+    const settlement = await writeReimbursementPaymentSettlement({
+      tx,
+      householdId,
+      actorId: actor.id,
+      reimbursedRecords: result.reimbursedExpenses,
+      payment: context.payment,
+      generateBatchId: context.generateBatchId,
+      generatePaymentId: context.generatePaymentId,
+      reimbursedAt: context.reimbursedAt,
     });
-    await tx.ledgerRecord.updateMany({
-      where: {
-        householdId,
-        id: {
-          in: result.reimbursedExpenses.map((expense) => expense.id),
-        },
-        status: "active",
-      },
-      data: {
-        reimbursementStatus: "reimbursed",
-      },
-    });
+
+    if (!settlement.ok) {
+      return { ok: false as const, reason: "not_refundable" as const };
+    }
 
     return result;
   });
+}
+
+export async function writeReimbursementPaymentSettlement(
+  context: WriteReimbursementPaymentSettlementContext,
+): Promise<
+  { ok: true; batchId: string } |
+  { ok: false; reason: "invalid_paid_to_member" }
+> {
+  const paidToMemberIds = new Set(
+    context.reimbursedRecords.map((record) => record.payerMemberId),
+  );
+  const paidToMemberId = [...paidToMemberIds][0];
+
+  if (paidToMemberIds.size !== 1 || !paidToMemberId) {
+    return { ok: false, reason: "invalid_paid_to_member" };
+  }
+
+  const batchId = context.generateBatchId?.() ?? crypto.randomUUID();
+
+  await context.tx.reimbursementBatch.create({
+    data: {
+      id: batchId,
+      householdId: context.householdId,
+      reimbursedById: context.actorId,
+      reimbursedAt: context.reimbursedAt ?? new Date(),
+      items: {
+        create: context.reimbursedRecords.map((expense) => ({
+          ledgerRecordId: expense.id,
+        })),
+      },
+    },
+  });
+  await context.tx.reimbursementPayment.create({
+    data: {
+      id: context.generatePaymentId?.() ?? crypto.randomUUID(),
+      householdId: context.householdId,
+      reimbursementBatchId: batchId,
+      paidToMemberId,
+      paidFromSource: "household_fund",
+      method: context.payment.method,
+      amountCents: context.reimbursedRecords.reduce(
+        (total, expense) => total + expense.amountCents,
+        0,
+      ),
+      paidOn: dateOnlyToDate(context.payment.paidOn),
+      ...(context.payment.note ? { note: context.payment.note } : {}),
+      recordedByMemberId: context.actorId,
+    },
+  });
+  await context.tx.ledgerRecord.updateMany({
+    where: {
+      householdId: context.householdId,
+      id: {
+        in: context.reimbursedRecords.map((expense) => expense.id),
+      },
+      status: "active",
+    },
+    data: {
+      reimbursementStatus: "reimbursed",
+    },
+  });
+
+  return { ok: true, batchId };
+}
+
+function dateOnlyToDate(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
 }
 
 function mapPrismaRecordToExpense(record: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, HandCoins, Trash2, X } from "lucide-react";
+import { useRef } from "react";
+import { AlertTriangle, HandCoins, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,31 +15,28 @@ import {
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
-  canBatchDeleteRecord,
   canBatchRefundRecord,
   formatAmount,
   sumRecordAmounts,
 } from "./record-search-batch-utils";
 import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
 
-export function BatchActionDialog({
-  action,
+export function BatchRefundDialog({
   actor,
   onCancel,
   onConfirm,
+  open,
   records,
 }: {
-  action: "delete" | "refund" | null;
   actor: HouseholdAccessProfile;
   onCancel: () => void;
-  onConfirm: (eligibleRecords: LedgerRecord[]) => void;
+  onConfirm: (eligibleRecords: LedgerRecord[], formData: FormData) => void;
+  open: boolean;
   records: LedgerRecord[];
 }) {
-  const isDelete = action === "delete";
+  const reimbursementFormRef = useRef<HTMLFormElement>(null);
   const eligibleRecords = records.filter((record) =>
-    isDelete
-      ? canBatchDeleteRecord(actor, record)
-      : canBatchRefundRecord(actor, record),
+    canBatchRefundRecord(actor, record),
   );
   const skippedCount = records.length - eligibleRecords.length;
   const eligibleTotalCents = sumRecordAmounts(eligibleRecords);
@@ -49,13 +47,14 @@ export function BatchActionDialog({
         .filter((memberId): memberId is string => Boolean(memberId)),
     ),
   ];
-  const hasSinglePaidToMember = isDelete || paidToMemberIds.length === 1;
+  const hasSinglePaidToMember = paidToMemberIds.length === 1;
+  const hasCrossMemberSelection = paidToMemberIds.length > 1;
 
   return (
-    <Dialog open={Boolean(action)} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+      <DialogContent aria-describedby={undefined} className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isDelete ? "確認批次刪除" : "確認批次退款"}</DialogTitle>
+          <DialogTitle>確認批次退款</DialogTitle>
         </DialogHeader>
 
         <DialogBody className="grid gap-3">
@@ -70,21 +69,26 @@ export function BatchActionDialog({
             </div>
           </div>
 
-          {!isDelete ? (
-            <div className="rounded-card border border-border p-3">
-              <p className="text-caption text-muted-foreground">退款總金額</p>
-              <p className="mt-1 text-heading text-expense">
-                {formatAmount(eligibleTotalCents)}
-              </p>
-            </div>
+          <div className="rounded-card border border-border p-3">
+            <p className="text-caption text-muted-foreground">退款總金額</p>
+            <p className="mt-1 text-heading text-expense">
+              {formatAmount(eligibleTotalCents)}
+            </p>
+          </div>
+
+          {hasSinglePaidToMember && eligibleRecords.length > 0 ? (
+            <form ref={reimbursementFormRef}>
+              <ReimbursementPaymentFields idPrefix="batch-reimbursement" />
+            </form>
           ) : null}
 
-          {!isDelete ? (
-            hasSinglePaidToMember && eligibleRecords.length > 0 ? (
-              <ReimbursementPaymentFields
-                idPrefix="batch-reimbursement"
-              />
-            ) : null
+          {hasCrossMemberSelection ? (
+            <Alert variant="warning">
+              <AlertTriangle />
+              <AlertDescription>
+                批次退款一次只能選擇同一位代墊成員的紀錄。
+              </AlertDescription>
+            </Alert>
           ) : null}
 
           {skippedCount > 0 ? (
@@ -103,16 +107,21 @@ export function BatchActionDialog({
             取消
           </Button>
           <Button
-            disabled={
-              eligibleRecords.length === 0 ||
-              (!isDelete && !hasSinglePaidToMember)
-            }
-            onClick={() => onConfirm(eligibleRecords)}
+            disabled={eligibleRecords.length === 0 || !hasSinglePaidToMember}
+            onClick={() => {
+              if (!reimbursementFormRef.current) {
+                return;
+              }
+
+              onConfirm(
+                eligibleRecords,
+                new FormData(reimbursementFormRef.current),
+              );
+            }}
             type="button"
-            variant={isDelete ? "destructive" : "default"}
           >
-            {isDelete ? <Trash2 /> : <HandCoins />}
-            {isDelete ? "確認刪除" : "確認退款"}
+            <HandCoins />
+            確認退款
           </Button>
         </DialogFooter>
       </DialogContent>
