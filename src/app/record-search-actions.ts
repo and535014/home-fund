@@ -37,7 +37,7 @@ import {
   type ReimbursementPaymentSearchCursor,
   type ReimbursementPaymentSearchResult,
 } from "@/modules/reporting/reimbursement-payment-search-query";
-import type { RecordQueryState } from "./record-query";
+import type { RecordQueryState } from "@/modules/reporting/record-query";
 import { mapPrismaLedgerRecordToLedgerRecord } from "./home-dashboard-data-source";
 
 const DEFAULT_HOUSEHOLD_ID = "household-demo";

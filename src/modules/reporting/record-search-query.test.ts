@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialRecordQueryState } from "@/app/record-query";
+import { initialRecordQueryState } from "@/modules/reporting/record-query";
 import {
   buildRecordSearchPageQuery,
   calculateRecordSearchNetTotal,

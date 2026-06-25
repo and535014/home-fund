@@ -1,4 +1,4 @@
-import type { RecordQueryState } from "@/app/record-query";
+import type { RecordQueryState } from "@/modules/reporting/record-query";
 
 export const SEARCH_RECORD_PAGE_SIZE = 100;
 

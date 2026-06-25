@@ -31,7 +31,7 @@ import {
   initialRecordQueryState,
   isInitialRecordQuery,
   type RecordQueryState,
-} from "@/app/record-query";
+} from "@/modules/reporting/record-query";
 import {
   batchDeleteSearchRecordsAction,
   batchRefundSearchRecordsAction,

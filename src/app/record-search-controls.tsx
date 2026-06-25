@@ -29,7 +29,7 @@ import {
   recordFilterCount,
   type RecordQueryOptions,
   type RecordQueryState,
-} from "./record-query";
+} from "@/modules/reporting/record-query";
 
 export type SearchSurface = "records" | "reimbursements";
 

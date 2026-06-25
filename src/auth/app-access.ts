@@ -4,14 +4,14 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { buildAccessHints, type AccessHints } from "@/modules/identity-access/access-hints";
 import { authorize, type AuthorizationCommand } from "@/modules/identity-access/authorization";
+import {
+  buildHomeBlockedViewFromAccess,
+  type HomeBlockedView,
+} from "@/modules/identity-access/home-blocked-view";
 import type {
   HouseholdAccessProfile,
   ResolveHouseholdAccessResult,
 } from "@/modules/identity-access/session-access";
-import {
-  buildHomeBlockedViewFromAccess,
-  type HomeBlockedView,
-} from "@/app/home-access";
 import { getCurrentMemberFromServerHeaders } from "./server-current-member-cache";
 
 export type AuthenticatedAppMember = Extract<
