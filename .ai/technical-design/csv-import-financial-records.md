@@ -52,7 +52,7 @@ reviewed_at: 2026-06-25
 - validation_policy: server validation owns row shape, member/category matching, duplicate detection, and ledger command validation.
 - matching_policy: exact normalized display name/category name match; ambiguous and missing matches become row-level `需處理`.
 - duplicate_policy: no silent deduplication; same-file and existing-ledger duplicate candidates are counted in preview summary without blocking import.
-- transaction_policy: confirmation revalidates the latest submitted preview rows and atomically creates all remaining valid ledger records.
+- transaction_policy: confirmation revalidates the latest submitted preview rows, creates records for valid active rows, audits invalid active rows as failed, and audits removed rows as skipped in one import batch.
 - persistence_policy: add import batch and row audit tables; do not store raw CSV bytes after preview.
 - reimbursement_policy: CSV import never writes `ReimbursementBatch` or `ReimbursementPayment`.
 - next_gate: TDD Implementation
@@ -157,6 +157,7 @@ enum LedgerImportBatchStatus {
 
 enum LedgerImportRowStatus {
   imported
+  failed
   skipped
 }
 
@@ -166,6 +167,7 @@ model LedgerImportBatch {
   fileName            String
   fileFingerprint     String
   status              LedgerImportBatchStatus
+  failedRowCount      Int
   importedRowCount    Int
   skippedRowCount     Int
   createdByMemberId   String
@@ -380,6 +382,7 @@ export type ConfirmCsvImportActionResult =
       ok: true;
       batchId: string;
       importedCount: number;
+      failedCount: number;
       skippedCount: number;
       message: "匯入完成";
     }
@@ -435,22 +438,22 @@ No duplicate row is automatically removed, skipped, or blocked. User can still r
 2. Verify preview token and file fingerprint.
 3. Reload active members, active categories, and duplicate candidates.
 4. Rebuild commands for all non-removed rows using current overrides.
-5. If any remaining row has issues, return `validation_changed` and do not write.
-6. Create `LedgerImportBatch`.
-7. Create each `LedgerRecord` using the same data shape as `createLedgerRecordInDatabase`.
-8. Create `LedgerImportRow` for imported and skipped removed rows.
+5. Split active rows into importable rows and blocking-failure rows.
+6. Create `LedgerImportBatch` with imported, failed, and skipped counts.
+7. Create each importable `LedgerRecord` using the same data shape as `createLedgerRecordInDatabase`.
+8. Create `LedgerImportRow` for imported, skipped removed, and failed active rows.
 
-Removed rows are stored as `skipped` with row fingerprint and CSV row number but no `ledgerRecordId`.
+Removed rows are stored as `skipped` with row fingerprint and CSV row number but no `ledgerRecordId`. Blocking active rows are stored as `failed` with CSV row number and no `ledgerRecordId`.
 
-If any create fails, the transaction rolls back. This implements the spec's atomic commit policy for all remaining valid rows.
+If any database write fails, the transaction rolls back. Validation failures do not roll back valid active rows; they are audited as failed rows in the same import batch.
 
 ## UI State And Error Strategy
 
 - Preview action errors appear as an alert above the initial controls or preview area.
 - Row-level issues appear inside the row content/status area using Taiwan Traditional Chinese messages.
-- `匯入` is disabled when `needsAttentionCount > 0` or `importableCount === 0`; duplicate-only rows remain importable.
-- If confirmation returns `validation_changed`, keep the selected file and replace the preview rows with server-returned rows.
-- Success shows toast `匯入完成` with imported count, resets local state, and refreshes router state.
+- `匯入` is disabled when `importableCount === 0`; duplicate-only rows remain importable.
+- If confirmation returns a non-committed validation error, keep the selected file and replace the preview rows with server-returned rows.
+- Success shows toast `最終成功` with final success, failure, and skipped counts, resets local state, and refreshes router state.
 - Icon-only buttons keep accessible names from the prototype.
 
 ## Test Mapping
@@ -485,7 +488,7 @@ Add `src/modules/fund-ledger/ledger-import-command.test.ts`:
 - reimbursement payment tables remain unchanged.
 - duplicate existing ledger rows are summarized without blocking confirmation.
 - removed duplicate rows are excluded from duplicate summary and import counts.
-- server-side validation changes roll back all rows.
+- server-side validation changes can import still-valid active rows and audit invalid active rows as failed.
 - import batch and row audit records are created.
 
 ### E2E Tests

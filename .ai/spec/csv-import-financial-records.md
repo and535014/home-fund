@@ -50,7 +50,7 @@ reviewed_at: 2026-06-25
 - payment_source_policy: no `payment_source` column; `type` determines income, fund-paid expense, or member-paid expense
 - matching_policy: auto-match member display name and category name; unresolved or ambiguous matches require preview correction
 - duplicate_policy: no silent automatic deduplication; likely duplicates are counted in preview summary but do not become row-level `需處理`
-- commit_policy: user may remove rows before import; all remaining rows must be valid, and confirmation commits remaining rows atomically
+- commit_policy: user may remove rows before import; confirmation imports valid active rows and records invalid active rows as failed so partial success is allowed
 - next_gate: Feature Technical Design
 
 ## Final Acceptance Criteria
@@ -98,11 +98,11 @@ reviewed_at: 2026-06-25
 41. Duplicate rows within the same uploaded CSV are counted as possible duplicates in the preview summary.
 42. The app does not silently remove, merge, or skip duplicate rows.
 43. `匯入` is disabled when there are no remaining rows to import.
-44. `匯入` is disabled while any remaining row has status `需處理`.
-45. Users may remove rows with `需處理` and then import the remaining valid rows; duplicate-only rows remain importable unless removed.
-46. Confirming import commits all remaining valid rows in one server-side transaction.
-47. If server-side validation changes between preview and confirmation, no rows are committed and the preview returns row-level errors.
-48. Successful import shows a toast and resets the page state.
+44. `匯入` remains enabled when at least one remaining row is importable, even if other remaining rows still need handling.
+45. Users may remove rows with `需處理` or import the currently valid rows and let invalid active rows be recorded as failed; duplicate-only rows remain importable unless removed.
+46. Confirming import writes one import batch in a server-side transaction, creates records for valid active rows, audits removed rows as skipped, and audits invalid active rows as failed.
+47. If server-side validation changes between preview and confirmation, valid active rows may still be imported while invalid active rows are reported and audited as failed.
+48. Successful import shows a toast with final server counts in `成功`, `失敗`, `略過` order and resets the page state.
 49. Successful import refreshes monthly records, search results, category summaries, and reimbursement-derived read models.
 50. Server-side authorization, validation, duplicate detection, and persistence are authoritative; client preview is advisory.
 51. UI copy uses Traditional Chinese with Taiwan wording.
@@ -170,10 +170,10 @@ Then row `3` counts toward import again
 
 Given a CSV preview contains a row with an unknown category  
 Then the row status is `需處理`  
-And `匯入` is disabled  
+And `匯入` remains enabled only if another active row is importable  
 When the user changes the category mapping to a valid category  
 Then the row status becomes importable  
-And `匯入` is enabled if all remaining rows are valid
+And `匯入` is enabled if at least one active row is importable
 
 ### Scenario: Duplicate Rows Are Flagged Instead Of Silently Removed
 
@@ -189,22 +189,21 @@ Then the duplicate candidate row is imported with the other valid rows
 
 Given an authorized user previews valid income, fund-paid expense, and member-paid expense rows  
 When they activate `匯入`  
-Then all remaining valid rows are created in one server-side transaction  
+Then all valid active rows are created in one server-side transaction  
 And the income appears in monthly records and reports  
 And the fund-paid expense appears as a fund-paid expense  
 And the member-paid expense appears as `待退款`  
 And no reimbursement payment evidence is created  
-And a success toast appears  
+And a success toast appears with final `成功`, `失敗`, and `略過` counts  
 And the page resets to the initial import state
 
 ### Scenario: Server Validation Fails At Confirmation
 
-Given a preview row was valid when shown  
-And the referenced category is archived before confirmation  
+Given a preview contains one valid row and one row whose referenced category is archived before confirmation  
 When the user activates `匯入`  
-Then no rows are committed  
-And the affected row shows a row-level error  
-And the user remains in preview state
+Then the valid row is imported  
+And the affected row is audited as failed  
+And the success toast reports the final success and failure counts
 
 ### Scenario: Reimbursement Payment CSV Is Rejected
 
@@ -266,7 +265,7 @@ And icon-only actions have accessible names
   - Import confirmation creates ordinary ledger records under existing ledger invariants.
   - Imported member-paid expenses become refundable and not reimbursed.
   - Reimbursement payment rows cannot create reimbursement batches or payment evidence.
-  - Confirmation is atomic for all remaining rows.
+  - Confirmation allows partial success by importing valid active rows and auditing invalid active rows as failed.
   - Preview-only upload creates no ledger records.
 - E2E tests:
   - Authorized happy path from settings navigation through file selection, preview, mapping, row removal, import, toast, and reset.
@@ -293,7 +292,7 @@ And icon-only actions have accessible names
 - reviewer_focus:
   - Confirm admins and finance managers are the right import actors.
   - Confirm duplicate rows should be summarized without blocking import, with no silent automatic deduplication.
-  - Confirm atomic commit for all remaining valid rows is the right MVP policy.
+  - Confirm partial success for valid active rows is the right MVP policy.
   - Confirm the CSV contract and template header are acceptable.
 - must_check:
   - Feature Technical Design must define parser ownership, server action/API shape, transaction boundaries, import history, duplicate algorithm, and exact authorization capability.

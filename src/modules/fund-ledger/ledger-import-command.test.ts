@@ -117,7 +117,7 @@ describe("previewLedgerImportInDatabase", () => {
 });
 
 describe("confirmLedgerImportInDatabase", () => {
-  it("atomically creates ledger records and audit rows", async () => {
+  it("transactionally creates ledger records and audit rows", async () => {
     const {
       prisma,
       ledgerCreate,
