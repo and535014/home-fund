@@ -177,6 +177,7 @@ export function RecordSearchControls({
                   <option value="all">全部</option>
                   <option value="income">收入</option>
                   <option value="expense">支出</option>
+                  <option value="reimbursement_payment">退款金流</option>
                 </NativeSelect>
               </label>
 

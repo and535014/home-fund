@@ -88,6 +88,8 @@ export function nextDraftQueryForType(
     participant: type === "income" && query.participant === "fund"
       ? "all"
       : query.participant,
+    reimbursementStatus:
+      type === "reimbursement_payment" ? "all" : query.reimbursementStatus,
     type,
   };
 }

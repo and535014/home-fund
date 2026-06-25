@@ -122,6 +122,7 @@ trace_links:
   - .ai/archive/archive-csv-import-financial-records-2026-06-25.md
   - .ai/intent/search-reimbursement-payment-records.md
   - .ai/domain-impact/search-reimbursement-payment-records.md
+  - .ai/prototype/search-reimbursement-payment-records.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md

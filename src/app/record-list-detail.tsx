@@ -193,7 +193,7 @@ export function RecordListDetail({
   );
 }
 
-function RecordListItem({
+export function RecordListItem({
   category,
   isSelected,
   memberNames,
@@ -311,7 +311,7 @@ function RecordSummaryContent({
   );
 }
 
-function RecordDetailDialog({
+export function RecordDetailDialog({
   actor,
   category,
   categories,
