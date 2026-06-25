@@ -3,11 +3,11 @@
 import { useEffect, useRef } from "react";
 import { HandCoins } from "lucide-react";
 
-import { RecordListItem } from "@/app/record-list-item";
+import { RecordListItem } from "@/app/_record-detail/record-list-item";
 import {
   formatPaymentDate,
   type ReimbursementPaymentSearchResult,
-} from "@/app/reimbursement-payment-ui";
+} from "@/app/_record-detail/reimbursement-payment-ui";
 import {
   Item,
   ItemContent,

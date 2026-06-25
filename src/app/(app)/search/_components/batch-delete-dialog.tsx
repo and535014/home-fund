@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
-import { canBatchDeleteRecord } from "./record-search-batch-utils";
+import { canBatchDeleteRecord } from "../_lib/record-search-batch-utils";
 
 export function BatchDeleteDialog({
   actor,

@@ -1,7 +1,7 @@
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import { createHomeDashboardDataSource } from "@/app/home-dashboard-data-source";
-import { RecordSearchPanel } from "@/app/record-search-panel";
+import { RecordSearchPanel } from "./_components/record-search-panel";
 import { PageLayout } from "@/components/layout/page-layout";
 
 export default async function SearchPage() {

@@ -12,7 +12,7 @@ import {
   canBatchReimburseRecord,
   netAmountTone,
   sumRecordNetAmount,
-} from "./record-search-batch-utils";
+} from "../_lib/record-search-batch-utils";
 
 export function BatchSearchFooter({
   actor,

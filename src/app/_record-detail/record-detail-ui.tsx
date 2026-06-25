@@ -20,7 +20,7 @@ import {
 import {
   formatRecordDate,
   recordActorLabel,
-} from "@/app/record-display-utils";
+} from "./record-display-utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {

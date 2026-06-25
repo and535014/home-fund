@@ -18,8 +18,8 @@ import type { HouseholdAccessProfile } from "@/modules/identity-access/session-a
 import {
   canBatchReimburseRecord,
   sumRecordAmounts,
-} from "./record-search-batch-utils";
-import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
+} from "../_lib/record-search-batch-utils";
+import { ReimbursementPaymentFields } from "@/app/_record-detail/reimbursement-payment-fields";
 
 export function BatchRefundDialog({
   actor,

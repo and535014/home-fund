@@ -9,23 +9,23 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { BatchDeleteDialog } from "@/app/batch-delete-dialog";
-import { BatchRefundDialog } from "@/app/batch-refund-dialog";
+import { BatchDeleteDialog } from "./batch-delete-dialog";
+import { BatchRefundDialog } from "./batch-refund-dialog";
 import {
   BatchSearchFooter,
   SearchSummaryFooter,
-} from "@/app/batch-search-footer";
-import { RecordDetailDialog } from "@/app/record-list-detail";
+} from "./batch-search-footer";
+import { RecordDetailDialog } from "@/app/_record-detail/record-list-detail";
 import {
   RecordSearchControls,
   type SearchSurface,
-} from "@/app/record-search-controls";
-import { RecordSearchResults } from "@/app/record-search-results";
+} from "./record-search-controls";
+import { RecordSearchResults } from "./record-search-results";
 import {
   LinkedRecordsDialog,
   ReimbursementPaymentDetailDialog,
-} from "@/app/reimbursement-payment-dialogs";
-import type { ReimbursementPaymentSearchResult } from "@/app/reimbursement-payment-ui";
+} from "@/app/_record-detail/reimbursement-payment-dialogs";
+import type { ReimbursementPaymentSearchResult } from "@/app/_record-detail/reimbursement-payment-ui";
 import {
   buildRecordQueryOptions,
   initialRecordQueryState,
@@ -35,15 +35,15 @@ import {
 import {
   batchDeleteSearchRecordsAction,
   batchRefundSearchRecordsAction,
-  loadReimbursementPaymentsByLedgerRecordIdsAction,
   loadReimbursementPaymentSearchPageAction,
   loadRecordSearchPageAction,
   type BatchSearchRecordActionResult,
-} from "@/app/record-search-actions";
+} from "../_actions/record-search-actions";
+import { loadReimbursementPaymentsByLedgerRecordIdsAction } from "@/app/_record-detail/reimbursement-payment-readback-actions";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
-import { loadReimbursementPaymentForLedgerRecord } from "@/app/reimbursement-payment-loader";
+import { loadReimbursementPaymentForLedgerRecord } from "@/app/_record-detail/reimbursement-payment-loader";
 import {
   initialReimbursementPaymentQueryState,
   isInitialReimbursementPaymentQuery,

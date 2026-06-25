@@ -17,22 +17,22 @@ import {
   type VoidLedgerRecordActionCode,
   type VoidLedgerRecordActionField,
 } from "@/app/ledger-record-actions";
-import { formatRecordDate } from "@/app/record-display-utils";
+import { formatRecordDate } from "./record-display-utils";
 import {
   EditCategoryField,
   RecordDetailView,
   type RecordDetailActionAccess,
-} from "@/app/record-detail-ui";
+} from "./record-detail-ui";
 import {
   RecordListItem,
   RecordSummaryContent,
-} from "@/app/record-list-item";
-import { loadReimbursementPaymentForLedgerRecord } from "@/app/reimbursement-payment-loader";
+} from "./record-list-item";
+import { loadReimbursementPaymentForLedgerRecord } from "./reimbursement-payment-loader";
 import {
   LinkedRecordsDialog,
   ReimbursementPaymentDetailDialog,
-} from "@/app/reimbursement-payment-dialogs";
-import type { ReimbursementPaymentSearchResult } from "@/app/reimbursement-payment-ui";
+} from "./reimbursement-payment-dialogs";
+import type { ReimbursementPaymentSearchResult } from "./reimbursement-payment-ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +50,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Item, ItemGroup } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
 import { compareCategoryVisualOrder } from "@/app/category-visuals";
-import { ReimbursementPaymentFields } from "@/app/reimbursement-payment-fields";
+import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";

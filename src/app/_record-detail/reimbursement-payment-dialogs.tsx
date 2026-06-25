@@ -9,11 +9,11 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import { RecordListItem } from "@/app/record-list-item";
+import { RecordListItem } from "./record-list-item";
 import {
   formatPaymentDate,
   type ReimbursementPaymentSearchResult,
-} from "@/app/reimbursement-payment-ui";
+} from "./reimbursement-payment-ui";
 import { Button } from "@/components/ui/button";
 import {
   DialogBody,

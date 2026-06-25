@@ -4,10 +4,12 @@ import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import {
   batchRefundSearchRecordsAction,
-  loadReimbursementPaymentByLedgerRecordAction,
-  loadReimbursementPaymentsByLedgerRecordIdsAction,
   loadReimbursementPaymentSearchPageAction,
 } from "./record-search-actions";
+import {
+  loadReimbursementPaymentByLedgerRecordAction,
+  loadReimbursementPaymentsByLedgerRecordIdsAction,
+} from "@/app/_record-detail/reimbursement-payment-readback-actions";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

@@ -10,7 +10,7 @@ import {
 import {
   formatRecordDate,
   recordActorLabel,
-} from "@/app/record-display-utils";
+} from "./record-display-utils";
 import {
   Item,
   ItemContent,

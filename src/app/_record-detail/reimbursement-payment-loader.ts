@@ -1,8 +1,8 @@
 "use client";
 
 import { toast } from "sonner";
-import { loadReimbursementPaymentByLedgerRecordAction } from "@/app/record-search-actions";
-import type { ReimbursementPaymentSearchResult } from "@/app/reimbursement-payment-ui";
+import { loadReimbursementPaymentByLedgerRecordAction } from "./reimbursement-payment-readback-actions";
+import type { ReimbursementPaymentSearchResult } from "./reimbursement-payment-ui";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export function loadReimbursementPaymentForLedgerRecord(

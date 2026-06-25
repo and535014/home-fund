@@ -10,7 +10,7 @@ import {
 	getCategoryColorCssColor,
 } from "@/app/category-visuals";
 import { MonthSwitcher } from "@/app/month-switcher";
-import { RecordListDetail } from "@/app/record-list-detail";
+import { RecordListDetail } from "@/app/_record-detail/record-list-detail";
 import {
 	MonthlyTrendChart,
 	type MonthlyTrendPoint,
