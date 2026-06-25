@@ -60,6 +60,7 @@ import {
   getCategoryVisual,
 } from "@/app/category-visuals";
 import { ReimbursementPaymentFields } from "@/app/reimbursement-payment-fields";
+import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
@@ -210,7 +211,6 @@ function RecordListItem({
   if (onToggleSelection) {
     return (
       <Item
-        className="rounded-none border-0 hover:bg-secondary/45 focus-within:bg-secondary/45"
         size="sm"
       >
         <button
@@ -246,7 +246,6 @@ function RecordListItem({
   return (
     <Item
       asChild
-      className="rounded-none border-0 hover:bg-secondary/45 focus-within:bg-secondary/45"
       size="sm"
     >
       <button
@@ -541,7 +540,7 @@ function RefundRecordDialog({
         ) : null}
         <input name="recordId" type="hidden" value={record.id} />
         <DialogBody className="grid gap-3">
-          <Item className="border border-border bg-secondary/30">
+          <Item variant="muted">
             <RecordSummaryContent
               category={category}
               memberNames={memberNames}
@@ -944,14 +943,6 @@ function recordActionAccess(
     canEdit: isAdmin || isFinanceManager || isOwner,
     canRefund,
   };
-}
-
-function formatAmount(amountCents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
 }
 
 function formatDate(date: string): string {

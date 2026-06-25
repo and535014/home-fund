@@ -46,6 +46,7 @@ describe("buildAccessHints", () => {
         canDeleteOwnRecords: true,
         canDeleteRecordsForOthers: false,
         canPerformReimbursement: false,
+        canImportLedgerRecords: false,
         canManageMembers: false,
         canManageCategories: false,
       },
@@ -62,6 +63,7 @@ describe("buildAccessHints", () => {
       canEditRecordsForOthers: true,
       canDeleteRecordsForOthers: false,
       canPerformReimbursement: true,
+      canImportLedgerRecords: true,
       },
     });
   });
@@ -78,6 +80,7 @@ describe("buildAccessHints", () => {
         canManageCategories: true,
         canDeleteRecordsForOthers: true,
         canPerformReimbursement: true,
+        canImportLedgerRecords: true,
       },
     });
   });
@@ -116,6 +119,7 @@ describe("buildAccessHints", () => {
         canDeleteOwnRecords: false,
         canDeleteRecordsForOthers: false,
         canPerformReimbursement: false,
+        canImportLedgerRecords: false,
         canManageMembers: false,
         canManageCategories: false,
       },

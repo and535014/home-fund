@@ -35,11 +35,3 @@ export function SummaryMetric({
     </Card>
   );
 }
-
-export function formatAmount(amountCents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
-}

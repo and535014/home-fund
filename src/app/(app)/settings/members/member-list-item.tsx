@@ -48,7 +48,7 @@ export function MemberListItem({
 
   return (
     <Item variant="outline">
-      <ItemMedia className="size-12 rounded-full" variant="image">
+      <ItemMedia>
         <Avatar
           aria-label={`${member.displayName} 的 Google 頭像`}
           className="size-12 ring-2 ring-border"

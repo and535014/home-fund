@@ -17,6 +17,7 @@ export type AccessActionHints = {
   canDeleteOwnRecords: boolean;
   canDeleteRecordsForOthers: boolean;
   canPerformReimbursement: boolean;
+  canImportLedgerRecords: boolean;
   canManageMembers: boolean;
   canManageCategories: boolean;
 };
@@ -33,6 +34,7 @@ export function buildAccessHints(member: AuthenticatedMember): AccessHints {
   const canManageMembers = allowed(member, { type: "manage_members" });
   const canManageCategories = allowed(member, { type: "manage_categories" });
   const canPerformReimbursement = allowed(member, { type: "perform_reimbursement" });
+  const canImportLedgerRecords = allowed(member, { type: "import_ledger_records" });
   const canCreateOwnRecords = allowed(member, {
     type: "create_expense_record",
     targetMemberId: member.id,
@@ -75,6 +77,7 @@ export function buildAccessHints(member: AuthenticatedMember): AccessHints {
       canDeleteOwnRecords,
       canDeleteRecordsForOthers,
       canPerformReimbursement,
+      canImportLedgerRecords,
       canManageMembers,
       canManageCategories,
     },

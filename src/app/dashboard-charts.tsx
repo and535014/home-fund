@@ -18,6 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatAmount } from "@/lib/format";
 
 export type MonthlyTrendPoint = {
   balance: number;
@@ -253,7 +254,7 @@ function ExpenseCategoryTooltip({
     <div className="rounded-card border border-border bg-card px-3 py-2 text-card-foreground shadow-lg">
       <p className="text-label">{entry.name}</p>
       <p className="mt-1 text-caption text-muted-foreground">
-        {formatCurrency(value)} · {percent.toFixed(1)}%
+        {formatAmount(value)} · {percent.toFixed(1)}%
       </p>
     </div>
   );
@@ -345,12 +346,4 @@ function formatAxisValue(value: number): string {
   }
 
   return `${value}`;
-}
-
-function formatCurrency(amountCents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    currency: "TWD",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(amountCents / 100);
 }

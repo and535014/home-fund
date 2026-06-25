@@ -51,7 +51,7 @@ reviewed_at: 2026-06-25
 - parser_policy: parse on the server with a small CSV parser dependency already added in implementation only if needed; avoid ad hoc string splitting.
 - validation_policy: server validation owns row shape, member/category matching, duplicate detection, and ledger command validation.
 - matching_policy: exact normalized display name/category name match; ambiguous and missing matches become row-level `需處理`.
-- duplicate_policy: no silent deduplication; same-file and existing-ledger duplicate candidates become row-level blockers until removed.
+- duplicate_policy: no silent deduplication; same-file and existing-ledger duplicate candidates are counted in preview summary without blocking import.
 - transaction_policy: confirmation revalidates the latest submitted preview rows and atomically creates all remaining valid ledger records.
 - persistence_policy: add import batch and row audit tables; do not store raw CSV bytes after preview.
 - reimbursement_policy: CSV import never writes `ReimbursementBatch` or `ReimbursementPayment`.
@@ -315,6 +315,7 @@ export type PreviewCsvImportActionResult =
       fileFingerprint: string;
       rows: LedgerImportPreviewRow[];
       summary: {
+        duplicateCount: number;
         importableCount: number;
         removedCount: number;
         needsAttentionCount: number;
@@ -415,16 +416,16 @@ Use SHA-256 hex for storage. This is not a security secret; it is a deterministi
 
 Same-file duplicates:
 
-- rows with the same canonical fingerprint in the current preview are `needs_attention`.
+- rows with the same canonical fingerprint in the current preview are counted as duplicate candidates.
 
 Existing-ledger duplicates:
 
 - query active `LedgerRecord` candidates by household, date, amount, type, category, and relevant member/fund fields.
 - compare normalized name and note in application code.
-- imported rows matching existing active records are `needs_attention`.
+- imported rows matching existing active records are counted as duplicate candidates.
 - previously imported rows can also be flagged by `LedgerImportRow.rowFingerprint`.
 
-No duplicate row is automatically removed or skipped. User must remove it or change mapping so it no longer conflicts.
+No duplicate row is automatically removed, skipped, or blocked. User can still remove it manually before import.
 
 ## Transaction Design
 
@@ -447,7 +448,7 @@ If any create fails, the transaction rolls back. This implements the spec's atom
 
 - Preview action errors appear as an alert above the initial controls or preview area.
 - Row-level issues appear inside the row content/status area using Taiwan Traditional Chinese messages.
-- `匯入` is disabled when `needsAttentionCount > 0` or `importableCount === 0`.
+- `匯入` is disabled when `needsAttentionCount > 0` or `importableCount === 0`; duplicate-only rows remain importable.
 - If confirmation returns `validation_changed`, keep the selected file and replace the preview rows with server-returned rows.
 - Success shows toast `匯入完成` with imported count, resets local state, and refreshes router state.
 - Icon-only buttons keep accessible names from the prototype.
@@ -482,8 +483,8 @@ Add `src/modules/fund-ledger/ledger-import-command.test.ts`:
 - member-paid imported expense has `reimbursementStatus: "refundable"`.
 - fund-paid imported expense has `reimbursementStatus: "not_refundable"`.
 - reimbursement payment tables remain unchanged.
-- duplicate existing ledger row blocks confirmation.
-- removed duplicate row allows confirmation of remaining rows.
+- duplicate existing ledger rows are summarized without blocking confirmation.
+- removed duplicate rows are excluded from duplicate summary and import counts.
 - server-side validation changes roll back all rows.
 - import batch and row audit records are created.
 
@@ -492,7 +493,7 @@ Add `src/modules/fund-ledger/ledger-import-command.test.ts`:
 Add `e2e/csv-import.spec.ts`:
 
 - authorized user opens settings `CSV 匯入`, downloads template, selects CSV, sees preview, changes mapping, removes/adds row, imports, sees toast and reset.
-- duplicate fixture shows `需處理`, disables import, then enables import after row removal.
+- duplicate fixture shows `疑似重複` in the footer summary and keeps import enabled when no blocking validation errors exist.
 - general member cannot see settings nav entry and cannot access `/settings/import`.
 - mobile viewport keeps file item, icon buttons, table scrolling, and select labels usable.
 

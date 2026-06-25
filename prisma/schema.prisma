@@ -72,6 +72,17 @@ enum ReimbursementPaymentMethod {
   other
 }
 
+enum LedgerImportBatchStatus {
+  imported
+  failed
+}
+
+enum LedgerImportRowStatus {
+  imported
+  failed
+  skipped
+}
+
 enum RecurringPostingMode {
   immediate
   reminder
@@ -89,14 +100,15 @@ model Household {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members              Member[]
-  memberInvitations    MemberInvitation[]
-  categories           Category[]
-  ledgerRecords        LedgerRecord[]
-  recurringRules       RecurringRule[]
-  recurringOccurrences RecurringOccurrence[]
-  reimbursementBatches ReimbursementBatch[]
+  members               Member[]
+  memberInvitations     MemberInvitation[]
+  categories            Category[]
+  ledgerRecords         LedgerRecord[]
+  recurringRules        RecurringRule[]
+  recurringOccurrences  RecurringOccurrence[]
+  reimbursementBatches  ReimbursementBatch[]
   reimbursementPayments ReimbursementPayment[]
+  ledgerImportBatches   LedgerImportBatch[]
 }
 
 model Member {
@@ -112,16 +124,17 @@ model Member {
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
 
-  roles                MemberRoleAssignment[]
-  capabilities         MemberCapabilityAssignment[]
-  createdLedgerRecords LedgerRecord[]               @relation("LedgerRecordCreator")
-  sourcedIncomeRecords LedgerRecord[]               @relation("IncomeSourceMember")
-  paidExpenseRecords   LedgerRecord[]               @relation("ExpensePayerMember")
-  reimbursementBatches ReimbursementBatch[]         @relation("ReimbursementBatchActor")
-  reimbursementPaymentsPaidTo ReimbursementPayment[] @relation("ReimbursementPaymentPaidTo")
-  reimbursementPaymentsRecorded ReimbursementPayment[] @relation("ReimbursementPaymentRecorder")
-  createdInvitations   MemberInvitation[]           @relation("MemberInvitationCreator")
-  invitations          MemberInvitation[]           @relation("MemberInvitationTarget")
+  roles                         MemberRoleAssignment[]
+  capabilities                  MemberCapabilityAssignment[]
+  createdLedgerRecords          LedgerRecord[]               @relation("LedgerRecordCreator")
+  sourcedIncomeRecords          LedgerRecord[]               @relation("IncomeSourceMember")
+  paidExpenseRecords            LedgerRecord[]               @relation("ExpensePayerMember")
+  reimbursementBatches          ReimbursementBatch[]         @relation("ReimbursementBatchActor")
+  reimbursementPaymentsPaidTo   ReimbursementPayment[]       @relation("ReimbursementPaymentPaidTo")
+  reimbursementPaymentsRecorded ReimbursementPayment[]       @relation("ReimbursementPaymentRecorder")
+  createdLedgerImportBatches    LedgerImportBatch[]          @relation("LedgerImportBatchCreator")
+  createdInvitations            MemberInvitation[]           @relation("MemberInvitationCreator")
+  invitations                   MemberInvitation[]           @relation("MemberInvitationTarget")
 
   @@index([householdId])
 }
@@ -205,7 +218,7 @@ model LedgerRecord {
   paymentSource       PaymentSource?
   payerMemberId       String?
   reimbursementStatus ReimbursementStatus
-  status              LedgerRecordStatus @default(active)
+  status              LedgerRecordStatus  @default(active)
   note                String?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
@@ -218,6 +231,7 @@ model LedgerRecord {
 
   recurringOccurrence RecurringOccurrence?
   reimbursementItems  ReimbursementBatchItem[]
+  importRow           LedgerImportRow?         @relation("LedgerImportCreatedRecord")
 
   @@index([householdId, occurredOn])
   @@index([householdId, type, occurredOn])
@@ -230,6 +244,43 @@ model LedgerRecord {
   @@index([householdId, status, reimbursementStatus, occurredOn])
   @@index([householdId, status, reimbursementStatus, occurredOn, id], map: "LedgerRecord_search_reimbursement_cursor_idx")
   @@index([payerMemberId, reimbursementStatus])
+}
+
+model LedgerImportBatch {
+  id                String                  @id @default(cuid())
+  householdId       String
+  fileName          String
+  fileFingerprint   String
+  status            LedgerImportBatchStatus
+  failedRowCount    Int
+  importedRowCount  Int
+  skippedRowCount   Int
+  createdByMemberId String
+  createdAt         DateTime                @default(now())
+
+  household       Household         @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  createdByMember Member            @relation("LedgerImportBatchCreator", fields: [createdByMemberId], references: [id], onDelete: Restrict)
+  rows            LedgerImportRow[]
+
+  @@index([householdId, createdAt])
+  @@index([householdId, fileFingerprint])
+}
+
+model LedgerImportRow {
+  id             String                @id @default(cuid())
+  batchId        String
+  csvRowNumber   Int
+  rowFingerprint String
+  status         LedgerImportRowStatus
+  ledgerRecordId String?               @unique
+  createdAt      DateTime              @default(now())
+
+  batch        LedgerImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  ledgerRecord LedgerRecord?     @relation("LedgerImportCreatedRecord", fields: [ledgerRecordId], references: [id], onDelete: SetNull)
+
+  @@index([batchId, csvRowNumber])
+  @@index([rowFingerprint])
+  @@index([ledgerRecordId])
 }
 
 model RecurringRule {
@@ -290,16 +341,16 @@ model ReimbursementBatch {
 
 model ReimbursementPayment {
   id                   String                     @id @default(cuid())
-  householdId           String
-  reimbursementBatchId  String                     @unique
-  paidToMemberId        String
-  paidFromSource        ReimbursementPaymentSource @default(household_fund)
-  method                ReimbursementPaymentMethod
-  amountCents           Int
-  paidOn                DateTime                   @db.Date
-  note                  String?
-  recordedByMemberId    String
-  createdAt             DateTime                   @default(now())
+  householdId          String
+  reimbursementBatchId String                     @unique
+  paidToMemberId       String
+  paidFromSource       ReimbursementPaymentSource @default(household_fund)
+  method               ReimbursementPaymentMethod
+  amountCents          Int
+  paidOn               DateTime                   @db.Date
+  note                 String?
+  recordedByMemberId   String
+  createdAt            DateTime                   @default(now())
 
   household          Household          @relation(fields: [householdId], references: [id], onDelete: Restrict)
   reimbursementBatch ReimbursementBatch @relation(fields: [reimbursementBatchId], references: [id], onDelete: Restrict)

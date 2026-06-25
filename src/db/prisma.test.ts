@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readDatabaseUrl } from "./prisma";
+import { hasCurrentPrismaDelegates, readDatabaseUrl } from "./prisma";
 
 describe("readDatabaseUrl", () => {
   it("uses a local placeholder database URL outside production", () => {
@@ -12,5 +12,18 @@ describe("readDatabaseUrl", () => {
     expect(() => readDatabaseUrl({}, "production")).toThrow(
       "DATABASE_URL is required",
     );
+  });
+});
+
+describe("hasCurrentPrismaDelegates", () => {
+  it("detects stale clients created before ledger import audit models existed", () => {
+    expect(hasCurrentPrismaDelegates({
+      ledgerImportBatch: {},
+      ledgerImportRow: {},
+    } as never)).toBe(true);
+
+    expect(hasCurrentPrismaDelegates({
+      ledgerRecord: {},
+    } as never)).toBe(false);
   });
 });

@@ -182,7 +182,7 @@ function ListRowSkeleton({ className }: { className?: string }) {
 
 function RecordListSkeleton() {
   return (
-    <div className="grid min-h-[22rem] content-start gap-3 lg:min-h-0 lg:border-l lg:border-border lg:pl-4">
+    <div className="grid min-h-88 content-start gap-3 lg:min-h-0 lg:border-l lg:border-border lg:pl-4">
       <Skeleton className="h-4 w-12" />
       <div className="grid gap-2">
         <ListRowSkeleton />

@@ -1,17 +1,54 @@
 import { redirect } from "next/navigation";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
-import { CsvImportPrototype } from "./csv-import-prototype";
+import { getPrismaClient } from "@/db/prisma";
+import { CsvImportPanel } from "./csv-import-panel";
 
 export default async function ImportSettingsPage() {
   const session = await requireAuthenticatedMember();
 
-  if (!session.accessHints.actions.canPerformReimbursement) {
+  if (!session.accessHints.actions.canImportLedgerRecords) {
     redirect("/");
   }
 
+  const prisma = getPrismaClient();
+  const [members, categories] = await Promise.all([
+    prisma.member.findMany({
+      where: {
+        householdId: "household-demo",
+        status: {
+          in: ["active", "invited"],
+        },
+      },
+      orderBy: {
+        displayName: "asc",
+      },
+      select: {
+        id: true,
+        displayName: true,
+      },
+    }),
+    prisma.category.findMany({
+      where: {
+        householdId: "household-demo",
+        status: "active",
+      },
+      orderBy: [
+        { type: "asc" },
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+      select: {
+        id: true,
+        name: true,
+        type: true,
+      },
+    }),
+  ]);
+
   return (
     <PageLayout
+      contentClassName="flex h-full min-h-0 flex-col"
       header={
         <PageHeader
           hideOnMobile
@@ -19,7 +56,7 @@ export default async function ImportSettingsPage() {
         />
       }
     >
-      <CsvImportPrototype />
+      <CsvImportPanel categories={categories} members={members} />
     </PageLayout>
   );
 }

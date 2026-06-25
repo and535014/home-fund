@@ -112,6 +112,19 @@ describe("authorize", () => {
     });
   });
 
+  it("allows admins and finance managers to import ledger records", () => {
+    expect(authorize(admin, command("import_ledger_records"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(financeManager, command("import_ledger_records"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(generalMember, command("import_ledger_records"))).toEqual({
+      allowed: false,
+      reason: "finance_manager_required",
+    });
+  });
+
   it("allows only admins to manage categories", () => {
     expect(authorize(admin, command("manage_categories"))).toEqual({
       allowed: true,

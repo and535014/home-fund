@@ -16,6 +16,7 @@ export type AuthorizationCommand =
   | { type: "create_expense_record"; targetMemberId: string }
   | { type: "edit_ledger_record"; recordOwnerId: string }
   | { type: "delete_ledger_record"; recordOwnerId: string }
+  | { type: "import_ledger_records" }
   | { type: "perform_reimbursement" };
 
 export type AuthorizationResult =
@@ -73,6 +74,12 @@ export function authorize(
   }
 
   if (command.type === "perform_reimbursement") {
+    return hasRole(member, "admin") || hasRole(member, "finance_manager")
+      ? { allowed: true }
+      : { allowed: false, reason: "finance_manager_required" };
+  }
+
+  if (command.type === "import_ledger_records") {
     return hasRole(member, "admin") || hasRole(member, "finance_manager")
       ? { allowed: true }
       : { allowed: false, reason: "finance_manager_required" };

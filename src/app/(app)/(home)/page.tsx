@@ -4,7 +4,7 @@ import {
 	type AppSearchParams,
 } from "@/app/route-search-params";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
-import { formatAmount, SummaryMetric } from "@/app/dashboard-widgets";
+import { SummaryMetric } from "@/app/dashboard-widgets";
 import {
 	CategoryVisualLabel,
 	getCategoryColorCssColor,
@@ -15,6 +15,7 @@ import {
 	MonthlyTrendChart,
 	type MonthlyTrendPoint,
 } from "@/app/dashboard-charts";
+import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type {
 	CategoryColorKey,
@@ -44,7 +45,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 	const monthRecords = dashboardData.records.filter((record) =>
 		record.occurredOn.startsWith(`${month}-`),
 	);
-	const recentRecords = monthRecords.slice(-5).reverse();
+	const visibleMonthRecords = monthRecords.toReversed();
 	const trendPoints = buildMonthlyTrendPoints(month, monthRecords);
 	const reimbursementFeedback = readSearchParam(
 		context.rawSearchParams,
@@ -103,7 +104,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 				</div>
 
 				<DashboardPanel
-					className="min-h-[22rem] lg:min-h-0 lg:border-l lg:border-border lg:pl-4"
+					className="min-h-88 lg:min-h-0 lg:border-l lg:border-border lg:pl-4"
 					title="紀錄"
 				>
 					<RecordListDetail
@@ -111,7 +112,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 						categories={dashboardData.categories}
 						categoriesById={categoriesById}
 						memberNames={memberNames}
-						records={recentRecords}
+						records={visibleMonthRecords}
 					/>
 				</DashboardPanel>
 			</div>

@@ -758,7 +758,6 @@ function CategoryListItem({
       canMoveDown={canMoveDown}
       canMoveUp={canMoveUp}
       category={category}
-      isActive={editingId === category.id}
       isDragging={draggingId === category.id}
       onDragEnd={() => onSetDraggingId(null)}
       onDragEnter={(targetCategory) => {
@@ -803,7 +802,6 @@ function CategoryItem({
   canMoveDown = false,
   canMoveUp = false,
   category,
-  isActive = false,
   isDragging = false,
   onDragEnd,
   onDragEnter,
@@ -815,7 +813,6 @@ function CategoryItem({
   canMoveDown?: boolean;
   canMoveUp?: boolean;
   category: EditableCategory;
-  isActive?: boolean;
   isDragging?: boolean;
   onDragEnd?: () => void;
   onDragEnter?: (category: EditableCategory) => void;
@@ -828,8 +825,7 @@ function CategoryItem({
   return (
     <Item
       className={cn(
-        "flex-nowrap bg-background transition",
-        isActive && "border-ring bg-accent/40",
+        "flex-nowrap transition",
         isDragging && "opacity-55 ring-2 ring-ring/35",
       )}
       onDragEnd={onDragEnd}

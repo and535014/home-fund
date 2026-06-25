@@ -1,5 +1,6 @@
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
+import { formatAmount } from "@/lib/format";
 
 export type RecordSortOrder = "newest" | "oldest" | "amount_desc" | "amount_asc";
 
@@ -226,12 +227,4 @@ function compareRecords(
   }
 
   return b.occurredOn.localeCompare(a.occurredOn) || a.name.localeCompare(b.name);
-}
-
-function formatAmount(amountCents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
 }

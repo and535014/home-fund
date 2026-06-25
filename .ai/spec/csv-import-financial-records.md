@@ -49,7 +49,7 @@ reviewed_at: 2026-06-25
 - csv_contract: `type,date,name,amount,member,category,note`
 - payment_source_policy: no `payment_source` column; `type` determines income, fund-paid expense, or member-paid expense
 - matching_policy: auto-match member display name and category name; unresolved or ambiguous matches require preview correction
-- duplicate_policy: no silent automatic deduplication; likely duplicates become row-level `需處理`
+- duplicate_policy: no silent automatic deduplication; likely duplicates are counted in preview summary but do not become row-level `需處理`
 - commit_policy: user may remove rows before import; all remaining rows must be valid, and confirmation commits remaining rows atomically
 - next_gate: Feature Technical Design
 
@@ -82,10 +82,10 @@ reviewed_at: 2026-06-25
 25. Users can change the mapped category for each preview row before import.
 26. Users can remove any preview row.
 27. Removed rows remain visible and can be added back.
-28. Removed rows do not count toward importable rows, validation blockers, duplicate blockers, or created records.
+28. Removed rows do not count toward importable rows, validation blockers, duplicate summary counts, or created records.
 29. Row remove actions use destructive semantic styling.
 30. Row add-back and file replace actions use non-destructive secondary styling.
-31. Summary counts `匯入列`, `已移除`, and `需處理` are shown in `TableFooter`.
+31. Summary counts `匯入列`, `已移除`, `需處理`, and `疑似重複` are shown in `TableFooter`.
 32. Import areas are flat: no extra Card wrapper, no section title, no section background, and no section border around file, summary, or preview table areas.
 33. Table and footer styling use shared project design tokens, with TableFooter token styling owned by the shared Table component.
 34. Rows with invalid type, date, amount, member, category, or unsupported reimbursement-payment data show row-level Traditional Chinese validation reasons.
@@ -94,12 +94,12 @@ reviewed_at: 2026-06-25
 37. An income row imports as an ordinary income record.
 38. CSV import never records reimbursement payment evidence and never marks imported member-paid expenses as reimbursed.
 39. Reimbursement-payment CSV rows are rejected as unsupported for this slice.
-40. Existing records that exactly or strongly match an import row are shown as possible duplicates with status `需處理`.
-41. Duplicate rows within the same uploaded CSV are shown as possible duplicates with status `需處理`.
+40. Existing records that exactly or strongly match an import row are counted as possible duplicates in the preview summary.
+41. Duplicate rows within the same uploaded CSV are counted as possible duplicates in the preview summary.
 42. The app does not silently remove, merge, or skip duplicate rows.
 43. `匯入` is disabled when there are no remaining rows to import.
 44. `匯入` is disabled while any remaining row has status `需處理`.
-45. Users may remove rows with `需處理` and then import the remaining valid rows.
+45. Users may remove rows with `需處理` and then import the remaining valid rows; duplicate-only rows remain importable unless removed.
 46. Confirming import commits all remaining valid rows in one server-side transaction.
 47. If server-side validation changes between preview and confirmation, no rows are committed and the preview returns row-level errors.
 48. Successful import shows a toast and resets the page state.
@@ -179,11 +179,11 @@ And `匯入` is enabled if all remaining rows are valid
 
 Given the uploaded CSV contains a row that likely duplicates an existing ledger record  
 When the preview is validated  
-Then the duplicate candidate row status is `需處理`  
-And the row explains the duplicate risk  
-And the app does not automatically remove, merge, or import that row  
-When the user removes the duplicate candidate row  
-Then the remaining valid rows can be imported
+Then the row remains importable  
+And the preview footer increases `疑似重複`  
+And the app does not automatically remove, merge, or skip that row  
+When the user imports without removing it  
+Then the duplicate candidate row is imported with the other valid rows
 
 ### Scenario: Import Valid Rows Atomically
 
@@ -233,7 +233,7 @@ And icon-only actions have accessible names
 | File preview happy path | `/settings/import` | valid CSV file with income, fund expense, member expense | desktop | File chooser from `匯入收支紀錄`; selected file item; no `下載範本`; table row numbers `2`, `3`, `4`; footer `匯入列 3 列`, `已移除 0 列`, `需處理 0 列`. |
 | Mapping correction | `/settings/import` | CSV with automatically matched rows | desktop | Select `第 2 列成員對照`; select `第 2 列分類對照`; changed values remain visible. |
 | Remove and add back row | `/settings/import` | valid CSV with three rows | desktop | Button `移除第 3 列`; footer count changes; button `加回第 3 列`; footer count restores. |
-| Duplicate warning blocks import | `/settings/import` | CSV row matching existing ledger record | desktop | Row status `需處理`; duplicate warning text; `匯入` disabled; after `移除第 X 列`, `匯入` enabled if all remaining rows valid. |
+| Duplicate summary does not block import | `/settings/import` | CSV row matching existing ledger record | desktop | Footer shows `疑似重複`; row remains `可匯入`; `匯入` remains enabled when all rows have no blocking validation errors. |
 | Unsupported reimbursement payment | `/settings/import` | reimbursement payment CSV fixture | desktop | Row status `需處理`; unsupported-target message; no created reimbursement payment after attempted direct action. |
 | Import success | `/settings/import` | valid CSV with three ledger rows | desktop | Button `匯入`; toast `匯入完成`; page returns to initial state; monthly/search/reimbursement read-model assertions covered by integration or follow-up E2E. |
 | Mobile layout | `/settings/import` | valid CSV with long file name and long labels | mobile | File item not clipped; icon buttons visible; table horizontally scrolls; member/category selects show `家庭基金` and `生活收入` labels. |
@@ -270,7 +270,7 @@ And icon-only actions have accessible names
   - Preview-only upload creates no ledger records.
 - E2E tests:
   - Authorized happy path from settings navigation through file selection, preview, mapping, row removal, import, toast, and reset.
-  - Validation failure and duplicate warning block import.
+  - Validation failure blocks import; duplicate warning is summarized without blocking import.
   - Unauthorized navigation/direct-visit behavior.
   - Mobile layout with horizontally scrollable table and unclipped select labels.
 - Manual checks:
@@ -292,7 +292,7 @@ And icon-only actions have accessible names
 - decision: approved
 - reviewer_focus:
   - Confirm admins and finance managers are the right import actors.
-  - Confirm duplicate rows should block import unless removed or corrected, with no silent automatic deduplication.
+  - Confirm duplicate rows should be summarized without blocking import, with no silent automatic deduplication.
   - Confirm atomic commit for all remaining valid rows is the right MVP policy.
   - Confirm the CSV contract and template header are acceptable.
 - must_check:

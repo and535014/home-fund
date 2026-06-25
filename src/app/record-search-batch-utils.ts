@@ -44,14 +44,6 @@ export function sumRecordAmounts(records: LedgerRecord[]): number {
   return records.reduce((total, record) => total + record.amountCents, 0);
 }
 
-export function formatAmount(amountCents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
-    style: "currency",
-    currency: "TWD",
-    maximumFractionDigits: 0,
-  }).format(amountCents / 100);
-}
-
 export function netAmountTone(amountCents: number): string {
   if (amountCents > 0) {
     return "text-income";

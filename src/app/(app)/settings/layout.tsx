@@ -37,7 +37,7 @@ export default async function SettingsLayout({
     {
       href: "/settings/import",
       label: "CSV 匯入",
-      visible: session.accessHints.actions.canPerformReimbursement,
+      visible: session.accessHints.actions.canImportLedgerRecords,
     },
   ].filter((item) => item.visible);
 

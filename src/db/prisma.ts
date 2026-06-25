@@ -36,9 +36,23 @@ export function createPrismaClient(
 export function getPrismaClient(): PrismaClient {
   const globalForPrisma = globalThis as GlobalWithPrisma;
 
+  if (
+    globalForPrisma.homeFundPrisma &&
+    !hasCurrentPrismaDelegates(globalForPrisma.homeFundPrisma)
+  ) {
+    void globalForPrisma.homeFundPrisma.$disconnect().catch(() => undefined);
+    globalForPrisma.homeFundPrisma = undefined;
+  }
+
   if (!globalForPrisma.homeFundPrisma) {
     globalForPrisma.homeFundPrisma = createPrismaClient();
   }
 
   return globalForPrisma.homeFundPrisma;
+}
+
+export function hasCurrentPrismaDelegates(prisma: PrismaClient): boolean {
+  const delegates = prisma as Partial<Record<"ledgerImportBatch" | "ledgerImportRow", unknown>>;
+
+  return Boolean(delegates.ledgerImportBatch && delegates.ledgerImportRow);
 }

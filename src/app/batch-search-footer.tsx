@@ -3,13 +3,13 @@
 import { CheckSquare, Eraser, HandCoins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageFooter } from "@/components/layout/page-layout";
+import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
   canBatchDeleteRecord,
   canBatchRefundRecord,
-  formatAmount,
   netAmountTone,
   sumRecordNetAmount,
 } from "./record-search-batch-utils";
