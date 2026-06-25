@@ -119,6 +119,7 @@ trace_links:
   - .ai/implementation/csv-import-financial-records.md
   - .ai/verification/csv-import-financial-records.md
   - .ai/release/csv-import-financial-records-local-dev-readiness.md
+  - .ai/archive/archive-csv-import-financial-records-2026-06-25.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md

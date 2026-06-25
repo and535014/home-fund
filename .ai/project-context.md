@@ -118,7 +118,7 @@ reviewed_at: 2026-06-20
 
 ## Next Step
 
-- latest_completed_slice: edit/delete ledger records, compressed in `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`.
+- latest_completed_slice: csv import financial records, compressed in `.ai/archive/archive-csv-import-financial-records-2026-06-25.md`.
 - active_change: none
 - recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake
 - recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change
