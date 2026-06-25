@@ -34,6 +34,11 @@ export default async function SettingsLayout({
       label: "分類",
       visible: session.accessHints.navigation.canOpenCategories,
     },
+    {
+      href: "/settings/import",
+      label: "CSV 匯入",
+      visible: session.accessHints.actions.canPerformReimbursement,
+    },
   ].filter((item) => item.visible);
 
   return (

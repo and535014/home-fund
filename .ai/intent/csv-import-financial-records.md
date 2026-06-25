@@ -36,17 +36,14 @@ reviewed_at: 2026-06-25
 
 Add CSV import so household finance users can bring existing data into Home Family Fund instead of re-entering records one by one.
 
-The import must support two related but distinct import targets:
-
-- Income and expense ledger records.
-- Reimbursement payment records that represent already-completed real-world refund money movement.
+The import now targets income and expense ledger records only. Reimbursement payment CSV import is removed from this slice because imported payment rows cannot safely identify which member-paid expenses they should settle without a guided matching/reconciliation workflow.
 
 User request: "新增 csv 匯入功能，可以匯入收入支出紀錄，也可以匯入退款金流紀錄"
 
 ## Classification
 
 - project_type: feature_change
-- affected_surfaces: import entry point, CSV upload/review UI, validation results, ledger persistence, reimbursement payment persistence, category/member matching, authorization, server actions/API boundary, reporting refresh, tests, local_dev release readiness
+- affected_surfaces: import entry point, CSV upload/review UI, validation results, ledger persistence, category/member matching, authorization, server actions/API boundary, reporting refresh, tests, local_dev release readiness
 - target_users: admins and finance managers responsible for maintaining household financial records and migrating existing spreadsheet data
 - business_outcome: reduce manual data entry while preserving the app's financial invariants, monthly reports, reimbursement traceability, and authorization boundaries.
 
@@ -55,20 +52,23 @@ User request: "新增 csv 匯入功能，可以匯入收入支出紀錄，也可
 In scope:
 
 - Provide a CSV import workflow for ordinary ledger records: income records, fund-paid expenses, and member-paid expenses.
-- Provide a CSV import workflow for reimbursement payment records linked to eligible reimbursed or to-be-reimbursed member-paid expenses, subject to downstream domain decisions.
 - Parse, validate, preview, and confirm imported rows before persistence.
 - Reject or clearly report rows with invalid dates, amounts, record types, categories, members, payment sources, reimbursement states, or missing required fields.
 - Resolve imported category and member references against existing household data, or require explicit downstream decisions for any create-on-import behavior.
 - Preserve existing ledger rules: income requires source member, expenses require fund-paid or member-paid source shape, and member-paid expenses participate in reimbursement status.
-- Preserve existing reimbursement rules: payment evidence must not double-count as an ordinary household expense, must stay within the household, and must respect one-time reimbursement invariants.
+- Preserve existing reimbursement rules indirectly: imported member-paid expenses may enter the normal `待退款` flow, but the import does not create reimbursement payment evidence or mark expenses reimbursed.
 - Keep imports role-aware and server-validated; the upload UI cannot be the authority for permissions.
 - Provide enough import result feedback for users to fix the CSV and retry without guessing which row failed.
 
 Out of scope:
 
 - Bank account connection, credit-card sync, receipt scanning, or automatic provider integrations.
-- Exporting CSV, spreadsheet templates as downloadable files, or bidirectional sync unless approved in a later gate.
+- Bidirectional sync unless approved in a later gate.
 - Creating new households, members, or categories from CSV by default.
+- Direct reimbursement payment CSV import.
+- Automatically matching refund payment rows to underlying expenses by date/member/amount.
+- Marking imported member-paid expenses reimbursed during ledger import.
+- Future reimbursement payment reconciliation workflow: upload refund payment rows, show candidate expenses, require manual expense selection, then record payment evidence.
 - Reimbursement reversal, partial refund, split payment, or post-settlement correction unless Domain Discovery explicitly brings them into this slice.
 - Production-grade bulk import observability, background jobs, retry queues, or large-file processing.
 - Importing recurring rules or pending recurring occurrences.
@@ -76,8 +76,8 @@ Out of scope:
 ## Current Context
 
 - The app already stores `LedgerRecord` for income and expense records with category, amount, occurrence date, creator, member/fund participation, reimbursement status, and active/voided lifecycle.
-- The app already stores `ReimbursementPayment` linked one-to-one to a `ReimbursementBatch`; reimbursement payment evidence is not an ordinary ledger expense.
-- The durable domain model requires reimbursement to mark selected member-paid expenses reimbursed once and record payment evidence without double-counting monthly totals.
+- The app already stores `ReimbursementPayment` linked one-to-one to a `ReimbursementBatch`; that data is intentionally not imported directly in this slice.
+- The durable domain model requires reimbursement to mark selected member-paid expenses reimbursed once and record payment evidence without double-counting monthly totals. That requirement makes direct refund-payment CSV import unsafe without a later reconciliation workflow.
 - Categories are admin-managed, can be active or archived, and should remain readable on historical records.
 - Existing permission boundaries distinguish admin, finance manager, and general member. Imports must not become a shortcut around create, edit, delete, reimbursement, category, or member rules.
 - The current delivery target is `local_dev`; production import scale, audit retention policy, and operational monitoring remain unresolved.
@@ -86,10 +86,9 @@ Out of scope:
 
 - An authorized user can upload a CSV for income/expense records, review parsed rows, fix or discard invalid rows, and confirm valid rows into the ledger.
 - Imported ledger records appear in monthly records, category summaries, search, and reimbursement-related read models according to the same rules as manually created records.
-- Member-paid expense imports create the correct refundable or non-refundable state decided downstream and do not accidentally mark expenses reimbursed without valid payment evidence.
-- An authorized finance-capable user can import reimbursement payment records only when they can be linked to the correct household, member, amount, and underlying reimbursed expenses under approved rules.
+- Member-paid expense imports create the correct refundable state and do not mark expenses reimbursed.
 - Invalid CSV rows fail with row-level Traditional Chinese error messages using Taiwan wording.
-- Server-side validation rejects unauthorized actors, cross-household references, invalid categories/members, malformed amounts/dates, duplicate or conflicting reimbursement evidence, and any double-counting attempt.
+- Server-side validation rejects unauthorized actors, cross-household references, invalid categories/members, malformed amounts/dates, duplicates, unsupported types, and any attempt to import reimbursement payment evidence.
 - The import flow has unit/domain tests for parsing and validation plus browser E2E coverage for at least one successful import and one validation failure.
 
 ## Constraints And Assumptions
@@ -104,7 +103,7 @@ Out of scope:
 
 ## Required Downstream Gates
 
-- Domain Discovery / Domain Impact: required, because CSV import changes ledger creation workflow, bulk validation policy, duplicate/conflict handling, reimbursement payment lifecycle, and cross-context invariants.
+- Domain Discovery / Domain Impact: required, because CSV import changes ledger creation workflow, bulk validation policy, duplicate/conflict handling, and reimbursement-adjacent member-paid expense invariants.
 - Project Foundation Architecture: not required; existing app foundation is sufficient.
 - Project Foundation Implementation / Init: not required.
 - Experience Prototype: required, because users need a CSV upload, mapping/preview, row-level validation, confirmation, and result state.
@@ -119,14 +118,11 @@ Out of scope:
 ## Open Questions
 
 - Who can import ledger records: admin only, finance manager, or both?
-- Who can import reimbursement payment records, and should this require finance-manager role even if admin can manage all records?
-- What CSV templates are required for ledger records and reimbursement payment records?
-- Should one CSV file support mixed target types, or should ledger and reimbursement imports use separate flows?
+- What CSV columns are required for ledger records?
 - How should rows reference members and categories: app IDs, display names, category names, or a mapping step?
 - Should import create missing categories or members, or require all referenced entities to already exist?
 - How should duplicate detection work: exact row match, external import key, date/amount/name/member/category match, or no automatic deduplication?
-- For reimbursement payment imports, how should rows link to underlying expenses: ledger record ID, external reference, row grouping key, date/amount/member matching, or a manual review step?
-- Can a CSV import create both member-paid expenses and their reimbursement payments in one confirmed batch?
+- Should a future reimbursement payment reconciliation workflow be a separate intent after ledger import ships?
 - Should successful imports be atomic all-or-nothing, partial success with rejected rows, or staged draft import before final commit?
 - What file size and row count are acceptable for local_dev MVP?
 - Should import history be stored for audit and rollback, or is row-level validation plus created records enough for this slice?
@@ -135,18 +131,18 @@ Out of scope:
 
 - decision: review
 - reviewer_focus:
-  - Confirm CSV import should cover both ledger records and reimbursement payment records in one feature slice.
+  - Confirm CSV import should cover ledger records only in this slice.
   - Confirm external bank/payment integrations remain out of scope.
-  - Confirm downstream Domain Discovery should decide CSV contract, duplicate handling, member/category matching, and reimbursement-linking policy.
+  - Confirm downstream Domain Discovery should decide CSV contract, duplicate handling, and member/category matching.
 - must_check:
   - No implementation starts before Domain Discovery, Experience Prototype, Behavior Spec, and Feature Technical Design are approved or explicitly accepted as risk.
-  - Import must not bypass existing authorization, category, member, reimbursement, and reporting invariants.
-  - Reimbursement payment imports must not create ordinary expense double-counting.
+  - Import must not bypass existing authorization, category, member, reimbursement-adjacent, and reporting invariants.
+  - Reimbursement payment import is explicitly out of scope.
 - acceptance_signals:
-  - The problem is framed as controlled bulk data entry and migration, not bank sync.
+  - The problem is framed as controlled ledger bulk data entry and migration, not bank sync or refund-payment matching.
   - Scope is narrow enough for local_dev MVP while still protecting financial correctness.
   - Open questions are explicit enough for the next gate.
 - unresolved_blockers:
-  - CSV column contract, matching strategy, duplicate policy, transaction semantics, and reimbursement-payment linkage require Domain Discovery.
+  - CSV column contract, matching strategy, duplicate policy, and transaction semantics require Domain Discovery.
 - next_step:
   - Domain Discovery / Domain Impact for `csv-import-financial-records`.
