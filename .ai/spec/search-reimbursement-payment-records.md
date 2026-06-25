@@ -56,6 +56,7 @@ reviewed_at: 2026-06-25
 - refund_record_behavior: read-only search and detail readback
 - refund_record_filters: 收款成員, 付款開始日期, 付款結束日期, 排序
 - refund_record_keyword_fields: `退款`, `退款紀錄`, linked record name, 收款成員, payment method label, paid date, amount, note/reference
+- refund_record_default_state: no reimbursement payment records are shown until the user enters a keyword or applies a reimbursement payment filter.
 - no_double_count_policy: refund records are not ordinary income or expense records and do not affect ledger totals
 - next_gate: Feature Technical Design
 
@@ -78,11 +79,11 @@ reviewed_at: 2026-06-25
 15. Refund record date filters use reimbursement payment date, not linked expense occurrence date.
 16. Refund record sort supports newest first, oldest first, highest amount first, and lowest amount first.
 17. Keyword search in `退款紀錄` matches approved visible evidence fields: `退款`, `退款紀錄`, linked record name, 收款成員, payment method label, paid date, amount, and note/reference.
-18. The `退款紀錄` tab with no keyword or filters can show readable refund records.
+18. The `退款紀錄` tab with no keyword or filters shows the shared prompt state and does not load or display refund records.
 19. Empty refund-record results show a clear Traditional Chinese empty state.
 20. Refund record rows use the same row structure and information density as ordinary record rows.
 21. Refund record rows replace the ordinary category visual with a refund-record icon.
-22. Refund record rows show linked record name, 收款成員, amount, and payment date.
+22. Refund record rows use `付給 <收款成員>` as the title, payment method as the description, and show amount plus payment date on the right.
 23. Refund record rows are read-only and cannot be selected.
 24. Selection mode controls are not shown on the `退款紀錄` tab.
 25. Batch delete and batch refund actions never include refund records.
@@ -94,7 +95,7 @@ reviewed_at: 2026-06-25
 31. The `退款紀錄` tab does not show the ledger batch-action footer.
 32. Activating a refund record row opens a read-only refund record detail modal.
 33. Refund record detail follows the ordinary record detail structure: title, amount card, two-column detail fields, note block, and footer action.
-34. Refund record detail shows linked record name, amount, 收款成員, payment date, payment method, and note/reference.
+34. Refund record detail shows amount, 收款成員, payment date, payment method, and note/reference.
 35. Refund record detail does not show edit, delete, refund, correction, or reversal actions.
 36. Refund record detail shows `查看關聯紀錄`.
 37. Activating `查看關聯紀錄` opens a related ledger record list.
@@ -124,7 +125,7 @@ And ordinary selection and batch-action behavior remains available
 Given an authenticated household member opens `/search`  
 When they switch to `退款紀錄`  
 Then selection mode controls are not shown  
-And readable refund records can appear without an ordinary ledger query  
+And no refund records are shown until they enter a keyword or apply refund filters  
 When they search `退款紀錄`  
 Then matching refund records are shown  
 And ordinary ledger records are not shown in the result list
@@ -199,7 +200,7 @@ And direct query/server-action access does not expose them
 | Ordinary search excludes refund records | `/search` | ledger record and refund record with overlapping keyword | desktop | Search in `收支紀錄`; assert ordinary row visible; refund record row absent; selection button `開啟選取模式` visible. |
 | Refund search excludes ordinary records | `/search` | ledger record and refund record with overlapping keyword | desktop | Switch `退款紀錄`; search `退款紀錄`; assert refund row visible; ordinary row absent; no `開啟選取模式`. |
 | Refund filters | `/search` | refund records for at least two receiving members and dates | desktop | Open `篩選與排序`; field `收款成員`; fields `付款開始日期`, `付款結束日期`; no filter label `付款方式`; applying filter narrows rows. |
-| Refund detail | `/search` | refund record with method/date/note and linked records | desktop | Row button `查看<name>退款紀錄詳情`; modal title `<name>`; fields `金額`, `收款成員`, `付款日期`, `關聯紀錄`, `付款方式`; note block; no edit/delete/refund buttons. |
+| Refund detail | `/search` | refund record with method/date/note and linked records | desktop | Row button `查看付給 <member> 退款紀錄詳情`; modal title `退款紀錄`; fields `金額`, `收款成員`, `付款日期`, `付款方式`, `備註`; no edit/delete/refund buttons. |
 | Related records | `/search` | refund record linked to one or more expenses with categories | desktop | Button `查看關聯紀錄`; modal heading `關聯紀錄`; related rows use `查看<record name>詳情` labels and show category visual/record list structure. |
 | Reimbursed expense readback | `/search` | already-refunded expense with payment evidence | desktop | Search in `收支紀錄`; open expense detail; button `查看退款紀錄`; opens refund record detail. |
 | Mobile tab/filter/detail | `/search` | same fixture set | mobile | Tabs and close button `關閉搜尋頁` share one row; search row sits below tabs; filter dialog, refund rows, and detail modal do not overlap or clip text; related record list remains scrollable. |
@@ -228,8 +229,8 @@ And direct query/server-action access does not expose them
 - Filter button: `開啟篩選`.
 - Filter dialog: heading `篩選與排序`.
 - Refund filter labels: `收款成員`, `付款開始日期`, `付款結束日期`, `排序`.
-- Refund result trigger: `查看<linked record name>退款紀錄詳情`.
-- Refund detail fields: `金額`, `收款成員`, `付款日期`, `關聯紀錄`, `付款方式`, `備註`.
+- Refund result trigger: `查看付給 <member> 退款紀錄詳情`.
+- Refund detail fields: `金額`, `收款成員`, `付款日期`, `付款方式`, `備註`.
 - Related records action: button `查看關聯紀錄`.
 - Related records modal: heading `關聯紀錄`.
 - Reimbursed expense readback action: button `查看退款紀錄`.

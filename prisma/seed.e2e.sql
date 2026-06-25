@@ -470,6 +470,38 @@ VALUES
     'not_refundable',
     '網路費',
     CURRENT_TIMESTAMP
+  ),
+  (
+    'expense-reimbursed-internet-june',
+    'household-demo',
+    'expense',
+    '已退款網路費',
+    128000,
+    DATE '2026-05-15',
+    'expense-internet',
+    'member-mei',
+    NULL,
+    'member',
+    'member-mei',
+    'reimbursed',
+    '已退款網路費',
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'expense-reimbursed-parking-june',
+    'household-demo',
+    'expense',
+    '已退款停車費',
+    32000,
+    DATE '2026-05-16',
+    'expense-dining',
+    'member-kai',
+    NULL,
+    'member',
+    'member-kai',
+    'reimbursed',
+    '已退款停車費',
+    CURRENT_TIMESTAMP
   )
 ON CONFLICT ("id") DO UPDATE
 SET "amountCents" = EXCLUDED."amountCents",
@@ -483,6 +515,87 @@ SET "amountCents" = EXCLUDED."amountCents",
     "reimbursementStatus" = EXCLUDED."reimbursementStatus",
     "note" = EXCLUDED."note",
     "updatedAt" = CURRENT_TIMESTAMP;
+
+INSERT INTO "ReimbursementBatch" (
+  "id",
+  "householdId",
+  "reimbursedById",
+  "reimbursedAt"
+)
+VALUES
+  (
+    'batch-e2e-reimbursed-internet',
+    'household-demo',
+    'member-fin',
+    TIMESTAMP '2026-06-18 09:00:00'
+  ),
+  (
+    'batch-e2e-reimbursed-parking',
+    'household-demo',
+    'member-fin',
+    TIMESTAMP '2026-06-20 09:00:00'
+  )
+ON CONFLICT ("id") DO UPDATE
+SET "householdId" = EXCLUDED."householdId",
+    "reimbursedById" = EXCLUDED."reimbursedById",
+    "reimbursedAt" = EXCLUDED."reimbursedAt";
+
+INSERT INTO "ReimbursementBatchItem" (
+  "reimbursementBatchId",
+  "ledgerRecordId"
+)
+VALUES
+  ('batch-e2e-reimbursed-internet', 'expense-reimbursed-internet-june'),
+  ('batch-e2e-reimbursed-parking', 'expense-reimbursed-parking-june')
+ON CONFLICT ("reimbursementBatchId", "ledgerRecordId") DO NOTHING;
+
+INSERT INTO "ReimbursementPayment" (
+  "id",
+  "householdId",
+  "reimbursementBatchId",
+  "paidToMemberId",
+  "paidFromSource",
+  "method",
+  "amountCents",
+  "paidOn",
+  "note",
+  "recordedByMemberId"
+)
+VALUES
+  (
+    'payment-e2e-reimbursed-internet',
+    'household-demo',
+    'batch-e2e-reimbursed-internet',
+    'member-mei',
+    'household_fund',
+    'bank_transfer',
+    128000,
+    DATE '2026-06-18',
+    '末五碼 5521',
+    'member-fin'
+  ),
+  (
+    'payment-e2e-reimbursed-parking',
+    'household-demo',
+    'batch-e2e-reimbursed-parking',
+    'member-kai',
+    'household_fund',
+    'cash',
+    32000,
+    DATE '2026-06-20',
+    '停車費現金退款',
+    'member-fin'
+  )
+ON CONFLICT ("id") DO UPDATE
+SET "householdId" = EXCLUDED."householdId",
+    "reimbursementBatchId" = EXCLUDED."reimbursementBatchId",
+    "paidToMemberId" = EXCLUDED."paidToMemberId",
+    "paidFromSource" = EXCLUDED."paidFromSource",
+    "method" = EXCLUDED."method",
+    "amountCents" = EXCLUDED."amountCents",
+    "paidOn" = EXCLUDED."paidOn",
+    "note" = EXCLUDED."note",
+    "recordedByMemberId" = EXCLUDED."recordedByMemberId";
 
 INSERT INTO "LedgerRecord" (
   "id",

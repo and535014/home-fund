@@ -117,7 +117,7 @@ test("sorts filtered records by amount", async ({ page }) => {
   await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("代墊");
   await page.getByRole("button", { name: "開啟篩選" }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("紀錄排序").selectOption("amount_desc");
+  await dialog.getByLabel("排序").selectOption("amount_desc");
   await dialog.getByRole("button", { name: "套用" }).click();
 
   await expect(page.getByRole("button", { name: /開啟篩選，已設定/u })).toBeVisible();
@@ -125,6 +125,130 @@ test("sorts filtered records by amount", async ({ page }) => {
     /日用品代墊/u,
     /補充用品代墊/u,
   ]);
+});
+
+test("searches reimbursement payment records separately from ledger records", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await expect(page.getByRole("tab", { name: "收支紀錄" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "退款紀錄" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "搜尋紀錄" })).toHaveAttribute(
+    "placeholder",
+    "搜尋收支紀錄",
+  );
+
+  await page.getByRole("tab", { name: "退款紀錄" }).click();
+
+  await expect(page.getByRole("textbox", { name: "搜尋紀錄" })).toHaveAttribute(
+    "placeholder",
+    "搜尋退款紀錄",
+  );
+  await expect(page.getByRole("button", { name: "開啟選取模式" })).toHaveCount(0);
+  await expect(page.getByText("請輸入關鍵字或設定篩選條件。")).toBeVisible();
+  await expect(page.getByRole("button", { name: /退款紀錄詳情/u })).toHaveCount(0);
+
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("退款紀錄");
+
+  await expect(page.getByRole("button", {
+    name: "查看付給 Mei 退款紀錄詳情",
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "查看付給 Kai 退款紀錄詳情",
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "查看已退款網路費詳情",
+  })).toHaveCount(0);
+  await expect(page.getByText("搜尋結果 2 筆")).toBeVisible();
+  await expect(page.getByText("$1,600")).toBeVisible();
+});
+
+test("filters reimbursement payments and opens detail with related records", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("tab", { name: "退款紀錄" }).click();
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("退款紀錄");
+  await page.getByRole("button", { name: "開啟篩選" }).click();
+
+  const filterDialog = page.getByRole("dialog");
+  await expect(filterDialog.getByRole("heading", { name: "篩選與排序" })).toBeVisible();
+  await expect(filterDialog.getByLabel("依收款成員篩選")).toBeVisible();
+  await expect(filterDialog.getByLabel("付款開始日期")).toBeVisible();
+  await expect(filterDialog.getByLabel("付款結束日期")).toBeVisible();
+  await expect(filterDialog.getByText("付款方式")).toHaveCount(0);
+
+  await filterDialog.getByLabel("依收款成員篩選").selectOption("member-mei");
+  await filterDialog.getByRole("button", { name: "套用" }).click();
+
+  const meiPayment = page.getByRole("button", {
+    name: "查看付給 Mei 退款紀錄詳情",
+  });
+  await expect(meiPayment).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "查看付給 Kai 退款紀錄詳情",
+  })).toHaveCount(0);
+
+  await meiPayment.click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "退款紀錄" })).toBeVisible();
+  await expect(dialog).toContainText("$1,280");
+  await expect(dialog).toContainText("Mei");
+  await expect(dialog).toContainText("2026/06/18");
+  await expect(dialog).toContainText("銀行轉帳");
+  await expect(dialog).toContainText("末五碼 5521");
+  await expect(dialog.getByRole("button", { name: "編輯" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "刪除" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "退款" })).toHaveCount(0);
+
+  await dialog.getByRole("button", { name: "查看關聯紀錄" }).click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "關聯紀錄" })).toBeVisible();
+  await expect(dialog.getByRole("button", {
+    name: "查看已退款網路費詳情",
+  })).toBeVisible();
+});
+
+test("opens reimbursement payment detail from a reimbursed expense", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("已退款網路費");
+  await page.getByRole("button", { name: "查看已退款網路費詳情" }).click();
+
+  const detailDialog = page.getByRole("dialog");
+  await expect(detailDialog.getByRole("heading", {
+    name: "已退款網路費",
+  })).toBeVisible();
+  await expect(detailDialog).toContainText("已退款");
+  await detailDialog.getByRole("button", { name: "查看退款紀錄" }).click();
+
+  const paymentDialog = page.getByRole("dialog");
+  await expect(paymentDialog.getByRole("heading", { name: "退款紀錄" })).toBeVisible();
+  await expect(paymentDialog).toContainText("Mei");
+  await expect(paymentDialog).toContainText("銀行轉帳");
+});
+
+test("keeps mobile reimbursement search tabs and close control in one row", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/search");
+
+  const tabsBox = await page
+    .getByRole("tab", { name: "收支紀錄" })
+    .boundingBox();
+  const closeBox = await page
+    .getByRole("button", { name: "關閉搜尋頁" })
+    .boundingBox();
+
+  expect(tabsBox).not.toBeNull();
+  expect(closeBox).not.toBeNull();
+  expect(Math.abs(tabsBox!.y - closeBox!.y)).toBeLessThan(12);
+  expect(closeBox!.x).toBeGreaterThan(tabsBox!.x);
 });
 
 test("blocks cross-member batch refund and shows the refund total", async ({

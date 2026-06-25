@@ -50,6 +50,8 @@ reviewed_at: 2026-06-25
 - contract_policy: use a separate refund-record search action and result type, not a mixed `LedgerRecord | RefundRecord` union.
 - data_policy: `ReimbursementPayment` is the refund-record source of truth; linked expenses are loaded through `ReimbursementBatchItem`.
 - filter_policy: refund filters are 收款成員, payment date range, and sort only; payment method is displayed and keyword-searchable but not a filter.
+- default_state_policy: refund records are not loaded or displayed until the user enters a keyword or applies a refund filter.
+- row_display_policy: refund rows mirror `RecordListItem` density but use `付給 <收款成員>` as title, payment method as description, and a fixed refund icon/color.
 - pagination_policy: refund records use cursor pagination with page size 100, matching ordinary record search.
 - auth_policy: authenticated household members can browse household refund evidence for this MVP, scoped by household; future stricter role policy can be added without changing UI contracts.
 - legacy_policy: reimbursed expenses without payment evidence do not show `查看退款紀錄`.
@@ -174,7 +176,7 @@ export type RefundRecordSearchResult = {
 };
 ```
 
-`primaryLinkedRecordName` is the first linked ledger record name by deterministic ordering. The row title uses this value. Detail and related modal can show all linked records.
+`primaryLinkedRecordName` is the first linked ledger record name by deterministic ordering. The row display uses 收款成員 and payment method, while detail and related modal can use linked records for readback/navigation.
 
 ### Prisma Query
 
