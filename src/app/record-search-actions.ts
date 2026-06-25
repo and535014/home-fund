@@ -18,6 +18,7 @@ import {
   validateReimbursementPaymentEvidence,
   type ReimbursementPaymentEvidenceRejectionReason,
 } from "@/modules/reimbursement/reimbursement-payment";
+import { authorize } from "@/modules/identity-access/authorization";
 import {
   buildRecordSearchPageQuery,
   buildRecordSearchWhere,
@@ -25,6 +26,17 @@ import {
   cursorFromRecord,
   type SearchRecordCursor,
 } from "@/modules/reporting/record-search-query";
+import {
+  buildReimbursementPaymentSearchPageQuery,
+  buildReimbursementPaymentSearchWhere,
+  cursorFromReimbursementPayment,
+  mapReimbursementPaymentSearchResult,
+  REIMBURSEMENT_PAYMENT_PAGE_SIZE,
+  reimbursementPaymentSelect,
+  type ReimbursementPaymentQueryState,
+  type ReimbursementPaymentSearchCursor,
+  type ReimbursementPaymentSearchResult,
+} from "@/modules/reporting/reimbursement-payment-search-query";
 import type { RecordQueryState } from "./record-query";
 import { mapPrismaLedgerRecordToLedgerRecord } from "./home-dashboard-data-source";
 
@@ -46,6 +58,47 @@ export type SearchRecordPageResult =
   | {
       ok: false;
       reason: "load_failed";
+      message: string;
+    };
+
+export type ReimbursementPaymentPageRequest = {
+  query: ReimbursementPaymentQueryState;
+  cursor?: ReimbursementPaymentSearchCursor | null;
+};
+
+export type ReimbursementPaymentPageResult =
+  | {
+      ok: true;
+      records: ReimbursementPaymentSearchResult[];
+      nextCursor: ReimbursementPaymentSearchCursor | null;
+      totalCount: number;
+      totalAmountCents: number;
+    }
+  | {
+      ok: false;
+      reason: "load_failed" | "unauthorized" | "invalid_query";
+      message: string;
+    };
+
+export type LoadReimbursementPaymentByLedgerRecordResult =
+  | {
+      ok: true;
+      record: ReimbursementPaymentSearchResult | null;
+    }
+  | {
+      ok: false;
+      reason: "load_failed" | "unauthorized";
+      message: string;
+    };
+
+export type LoadReimbursementPaymentsByLedgerRecordIdsResult =
+  | {
+      ok: true;
+      recordsByLedgerRecordId: Record<string, ReimbursementPaymentSearchResult | null>;
+    }
+  | {
+      ok: false;
+      reason: "load_failed" | "unauthorized";
       message: string;
     };
 
@@ -138,6 +191,201 @@ export async function loadRecordSearchPageAction(
       ok: false,
       reason: "load_failed",
       message: "搜尋結果載入失敗，請稍後再試。",
+    };
+  }
+}
+
+export async function loadReimbursementPaymentSearchPageAction(
+  request: ReimbursementPaymentPageRequest,
+): Promise<ReimbursementPaymentPageResult> {
+  const session = await requireAuthenticatedMember();
+  const authorization = authorize(session.access.member, {
+    type: "browse_household_records",
+  });
+
+  if (!authorization.allowed) {
+    return {
+      ok: false,
+      reason: "unauthorized",
+      message: "目前帳號無法讀取退款紀錄。",
+    };
+  }
+
+  try {
+    const prisma = getPrismaClient();
+    const householdId = DEFAULT_HOUSEHOLD_ID;
+    const pageQuery = buildReimbursementPaymentSearchPageQuery({
+      householdId,
+      query: request.query,
+      cursor: request.cursor,
+    });
+    const aggregateWhere = buildReimbursementPaymentSearchWhere(
+      householdId,
+      request.query,
+    );
+    const [rows, totalCount, aggregate] = await Promise.all([
+      prisma.reimbursementPayment.findMany({
+        ...pageQuery,
+        where: pageQuery.where as Prisma.ReimbursementPaymentWhereInput,
+        orderBy:
+          pageQuery.orderBy as Prisma.ReimbursementPaymentOrderByWithRelationInput[],
+        select: reimbursementPaymentSelect,
+      }),
+      prisma.reimbursementPayment.count({
+        where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+      }),
+      prisma.reimbursementPayment.aggregate({
+        where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+        _sum: {
+          amountCents: true,
+        },
+      }),
+    ]);
+    const pageRows = rows.slice(0, REIMBURSEMENT_PAYMENT_PAGE_SIZE);
+    const records = pageRows.map(mapReimbursementPaymentSearchResult);
+    const lastRecord = records.at(-1);
+
+    return {
+      ok: true,
+      records,
+      nextCursor: rows.length > REIMBURSEMENT_PAYMENT_PAGE_SIZE && lastRecord
+        ? cursorFromReimbursementPayment(lastRecord)
+        : null,
+      totalCount,
+      totalAmountCents: aggregate._sum.amountCents ?? 0,
+    };
+  } catch {
+    return {
+      ok: false,
+      reason: "load_failed",
+      message: "退款紀錄載入失敗，請稍後再試。",
+    };
+  }
+}
+
+export async function loadReimbursementPaymentByLedgerRecordAction(
+  recordId: string,
+): Promise<LoadReimbursementPaymentByLedgerRecordResult> {
+  const session = await requireAuthenticatedMember();
+  const authorization = authorize(session.access.member, {
+    type: "browse_household_records",
+  });
+
+  if (!authorization.allowed) {
+    return {
+      ok: false,
+      reason: "unauthorized",
+      message: "目前帳號無法讀取退款紀錄。",
+    };
+  }
+
+  try {
+    const prisma = getPrismaClient();
+    const row = await prisma.reimbursementPayment.findFirst({
+      where: {
+        householdId: DEFAULT_HOUSEHOLD_ID,
+        reimbursementBatch: {
+          householdId: DEFAULT_HOUSEHOLD_ID,
+          items: {
+            some: {
+              ledgerRecordId: recordId,
+              ledgerRecord: {
+                householdId: DEFAULT_HOUSEHOLD_ID,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+      select: reimbursementPaymentSelect,
+    });
+
+    return {
+      ok: true,
+      record: row ? mapReimbursementPaymentSearchResult(row) : null,
+    };
+  } catch {
+    return {
+      ok: false,
+      reason: "load_failed",
+      message: "退款紀錄載入失敗，請稍後再試。",
+    };
+  }
+}
+
+export async function loadReimbursementPaymentsByLedgerRecordIdsAction(
+  recordIds: string[],
+): Promise<LoadReimbursementPaymentsByLedgerRecordIdsResult> {
+  const session = await requireAuthenticatedMember();
+  const authorization = authorize(session.access.member, {
+    type: "browse_household_records",
+  });
+
+  if (!authorization.allowed) {
+    return {
+      ok: false,
+      reason: "unauthorized",
+      message: "目前帳號無法讀取退款紀錄。",
+    };
+  }
+
+  const selectedRecordIds = [...new Set(recordIds)].filter(Boolean);
+
+  if (selectedRecordIds.length === 0) {
+    return {
+      ok: true,
+      recordsByLedgerRecordId: {},
+    };
+  }
+
+  try {
+    const prisma = getPrismaClient();
+    const rows = await prisma.reimbursementPayment.findMany({
+      where: {
+        householdId: DEFAULT_HOUSEHOLD_ID,
+        reimbursementBatch: {
+          householdId: DEFAULT_HOUSEHOLD_ID,
+          items: {
+            some: {
+              ledgerRecordId: {
+                in: selectedRecordIds,
+              },
+              ledgerRecord: {
+                householdId: DEFAULT_HOUSEHOLD_ID,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+      select: reimbursementPaymentSelect,
+    });
+    const selectedRecordIdSet = new Set(selectedRecordIds);
+    const recordsByLedgerRecordId: Record<string, ReimbursementPaymentSearchResult | null> =
+      Object.fromEntries(selectedRecordIds.map((recordId) => [recordId, null]));
+
+    rows.forEach((row) => {
+      const reimbursementPayment = mapReimbursementPaymentSearchResult(row);
+
+      reimbursementPayment.linkedRecords.forEach((record) => {
+        if (
+          selectedRecordIdSet.has(record.id) &&
+          !recordsByLedgerRecordId[record.id]
+        ) {
+          recordsByLedgerRecordId[record.id] = reimbursementPayment;
+        }
+      });
+    });
+
+    return {
+      ok: true,
+      recordsByLedgerRecordId,
+    };
+  } catch {
+    return {
+      ok: false,
+      reason: "load_failed",
+      message: "退款紀錄載入失敗，請稍後再試。",
     };
   }
 }

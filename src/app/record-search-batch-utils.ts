@@ -15,7 +15,7 @@ export function canBatchDeleteRecord(
   );
 }
 
-export function canBatchRefundRecord(
+export function canBatchReimburseRecord(
   actor: HouseholdAccessProfile,
   record: LedgerRecord,
 ): boolean {

@@ -31,12 +31,12 @@ export function CreateMemberMobileFab() {
   return (
     <Button
       aria-label="建立成員"
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-40 size-14 rounded-full shadow-[0_16px_34px_rgba(0,0,0,0.38)] md:hidden"
       onClick={openCreateMemberDialog}
-      size="icon-lg"
+      size="fab"
       type="button"
+      variant="fab"
     >
-      <UserPlus aria-hidden="true" className="size-6" />
+      <UserPlus aria-hidden="true" />
     </Button>
   );
 }

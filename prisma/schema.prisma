@@ -359,6 +359,9 @@ model ReimbursementPayment {
 
   @@index([householdId, paidOn])
   @@index([paidToMemberId, paidOn])
+  @@index([householdId, paidOn, id], map: "ReimbursementPayment_search_paid_on_cursor_idx")
+  @@index([householdId, paidToMemberId, paidOn, id], map: "ReimbursementPayment_search_member_paid_on_cursor_idx")
+  @@index([householdId, amountCents, paidOn, id], map: "ReimbursementPayment_search_amount_cursor_idx")
 }
 
 model ReimbursementBatchItem {

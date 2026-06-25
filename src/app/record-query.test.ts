@@ -6,6 +6,8 @@ import {
   buildRecordQueryOptions,
   initialRecordQueryState,
   nextDraftQueryForType,
+  nextDraftQueryForParticipant,
+  nextDraftQueryForReimbursementStatus,
   recordFilterCount,
 } from "./record-query";
 
@@ -152,10 +154,32 @@ describe("record query options", () => {
       ...initialRecordQueryState,
       categoryId: "expense-grocery",
       participant: "fund",
+      reimbursementStatus: "refunded",
     }, "income", categories)).toMatchObject({
       categoryId: "all",
       participant: "all",
+      reimbursementStatus: "all",
       type: "income",
+    });
+  });
+
+  it("moves mutually exclusive participant and reimbursement filters to expense", () => {
+    expect(nextDraftQueryForParticipant({
+      ...initialRecordQueryState,
+      type: "income",
+    }, "fund", categories)).toMatchObject({
+      participant: "fund",
+      type: "expense",
+    });
+
+    expect(nextDraftQueryForReimbursementStatus({
+      ...initialRecordQueryState,
+      categoryId: "income-living",
+      type: "income",
+    }, "refunded", categories)).toMatchObject({
+      categoryId: "all",
+      reimbursementStatus: "refunded",
+      type: "expense",
     });
   });
 });

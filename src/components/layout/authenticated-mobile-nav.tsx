@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useRecordCreate } from "@/app/record-create-context";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AppNavigationItem } from "./authenticated-layout";
 import {
@@ -81,13 +82,14 @@ function RecordCreateFab() {
   const { openExpense } = useRecordCreate();
 
   return (
-    <button
+    <Button
       aria-label="新增紀錄"
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-40 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_16px_34px_rgba(0,0,0,0.38)] transition hover:bg-primary/90 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:hidden"
       onClick={openExpense}
+      size="fab"
       type="button"
+      variant="fab"
     >
-      <Plus aria-hidden="true" className="size-6" />
-    </button>
+      <Plus aria-hidden="true" />
+    </Button>
   );
 }

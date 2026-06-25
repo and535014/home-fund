@@ -88,8 +88,31 @@ export function nextDraftQueryForType(
     participant: type === "income" && query.participant === "fund"
       ? "all"
       : query.participant,
+    reimbursementStatus: type === "income" ? "all" : query.reimbursementStatus,
     type,
   };
+}
+
+export function nextDraftQueryForParticipant(
+  query: RecordQueryState,
+  participant: string,
+  categories: Category[],
+): RecordQueryState {
+  return nextDraftQueryForType({
+    ...query,
+    participant,
+  }, participant === "fund" ? "expense" : query.type, categories);
+}
+
+export function nextDraftQueryForReimbursementStatus(
+  query: RecordQueryState,
+  reimbursementStatus: string,
+  categories: Category[],
+): RecordQueryState {
+  return nextDraftQueryForType({
+    ...query,
+    reimbursementStatus,
+  }, reimbursementStatus === "all" ? query.type : "expense", categories);
 }
 
 export function applyRecordQuery(

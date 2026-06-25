@@ -18,31 +18,20 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
+  initialReimbursementPaymentQueryState,
+  type ReimbursementPaymentQueryState,
+} from "@/modules/reporting/reimbursement-payment-search-query";
+import {
   initialRecordQueryState,
+  nextDraftQueryForParticipant,
+  nextDraftQueryForReimbursementStatus,
   nextDraftQueryForType,
   recordFilterCount,
   type RecordQueryOptions,
   type RecordQueryState,
-  type RecordSortOrder,
 } from "./record-query";
 
 export type SearchSurface = "records" | "reimbursements";
-
-export type ReimbursementRecordQueryState = {
-  dateFrom: string;
-  dateTo: string;
-  paidToMemberName: string;
-  search: string;
-  sort: "newest" | "oldest" | "amount_desc" | "amount_asc";
-};
-
-export const initialReimbursementRecordQueryState: ReimbursementRecordQueryState = {
-  dateFrom: "",
-  dateTo: "",
-  paidToMemberName: "all",
-  search: "",
-  sort: "newest",
-};
 
 export function RecordSearchControls({
   activeSurface,
@@ -58,11 +47,11 @@ export function RecordSearchControls({
   activeSurface: SearchSurface;
   isSelectionMode: boolean;
   onChange: (query: RecordQueryState) => void;
-  onPaymentQueryChange: (query: ReimbursementRecordQueryState) => void;
+  onPaymentQueryChange: (query: ReimbursementPaymentQueryState) => void;
   onSurfaceChange: (surface: SearchSurface) => void;
   onToggleSelectionMode: () => void;
   options: RecordQueryOptions;
-  paymentQuery: ReimbursementRecordQueryState;
+  paymentQuery: ReimbursementPaymentQueryState;
   query: RecordQueryState;
 }) {
   const router = useRouter();
@@ -86,7 +75,7 @@ export function RecordSearchControls({
     onChange({ ...query, ...patch });
   }
 
-  function patchPaymentQuery(patch: Partial<ReimbursementRecordQueryState>) {
+  function patchPaymentQuery(patch: Partial<ReimbursementPaymentQueryState>) {
     onPaymentQueryChange({ ...paymentQuery, ...patch });
   }
 
@@ -229,7 +218,7 @@ export function RecordSearchControls({
 
           <DialogBody className="grid gap-4">
             {isPaymentSurface ? (
-              <ReimbursementRecordFilterFields
+              <ReimbursementPaymentFilterFields
                 draftPaymentQuery={draftPaymentQuery}
                 onChange={(patch) =>
                   setDraftPaymentQuery({ ...draftPaymentQuery, ...patch })
@@ -238,7 +227,7 @@ export function RecordSearchControls({
                   .filter((participant) => participant.value !== "fund")
                   .map((participant) => ({
                     label: participant.label,
-                    value: participant.label,
+                    value: participant.value.replace("member:", ""),
                   }))}
               />
             ) : (
@@ -247,6 +236,24 @@ export function RecordSearchControls({
                 draftParticipantOptions={draftParticipantOptions}
                 draftQuery={draftQuery}
                 onChange={(patch) => patchDraftQuery(patch)}
+                onParticipantChange={(participant) => {
+                  setDraftQuery(
+                    nextDraftQueryForParticipant(
+                      draftQuery,
+                      participant,
+                      options.activeCategories,
+                    ),
+                  );
+                }}
+                onReimbursementStatusChange={(reimbursementStatus) => {
+                  setDraftQuery(
+                    nextDraftQueryForReimbursementStatus(
+                      draftQuery,
+                      reimbursementStatus,
+                      options.activeCategories,
+                    ),
+                  );
+                }}
                 onTypeChange={(type) => {
                   setDraftQuery(
                     nextDraftQueryForType(
@@ -266,7 +273,7 @@ export function RecordSearchControls({
                 onClick={() => {
                   if (isPaymentSurface) {
                     setDraftPaymentQuery({
-                      ...initialReimbursementRecordQueryState,
+                      ...initialReimbursementPaymentQueryState,
                       search: paymentQuery.search,
                     });
                   } else {
@@ -298,14 +305,22 @@ function RecordFilterFields({
   draftParticipantOptions,
   draftQuery,
   onChange,
+  onParticipantChange,
+  onReimbursementStatusChange,
   onTypeChange,
 }: {
   draftCategoryOptions: RecordQueryOptions["activeCategories"];
   draftParticipantOptions: { label: string; value: string }[];
   draftQuery: RecordQueryState;
   onChange: (patch: Partial<RecordQueryState>) => void;
+  onParticipantChange: (participant: string) => void;
+  onReimbursementStatusChange: (reimbursementStatus: string) => void;
   onTypeChange: (type: string) => void;
 }) {
+  const reimbursementStatusDisabled = draftQuery.type === "income";
+  const incomeOptionDisabled =
+    draftQuery.participant === "fund" || draftQuery.reimbursementStatus !== "all";
+
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -317,7 +332,7 @@ function RecordFilterFields({
             value={draftQuery.type}
           >
             <option value="all">全部</option>
-            <option value="income">收入</option>
+            <option disabled={incomeOptionDisabled} value="income">收入</option>
             <option value="expense">支出</option>
           </NativeSelect>
         </label>
@@ -344,7 +359,9 @@ function RecordFilterFields({
           收支對象
           <NativeSelect
             aria-label="依收支對象篩選"
-            onChange={(event) => onChange({ participant: event.currentTarget.value })}
+            onChange={(event) =>
+              onParticipantChange(event.currentTarget.value)
+            }
             value={draftQuery.participant}
           >
             <option value="all">全部</option>
@@ -360,8 +377,9 @@ function RecordFilterFields({
           退款狀態
           <NativeSelect
             aria-label="依退款狀態篩選"
+            disabled={reimbursementStatusDisabled}
             onChange={(event) =>
-              onChange({ reimbursementStatus: event.currentTarget.value })
+              onReimbursementStatusChange(event.currentTarget.value)
             }
             value={draftQuery.reimbursementStatus}
           >
@@ -401,13 +419,13 @@ function RecordFilterFields({
   );
 }
 
-function ReimbursementRecordFilterFields({
+function ReimbursementPaymentFilterFields({
   draftPaymentQuery,
   onChange,
   paidToMemberOptions,
 }: {
-  draftPaymentQuery: ReimbursementRecordQueryState;
-  onChange: (patch: Partial<ReimbursementRecordQueryState>) => void;
+  draftPaymentQuery: ReimbursementPaymentQueryState;
+  onChange: (patch: Partial<ReimbursementPaymentQueryState>) => void;
   paidToMemberOptions: { label: string; value: string }[];
 }) {
   return (
@@ -418,9 +436,9 @@ function ReimbursementRecordFilterFields({
           <NativeSelect
             aria-label="依收款成員篩選"
             onChange={(event) =>
-              onChange({ paidToMemberName: event.currentTarget.value })
+              onChange({ paidToMemberId: event.currentTarget.value })
             }
-            value={draftPaymentQuery.paidToMemberName}
+            value={draftPaymentQuery.paidToMemberId}
           >
             <option value="all">全部</option>
             {paidToMemberOptions.map((member) => (
@@ -461,14 +479,14 @@ function ReimbursementRecordFilterFields({
   );
 }
 
-function SortField({
+function SortField<TSort extends string>({
   label,
   onChange,
   value,
 }: {
   label: string;
-  onChange: (sort: RecordSortOrder) => void;
-  value: RecordSortOrder;
+  onChange: (sort: TSort) => void;
+  value: TSort;
 }) {
   return (
     <label className="grid gap-2 text-label">
@@ -476,7 +494,7 @@ function SortField({
       <NativeSelect
         aria-label={label}
         onChange={(event) =>
-          onChange(event.currentTarget.value as RecordSortOrder)
+          onChange(event.currentTarget.value as TSort)
         }
         value={value}
       >
@@ -490,13 +508,13 @@ function SortField({
 }
 
 function reimbursementRecordFilterCount(
-  query: ReimbursementRecordQueryState,
+  query: ReimbursementPaymentQueryState,
 ): number {
   return [
-    query.dateFrom !== initialReimbursementRecordQueryState.dateFrom,
-    query.dateTo !== initialReimbursementRecordQueryState.dateTo,
-    query.paidToMemberName !==
-      initialReimbursementRecordQueryState.paidToMemberName,
-    query.sort !== initialReimbursementRecordQueryState.sort,
+    query.dateFrom !== initialReimbursementPaymentQueryState.dateFrom,
+    query.dateTo !== initialReimbursementPaymentQueryState.dateTo,
+    query.paidToMemberId !==
+      initialReimbursementPaymentQueryState.paidToMemberId,
+    query.sort !== initialReimbursementPaymentQueryState.sort,
   ].filter(Boolean).length;
 }

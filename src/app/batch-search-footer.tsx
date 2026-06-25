@@ -9,7 +9,7 @@ import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
   canBatchDeleteRecord,
-  canBatchRefundRecord,
+  canBatchReimburseRecord,
   netAmountTone,
   sumRecordNetAmount,
 } from "./record-search-batch-utils";
@@ -42,7 +42,7 @@ export function BatchSearchFooter({
   visibleRecords: LedgerRecord[];
 }) {
   const refundableCount = selectedRecords.filter((record) =>
-    canBatchRefundRecord(actor, record),
+    canBatchReimburseRecord(actor, record),
   ).length;
   const deletableCount = selectedRecords.filter((record) =>
     canBatchDeleteRecord(actor, record),
@@ -57,19 +57,12 @@ export function BatchSearchFooter({
 
   return (
     <PageFooter className="-mx-4 gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:-mx-5 sm:pb-3 lg:-mx-6">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <span className="text-label">
-          {isSelectionMode
-            ? `已選取 ${selectedCount} 筆`
-            : `搜尋結果 ${totalCount} 筆`}
-        </span>
-        <div className="flex min-w-0 items-center gap-2 text-right">
-          <span className="text-caption text-muted-foreground">總額</span>
-          <span className={cn("text-label", netAmountTone(displayedNetCents))}>
-            {formatAmount(Math.abs(displayedNetCents))}
-          </span>
-        </div>
-      </div>
+      <SearchSummaryContent
+        amountToneClassName={netAmountTone(displayedNetCents)}
+        label={isSelectionMode ? `已選取 ${selectedCount} 筆` : undefined}
+        totalAmountCents={displayedNetCents}
+        totalCount={totalCount}
+      />
       {isSelectionMode ? (
         <div className="flex min-w-0 items-start justify-between gap-3 sm:flex-wrap sm:items-center">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -140,5 +133,49 @@ export function BatchSearchFooter({
         </div>
       ) : null}
     </PageFooter>
+  );
+}
+
+export function SearchSummaryFooter({
+  amountToneClassName = "text-primary",
+  totalAmountCents,
+  totalCount,
+}: {
+  amountToneClassName?: string;
+  totalAmountCents: number;
+  totalCount: number;
+}) {
+  return (
+    <PageFooter className="-mx-4 gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:-mx-5 sm:pb-3 lg:-mx-6">
+      <SearchSummaryContent
+        amountToneClassName={amountToneClassName}
+        totalAmountCents={totalAmountCents}
+        totalCount={totalCount}
+      />
+    </PageFooter>
+  );
+}
+
+function SearchSummaryContent({
+  amountToneClassName,
+  label,
+  totalAmountCents,
+  totalCount,
+}: {
+  amountToneClassName: string;
+  label?: string;
+  totalAmountCents: number;
+  totalCount: number;
+}) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <span className="text-label">{label ?? `搜尋結果 ${totalCount} 筆`}</span>
+      <div className="flex min-w-0 items-center gap-2 text-right">
+        <span className="text-caption text-muted-foreground">總額</span>
+        <span className={cn("text-label", amountToneClassName)}>
+          {formatAmount(Math.abs(totalAmountCents))}
+        </span>
+      </div>
+    </div>
   );
 }

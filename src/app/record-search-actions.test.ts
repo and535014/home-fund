@@ -1,8 +1,13 @@
 import { revalidatePath } from "next/cache";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
-import { batchRefundSearchRecordsAction } from "./record-search-actions";
+import {
+  batchRefundSearchRecordsAction,
+  loadReimbursementPaymentByLedgerRecordAction,
+  loadReimbursementPaymentsByLedgerRecordIdsAction,
+  loadReimbursementPaymentSearchPageAction,
+} from "./record-search-actions";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -16,18 +21,13 @@ vi.mock("@/db/prisma", () => ({
   getPrismaClient: vi.fn(),
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAuthenticatedMember();
+});
+
 describe("batchRefundSearchRecordsAction", () => {
   it("writes payment evidence for the reimbursed batch", async () => {
-    vi.mocked(requireAuthenticatedMember).mockResolvedValue({
-      access: {
-        member: {
-          id: "member-fin",
-          googleAccountLinked: true,
-          roles: ["finance_manager"],
-        },
-      },
-    } as Awaited<ReturnType<typeof requireAuthenticatedMember>>);
-
     type BatchCreateArgs = {
       data: {
         id: string;
@@ -149,3 +149,197 @@ describe("batchRefundSearchRecordsAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/search");
   });
 });
+
+describe("loadReimbursementPaymentSearchPageAction", () => {
+  it("loads reimbursement payment records with server pagination metadata", async () => {
+    const prisma = {
+      reimbursementPayment: {
+        findMany: vi.fn(async () => [
+          reimbursementPaymentRow({
+            id: "payment-1",
+            ledgerRecordId: "expense-1",
+            ledgerRecordName: "網路費代墊",
+          }),
+        ]),
+        count: vi.fn(async () => 1),
+        aggregate: vi.fn(async () => ({
+          _sum: {
+            amountCents: 4_500,
+          },
+        })),
+      },
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    const result = await loadReimbursementPaymentSearchPageAction({
+      query: {
+        dateFrom: "",
+        dateTo: "",
+        paidToMemberId: "all",
+        search: "",
+        sort: "newest",
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      records: [
+        {
+          id: "payment-1",
+          primaryLinkedRecordName: "網路費代墊",
+          paidToMemberName: "小美",
+          methodLabel: "銀行轉帳",
+        },
+      ],
+      nextCursor: null,
+      totalCount: 1,
+      totalAmountCents: 4_500,
+    });
+    expect(prisma.reimbursementPayment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 101,
+        where: { householdId: "household-demo" },
+        orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+      }),
+    );
+  });
+});
+
+describe("loadReimbursementPaymentByLedgerRecordAction", () => {
+  it("returns null when a reimbursed expense has no payment evidence", async () => {
+    const prisma = {
+      reimbursementPayment: {
+        findFirst: vi.fn(async () => null),
+      },
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    await expect(loadReimbursementPaymentByLedgerRecordAction("legacy-expense")).resolves
+      .toEqual({
+        ok: true,
+        record: null,
+      });
+    expect(prisma.reimbursementPayment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          householdId: "household-demo",
+          reimbursementBatch: expect.objectContaining({
+            items: {
+              some: expect.objectContaining({
+                ledgerRecordId: "legacy-expense",
+              }),
+            },
+          }),
+        }),
+      }),
+    );
+  });
+});
+
+describe("loadReimbursementPaymentsByLedgerRecordIdsAction", () => {
+  it("maps payment evidence back to requested ledger record ids", async () => {
+    const prisma = {
+      reimbursementPayment: {
+        findMany: vi.fn(async () => [
+          reimbursementPaymentRow({
+            id: "payment-1",
+            ledgerRecordId: "expense-1",
+            ledgerRecordName: "網路費代墊",
+          }),
+        ]),
+      },
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    const result = await loadReimbursementPaymentsByLedgerRecordIdsAction([
+      "expense-1",
+      "expense-without-payment",
+    ]);
+
+    expect(result).toMatchObject({
+      ok: true,
+      recordsByLedgerRecordId: {
+        "expense-1": {
+          id: "payment-1",
+          primaryLinkedRecordName: "網路費代墊",
+        },
+        "expense-without-payment": null,
+      },
+    });
+    expect(prisma.reimbursementPayment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          householdId: "household-demo",
+          reimbursementBatch: expect.objectContaining({
+            items: {
+              some: expect.objectContaining({
+                ledgerRecordId: {
+                  in: ["expense-1", "expense-without-payment"],
+                },
+              }),
+            },
+          }),
+        }),
+      }),
+    );
+  });
+});
+
+function mockAuthenticatedMember() {
+  vi.mocked(requireAuthenticatedMember).mockResolvedValue({
+    access: {
+      member: {
+        id: "member-fin",
+        googleAccountLinked: true,
+        roles: ["finance_manager"],
+      },
+    },
+  } as Awaited<ReturnType<typeof requireAuthenticatedMember>>);
+}
+
+function reimbursementPaymentRow({
+  id,
+  ledgerRecordId,
+  ledgerRecordName,
+}: {
+  id: string;
+  ledgerRecordId: string;
+  ledgerRecordName: string;
+}) {
+  return {
+    id,
+    reimbursementBatchId: `batch-${id}`,
+    amountCents: 128_000,
+    paidOn: new Date("2026-06-18T00:00:00.000Z"),
+    paidToMemberId: "member-mei",
+    method: "bank_transfer" as const,
+    note: "末五碼 5521",
+    paidToMember: {
+      displayName: "小美",
+    },
+    reimbursementBatch: {
+      items: [
+        {
+          ledgerRecord: {
+            id: ledgerRecordId,
+            type: "expense" as const,
+            name: ledgerRecordName,
+            amountCents: 128_000,
+            occurredOn: new Date("2026-06-15T00:00:00.000Z"),
+            categoryId: "expense-utilities",
+            createdByMemberId: "member-mei",
+            sourceMemberId: null,
+            paymentSource: "member" as const,
+            payerMemberId: "member-mei",
+            reimbursementStatus: "reimbursed" as const,
+            status: "active" as const,
+            note: "退款紀錄關聯紀錄",
+          },
+        },
+      ],
+    },
+  };
+}

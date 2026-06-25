@@ -35,13 +35,7 @@ export function buildRecordSearchPageQuery({
 
   return {
     take: SEARCH_RECORD_PAGE_SIZE + 1,
-    where: cursorWhere
-      ? {
-          AND: [baseWhere, cursorWhere],
-          ...baseWhere,
-          ...cursorWhere,
-        }
-      : baseWhere,
+    where: mergeWhere(baseWhere, cursorWhere),
     orderBy: orderByForSort(query.sort),
   };
 }
@@ -76,8 +70,10 @@ export function buildRecordSearchWhere(
   }
 
   if (query.participant === "fund") {
-    where.type = "expense";
-    where.paymentSource = "fund";
+    addAndPredicate(where, {
+      type: "expense",
+      paymentSource: "fund",
+    });
   } else if (query.participant.startsWith("member:")) {
     const memberId = query.participant.replace("member:", "");
 
@@ -95,10 +91,12 @@ export function buildRecordSearchWhere(
   }
 
   if (query.reimbursementStatus !== "all") {
-    where.type = "expense";
-    where.paymentSource = "member";
-    where.reimbursementStatus =
-      query.reimbursementStatus === "refunded" ? "reimbursed" : "refundable";
+    addAndPredicate(where, {
+      type: "expense",
+      paymentSource: "member",
+      reimbursementStatus:
+        query.reimbursementStatus === "refunded" ? "reimbursed" : "refundable",
+    });
   }
 
   const dateRange: Record<string, Date> = {};
@@ -124,7 +122,8 @@ export function buildRecordSearchWhere(
     }
 
     if (where.OR) {
-      where.AND = [{ OR: where.OR }, { OR: searchPredicates }];
+      addAndPredicate(where, { OR: where.OR });
+      addAndPredicate(where, { OR: searchPredicates });
       delete where.OR;
     } else {
       where.OR = searchPredicates;
@@ -132,6 +131,33 @@ export function buildRecordSearchWhere(
   }
 
   return where;
+}
+
+function addAndPredicate(
+  where: Record<string, unknown>,
+  predicate: Record<string, unknown>,
+) {
+  const current = where.AND;
+
+  if (Array.isArray(current)) {
+    current.push(predicate);
+    return;
+  }
+
+  where.AND = current ? [current, predicate] : [predicate];
+}
+
+function mergeWhere(
+  baseWhere: Record<string, unknown>,
+  cursorWhere?: Record<string, unknown>,
+) {
+  if (!cursorWhere) {
+    return baseWhere;
+  }
+
+  return {
+    AND: [baseWhere, cursorWhere],
+  };
 }
 
 export function orderByForSort(sort: RecordQueryState["sort"]) {

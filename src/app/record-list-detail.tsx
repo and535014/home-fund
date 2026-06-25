@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  AlertTriangle,
-  CalendarDays,
-  Check,
-  HandCoins,
-  Pencil,
-  ReceiptText,
-  Save,
-  StickyNote,
-  Trash2,
-  UserRound,
-  WalletCards,
-  X,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { HandCoins, Save, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,6 +17,22 @@ import {
   type VoidLedgerRecordActionCode,
   type VoidLedgerRecordActionField,
 } from "@/app/ledger-record-actions";
+import { formatRecordDate } from "@/app/record-display-utils";
+import {
+  EditCategoryField,
+  RecordDetailView,
+  type RecordDetailActionAccess,
+} from "@/app/record-detail-ui";
+import {
+  RecordListItem,
+  RecordSummaryContent,
+} from "@/app/record-list-item";
+import { loadReimbursementPaymentForLedgerRecord } from "@/app/reimbursement-payment-loader";
+import {
+  LinkedRecordsDialog,
+  ReimbursementPaymentDetailDialog,
+} from "@/app/reimbursement-payment-dialogs";
+import type { ReimbursementPaymentSearchResult } from "@/app/reimbursement-payment-ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,20 +47,9 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Item, ItemGroup } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  CategoryVisualMark,
-  compareCategoryVisualOrder,
-  getCategoryVisual,
-} from "@/app/category-visuals";
+import { compareCategoryVisualOrder } from "@/app/category-visuals";
 import { ReimbursementPaymentFields } from "@/app/reimbursement-payment-fields";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -91,14 +82,30 @@ export function RecordListDetail({
 }) {
   const router = useRouter();
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedRelatedRecord, setSelectedRelatedRecord] =
+    useState<LedgerRecord | null>(null);
+  const [selectedReimbursementPayment, setSelectedReimbursementPayment] =
+    useState<ReimbursementPaymentSearchResult | null>(null);
+  const [selectedPaymentLinkedResult, setSelectedPaymentLinkedResult] =
+    useState<ReimbursementPaymentSearchResult | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
-    records.find((record) => record.id === selectedRecordId) ?? null;
+    records.find((record) => record.id === selectedRecordId) ??
+    selectedRelatedRecord;
   function closeSelectedRecord() {
     setSelectedRecordId(null);
+    setSelectedRelatedRecord(null);
     window.requestAnimationFrame(() => {
       selectedRecordTriggerRef.current?.focus();
+    });
+  }
+
+  function openReimbursementPayment(record: LedgerRecord) {
+    loadReimbursementPaymentForLedgerRecord(record, (payment) => {
+      setSelectedRecordId(null);
+      setSelectedRelatedRecord(null);
+      setSelectedReimbursementPayment(payment);
     });
   }
 
@@ -135,7 +142,7 @@ export function RecordListDetail({
             {emptyMessage}
           </div>
         ) : (
-          <ItemGroup className="min-h-0 flex-1 overflow-y-auto divide-y divide-border">
+          <ItemGroup className="min-h-0 flex-1 overflow-y-auto">
             {records.map((record) => (
               <RecordListItem
                 category={categoriesById[record.categoryId]}
@@ -144,6 +151,7 @@ export function RecordListDetail({
                 memberNames={memberNames}
                 onOpen={(trigger) => {
                   selectedRecordTriggerRef.current = trigger;
+                  setSelectedRelatedRecord(null);
                   setSelectedRecordId(record.id);
                 }}
                 onToggleSelection={onToggleRecordSelection}
@@ -184,129 +192,51 @@ export function RecordListDetail({
               closeSelectedRecord();
               router.refresh();
             }}
+            onOpenReimbursementPayment={openReimbursementPayment}
             onRefresh={() => router.refresh()}
             record={selectedRecord}
           />
         ) : null}
       </Dialog>
-    </>
-  );
-}
-
-export function RecordListItem({
-  category,
-  isSelected,
-  memberNames,
-  onOpen,
-  onToggleSelection,
-  record,
-}: {
-  category?: Category;
-  isSelected: boolean;
-  memberNames: Record<string, string>;
-  onOpen: (trigger: HTMLButtonElement) => void;
-  onToggleSelection?: (recordId: string) => void;
-  record: LedgerRecord;
-}) {
-  if (onToggleSelection) {
-    return (
-      <Item
-        size="sm"
+      <Dialog
+        open={Boolean(selectedReimbursementPayment)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedReimbursementPayment(null);
+          }
+        }}
       >
-        <button
-          aria-label={isSelected ? `取消選取${record.name}` : `選取${record.name}`}
-          aria-pressed={isSelected}
-          className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-            isSelected
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-          )}
-          onClick={() => onToggleSelection(record.id)}
-          type="button"
-        >
-          {isSelected ? <Check className="size-3.5" /> : null}
-        </button>
-        <button
-          aria-label={`查看${record.name}詳情`}
-          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-          onClick={(event) => onOpen(event.currentTarget)}
-          type="button"
-        >
-          <RecordSummaryContent
-            category={category}
-            memberNames={memberNames}
-            record={record}
+        {selectedReimbursementPayment ? (
+          <ReimbursementPaymentDetailDialog
+            onOpenLinkedRecords={() => {
+              setSelectedPaymentLinkedResult(selectedReimbursementPayment);
+              setSelectedReimbursementPayment(null);
+            }}
+            result={selectedReimbursementPayment}
           />
-        </button>
-      </Item>
-    );
-  }
-
-  return (
-    <Item
-      asChild
-      size="sm"
-    >
-      <button
-        aria-label={`查看${record.name}詳情`}
-        className="w-full text-left"
-        onClick={(event) => onOpen(event.currentTarget)}
-        type="button"
-      >
-        <RecordSummaryContent
-          category={category}
-          memberNames={memberNames}
-          record={record}
-        />
-      </button>
-    </Item>
-  );
-}
-
-export function RecordSummaryContent({
-  category,
-  memberNames,
-  record,
-}: {
-  category?: Category;
-  memberNames: Record<string, string>;
-  record: LedgerRecord;
-}) {
-  const isIncome = record.type === "income";
-  const visual = category ? getCategoryVisual(category) : null;
-
-  return (
-    <>
-      <ItemMedia className="self-center! translate-y-0!">
-        {visual ? (
-          <CategoryVisualMark color={visual.color} icon={visual.icon} />
         ) : null}
-      </ItemMedia>
-
-      <ItemContent className="min-w-0">
-        <ItemTitle className="max-w-full">
-          <span className="truncate">{record.name}</span>
-        </ItemTitle>
-
-        <ItemDescription className="truncate">
-          {recordActorLabel(record, memberNames)}
-        </ItemDescription>
-      </ItemContent>
-
-      <ItemContent className="min-w-0 flex-none items-end text-right">
-        <ItemTitle
-          className={`max-w-full justify-end ${
-            isIncome ? "text-income" : "text-expense"
-          }`}
-        >
-          <span className="truncate">{formatAmount(record.amountCents)}</span>
-        </ItemTitle>
-
-        <ItemDescription className="truncate">
-          {formatDate(record.occurredOn)}
-        </ItemDescription>
-      </ItemContent>
+      </Dialog>
+      <Dialog
+        open={Boolean(selectedPaymentLinkedResult)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedPaymentLinkedResult(null);
+          }
+        }}
+      >
+        {selectedPaymentLinkedResult ? (
+          <LinkedRecordsDialog
+            categoriesById={categoriesById}
+            memberNames={memberNames}
+            onOpenRecord={(record) => {
+              setSelectedPaymentLinkedResult(null);
+              setSelectedRelatedRecord(record);
+              setSelectedRecordId(record.id);
+            }}
+            records={selectedPaymentLinkedResult.linkedRecords}
+          />
+        ) : null}
+      </Dialog>
     </>
   );
 }
@@ -332,7 +262,6 @@ export function RecordDetailDialog({
   onRefresh: () => void;
   record: LedgerRecord;
 }) {
-  const isIncome = record.type === "income";
   const [mode, setMode] = useState<"detail" | "edit" | "delete" | "refund">(
     "detail",
   );
@@ -350,6 +279,12 @@ export function RecordDetailDialog({
     displayedRecord.type === "expense" &&
     displayedRecord.paymentSource === "member" &&
     displayedRecord.reimbursementStatus === "reimbursed";
+  const canShowFooterActions =
+    (access.canEdit ||
+      access.canDelete ||
+      access.canRefund ||
+      canOpenReimbursementPayment) &&
+    (!access.blockedReason || canOpenReimbursementPayment);
 
   if (mode === "edit") {
     return (
@@ -387,7 +322,7 @@ export function RecordDetailDialog({
 
   if (mode === "refund") {
     return (
-      <RefundRecordDialog
+      <RecordReimbursementDialog
         category={category}
         memberNames={memberNames}
         onCancel={() => setMode("detail")}
@@ -396,7 +331,7 @@ export function RecordDetailDialog({
           setMode("detail");
           toast.success("已完成退款", {
             description: "這筆紀錄已標記為已退款，並保留退款紀錄資訊。",
-            id: `refund-record-success-${record.id}`,
+            id: `record-reimbursement-success-${record.id}`,
           });
           onRefresh();
         }}
@@ -406,113 +341,24 @@ export function RecordDetailDialog({
   }
 
   return (
-    <DialogContent aria-describedby={undefined} className="max-w-xl">
-      <DialogHeader>
-        <DialogTitle>{record.name}</DialogTitle>
-      </DialogHeader>
-
-      <DialogBody className="grid gap-4">
-        <div className="rounded-card border border-border bg-secondary/30 p-4">
-          <p className="text-caption text-muted-foreground">金額</p>
-          <p
-            className={`mt-1 text-heading ${
-              isIncome ? "text-income" : "text-expense"
-            }`}
-          >
-            {formatAmount(record.amountCents)}
-          </p>
-        </div>
-
-        {access.blockedReason ? (
-          <Alert variant="warning">
-            <AlertTriangle />
-            <AlertDescription>{access.blockedReason}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <DetailField
-              icon={<UserRound />}
-              label="支付者"
-              value={recordActorLabel(displayedRecord, memberNames)}
-            />
-            <DetailField
-              icon={<CalendarDays />}
-              label="日期"
-              value={formatDate(record.occurredOn)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <DetailField
-              icon={<ReceiptText />}
-              label="分類"
-              value={categoryName}
-            />
-            <DetailField
-              icon={<WalletCards />}
-              label="狀態"
-              value={ledgerRecordStatusLabel(displayedRecord)}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-card border border-border p-4">
-          <div className="flex items-center gap-2 text-label">
-            <StickyNote className="size-4 text-muted-foreground" />
-            備註
-          </div>
-          <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">
-            {record.note?.trim() || "沒有備註。"}
-          </p>
-        </div>
-      </DialogBody>
-
-      {(access.canEdit ||
-        access.canDelete ||
-        access.canRefund ||
-        canOpenReimbursementPayment) &&
-      !access.blockedReason ? (
-        <DialogFooter className="mt-4">
-          {access.canDelete ? (
-            <Button
-              onClick={() => setMode("delete")}
-              type="button"
-              variant="destructive"
-            >
-              <Trash2 />
-              刪除
-            </Button>
-          ) : null}
-          {access.canRefund ? (
-            <Button onClick={() => setMode("refund")} type="button">
-              <HandCoins />
-              退款
-            </Button>
-          ) : null}
-          {canOpenReimbursementPayment ? (
-            <Button
-              onClick={() => onOpenReimbursementPayment?.(displayedRecord)}
-              type="button"
-              variant="outline"
-            >
-              <HandCoins />
-              查看退款紀錄
-            </Button>
-          ) : null}
-          {access.canEdit ? (
-            <Button onClick={() => setMode("edit")} type="button">
-              <Pencil />
-              編輯
-            </Button>
-          ) : null}
-        </DialogFooter>
-      ) : null}
-    </DialogContent>
+    <RecordDetailView
+      access={access}
+      canOpenReimbursementPayment={canOpenReimbursementPayment}
+      canShowFooterActions={canShowFooterActions}
+      categoryName={categoryName}
+      displayedRecord={displayedRecord}
+      memberNames={memberNames}
+      onDelete={() => setMode("delete")}
+      onEdit={() => setMode("edit")}
+      onOpenReimbursementPayment={() =>
+        onOpenReimbursementPayment?.(displayedRecord)}
+      onRefund={() => setMode("refund")}
+      record={record}
+    />
   );
 }
 
-function RefundRecordDialog({
+function RecordReimbursementDialog({
   category,
   memberNames,
   onCancel,
@@ -750,59 +596,6 @@ function EditRecordDialog({
   );
 }
 
-function EditCategoryField({
-  categories,
-  defaultCategoryId,
-}: {
-  categories: Category[];
-  defaultCategoryId: string;
-}) {
-  return (
-    <Field>
-      {categories.length === 0 ? (
-        <p className="text-caption text-muted-foreground">
-          尚未建立可用分類。
-        </p>
-      ) : (
-        <div
-          aria-label="分類"
-          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-cols-5 sm:gap-x-4 sm:gap-y-5 sm:overflow-visible sm:px-1 sm:pb-3 sm:pt-1"
-          role="radiogroup"
-        >
-          {categories.map((category) => {
-            const visual = getCategoryVisual(category);
-
-            return (
-              <label
-                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-auto"
-                key={category.id}
-              >
-                <input
-                  className="peer sr-only"
-                  defaultChecked={category.id === defaultCategoryId}
-                  name="categoryId"
-                  required
-                  type="radio"
-                  value={category.id}
-                />
-                <CategoryVisualMark
-                  className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
-                  color={visual.color}
-                  icon={visual.icon}
-                  size="lg"
-                />
-                <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
-                  {category.name}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-    </Field>
-  );
-}
-
 function DeleteRecordDialog({
   onCancel,
   onSuccess,
@@ -854,7 +647,7 @@ function DeleteRecordDialog({
             <p className="text-body-strong">{record.name}</p>
             <p className="mt-1 text-body text-muted-foreground">
               {formatAmount(record.amountCents)} ·{" "}
-              {formatDate(record.occurredOn)}
+              {formatRecordDate(record.occurredOn)}
             </p>
           </div>
         </DialogBody>
@@ -874,68 +667,10 @@ function DeleteRecordDialog({
   );
 }
 
-function DetailField({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-card border border-border p-3">
-      <div className="flex items-center gap-2 text-caption text-muted-foreground">
-        <span className="[&_svg]:size-4">{icon}</span>
-        {label}
-      </div>
-      <p className="mt-1 text-body-strong">{value}</p>
-    </div>
-  );
-}
-
-function recordActorLabel(
-  record: LedgerRecord,
-  memberNames: Record<string, string>,
-): string {
-  if (record.type === "income") {
-    return memberNames[record.sourceMemberId] ?? "成員";
-  }
-
-  if (record.paymentSource === "member") {
-    return memberNames[record.payerMemberId ?? ""] ?? "成員";
-  }
-
-  return "基金";
-}
-
-function ledgerRecordStatusLabel(record: LedgerRecord): string {
-  if (record.type === "income") {
-    return "---";
-  }
-
-  const reimbursementStatusLabels: Record<
-    LedgerRecord["reimbursementStatus"],
-    string
-  > = {
-    not_applicable: "不適用",
-    not_refundable: "不需退款",
-    refundable: "待退款",
-    reimbursed: "已退款",
-  };
-
-  return reimbursementStatusLabels[record.reimbursementStatus];
-}
-
 function recordActionAccess(
   actor: HouseholdAccessProfile,
   record: LedgerRecord,
-): {
-  blockedReason?: string;
-  canDelete: boolean;
-  canEdit: boolean;
-  canRefund: boolean;
-} {
+): RecordDetailActionAccess {
   const isOwner = actor.id === record.createdByMemberId;
   const isAdmin = actor.roles.includes("admin");
   const isFinanceManager = actor.roles.includes("finance_manager");
@@ -963,8 +698,4 @@ function recordActionAccess(
     canEdit: isAdmin || isFinanceManager || isOwner,
     canRefund,
   };
-}
-
-function formatDate(date: string): string {
-  return date.replaceAll("-", "/");
 }

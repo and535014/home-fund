@@ -16,7 +16,7 @@ import { formatAmount } from "@/lib/format";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
-  canBatchRefundRecord,
+  canBatchReimburseRecord,
   sumRecordAmounts,
 } from "./record-search-batch-utils";
 import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
@@ -36,7 +36,7 @@ export function BatchRefundDialog({
 }) {
   const reimbursementFormRef = useRef<HTMLFormElement>(null);
   const eligibleRecords = records.filter((record) =>
-    canBatchRefundRecord(actor, record),
+    canBatchReimburseRecord(actor, record),
   );
   const skippedCount = records.length - eligibleRecords.length;
   const eligibleTotalCents = sumRecordAmounts(eligibleRecords);

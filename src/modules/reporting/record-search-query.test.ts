@@ -48,27 +48,39 @@ describe("record search query", () => {
       },
     })).toMatchObject({
       where: {
-        householdId: "household-demo",
-        status: "active",
-        type: "expense",
-        categoryId: "expense-grocery",
-        paymentSource: "member",
-        payerMemberId: "member-mei",
-        reimbursementStatus: "refundable",
-        occurredOn: {
-          gte: new Date("2026-06-01T00:00:00.000Z"),
-          lte: new Date("2026-06-30T00:00:00.000Z"),
-        },
-        OR: [
-          { amountCents: { lt: 3_200 } },
+        AND: [
           {
-            amountCents: 3_200,
-            occurredOn: { lt: new Date("2026-06-10T00:00:00.000Z") },
+            householdId: "household-demo",
+            status: "active",
+            type: "expense",
+            categoryId: "expense-grocery",
+            paymentSource: "member",
+            payerMemberId: "member-mei",
+            AND: [
+              {
+                type: "expense",
+                paymentSource: "member",
+                reimbursementStatus: "refundable",
+              },
+            ],
+            occurredOn: {
+              gte: new Date("2026-06-01T00:00:00.000Z"),
+              lte: new Date("2026-06-30T00:00:00.000Z"),
+            },
           },
           {
-            amountCents: 3_200,
-            occurredOn: new Date("2026-06-10T00:00:00.000Z"),
-            id: { lt: "record-100" },
+            OR: [
+              { amountCents: { lt: 3_200 } },
+              {
+                amountCents: 3_200,
+                occurredOn: { lt: new Date("2026-06-10T00:00:00.000Z") },
+              },
+              {
+                amountCents: 3_200,
+                occurredOn: new Date("2026-06-10T00:00:00.000Z"),
+                id: { lt: "record-100" },
+              },
+            ],
           },
         ],
       },
@@ -77,6 +89,30 @@ describe("record search query", () => {
         { occurredOn: "desc" },
         { id: "desc" },
       ],
+    });
+  });
+
+  it("keeps mutually exclusive income and reimbursement filters impossible", () => {
+    expect(buildRecordSearchPageQuery({
+      householdId: "household-demo",
+      query: {
+        ...initialRecordQueryState,
+        type: "income",
+        reimbursementStatus: "refunded",
+      },
+    })).toMatchObject({
+      where: {
+        householdId: "household-demo",
+        status: "active",
+        type: "income",
+        AND: [
+          {
+            type: "expense",
+            paymentSource: "member",
+            reimbursementStatus: "reimbursed",
+          },
+        ],
+      },
     });
   });
 
