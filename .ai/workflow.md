@@ -111,6 +111,7 @@ trace_links:
   - .ai/release/reimbursement-payment-flow-local-dev-readiness.md
   - .ai/learning/reimbursement-payment-flow.md
   - .ai/archive/archive-reimbursement-payment-flow-2026-06-25.md
+  - .ai/intent/csv-import-financial-records.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
