@@ -20,9 +20,9 @@ trace_links:
 
 ## Result
 
-- decision: pass_with_e2e_gap_for_local_dev_review
+- decision: pass_for_local_dev_review
 - release_target_supported: local_dev
-- recommended_next_gate: Target-Aware Release for local_dev after user accepts the E2E gap or asks to add Playwright coverage first.
+- recommended_next_gate: Target-Aware Release for local_dev.
 
 ## Scope Verified
 
@@ -35,6 +35,7 @@ trace_links:
 - Imported member-paid expenses remain ordinary refundable ledger records; no reimbursement batch or payment evidence is created.
 - The homepage record list now shows current-month records so imported records can appear in the records column, not only in charts.
 - Import options include active and invited household members so unbound members can still be selected.
+- Playwright E2E now covers authorized navigation, unauthorized access, template download, file upload preview, mapping correction, row remove/add-back, duplicate warning, import success/reset, imported records appearing on the homepage, and mobile preview control usability.
 - Local database migration `20260625203000_add_ledger_import_failed_audit` has been applied in local dev.
 
 ## Commands Run
@@ -51,6 +52,10 @@ trace_links:
   - Result: passed.
 - `corepack pnpm db:deploy`
   - Result: passed earlier in this verification cycle; applied the local import failed-audit migration.
+- `corepack pnpm test:e2e e2e/csv-import.spec.ts`
+  - Result: passed, 5 Playwright tests.
+- `corepack pnpm test:e2e`
+  - Result: passed, 49 Playwright tests.
 
 ## Trace And Alignment
 
@@ -61,11 +66,10 @@ trace_links:
 
 ## Residual Risk
 
-- Playwright E2E coverage from the Behavior Spec has not been added. Unit, integration, lint, type, schema, and build checks passed, but browser-level coverage for template download, file chooser, responsive table layout, and unauthorized direct visit remains missing.
 - Partial success changed the original atomic policy after technical design approval. The source artifacts have been corrected, but this deserves explicit user review before release readiness.
 - Amount parsing remains strict and does not accept thousands separators; this is documented as a current MVP limitation.
 
 ## Review Gate
 
-- Decision needed: approve local_dev verification with the E2E gap, request Playwright E2E before release readiness, or block.
+- Decision needed: approve local_dev verification, request changes, or block.
 - Recommended next gate after approval: Target-Aware Release for `local_dev`.

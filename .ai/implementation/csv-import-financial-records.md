@@ -79,12 +79,12 @@ Tests were added before implementation for:
 - `corepack pnpm type-check`
 - `corepack pnpm test`
 - `corepack pnpm build`
+- `corepack pnpm test:e2e e2e/csv-import.spec.ts`
 
 All commands passed.
 
 ## Known Gaps
 
-- Playwright E2E coverage from the Behavior Spec has not been added in this implementation pass.
 - Amount parsing is strict and does not accept thousands separators.
 
 ## Review Gate
@@ -93,7 +93,7 @@ All commands passed.
 - reviewer_focus:
   - Confirm strict amount/header behavior is acceptable.
   - Confirm import audit tables are sufficient for local_dev traceability.
-  - Confirm E2E can move to Verification or should be added before committing this implementation.
+  - Confirm targeted CSV import E2E coverage is sufficient for local_dev.
 - must_check:
   - Local database must run the new Prisma migration before manual browser testing.
   - Reimbursement payment import remains unsupported.
@@ -101,6 +101,6 @@ All commands passed.
   - Unit/domain/app build checks pass.
   - `/settings/import` is available on the running dev server.
 - unresolved_blockers:
-  - E2E implementation remains open.
+  - No unresolved implementation blockers remain for local_dev verification.
 - next_step:
   - Verification for `csv-import-financial-records`.
