@@ -123,6 +123,7 @@ trace_links:
   - .ai/intent/search-reimbursement-payment-records.md
   - .ai/domain-impact/search-reimbursement-payment-records.md
   - .ai/prototype/search-reimbursement-payment-records.md
+  - .ai/spec/search-reimbursement-payment-records.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md

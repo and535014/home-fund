@@ -97,12 +97,14 @@ reviewed_at: 2026-06-25
 
 - Desktop: result rows keep the existing compact list density, with amount/date aligned right.
 - Mobile/narrow: tabs sit above the search row, and refund record rows use the same three-column rhythm as record rows; long member names and linked record names truncate instead of overlapping.
+- Mobile/narrow: the close control sits to the right of the tabs and uses a close icon rather than a back arrow.
 - The search result area remains one scrollable list per active tab.
 - Footer remains anchored by the existing search page layout.
 
 ## Accessibility And Focus
 
 - Tabs expose `收支紀錄` and `退款紀錄` as the active search surface.
+- Mobile close button uses accessible name `關閉搜尋頁`.
 - Refund record filters use native inputs/selects.
 - Refund record result has an `aria-label` identifying it as a refund record result while keeping ordinary row structure.
 - Refund record rows are buttons that open read-only payment detail.

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckSquare, Search, SlidersHorizontal, X } from "lucide-react";
+import { CheckSquare, Search, SlidersHorizontal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -120,28 +120,30 @@ export function RecordSearchControls({
 
   return (
     <div className="grid shrink-0 gap-3">
-      <Tabs
-        className="gap-0"
-        onValueChange={(value) => onSurfaceChange(value as SearchSurface)}
-        value={activeSurface}
-      >
-        <TabsList aria-label="搜尋類型" className="w-full" variant="line">
-          <TabsTrigger value="records">收支紀錄</TabsTrigger>
-          <TabsTrigger value="reimbursements">退款紀錄</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="flex items-center gap-2 p-0.5">
+      <div className="flex items-center gap-2">
+        <Tabs
+          className="min-w-0 flex-1 gap-0"
+          onValueChange={(value) => onSurfaceChange(value as SearchSurface)}
+          value={activeSurface}
+        >
+          <TabsList aria-label="搜尋類型" className="w-full" variant="line">
+            <TabsTrigger value="records">收支紀錄</TabsTrigger>
+            <TabsTrigger value="reimbursements">退款紀錄</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Button
-          aria-label="返回上一頁"
+          aria-label="關閉搜尋頁"
           className="md:hidden"
           onClick={navigateBack}
           size="icon"
           type="button"
           variant="ghost"
         >
-          <ArrowLeft />
+          <X />
         </Button>
+      </div>
+
+      <div className="flex items-center gap-2 p-0.5">
         <label className="relative block min-w-0 flex-1">
           <Search
             aria-hidden="true"
