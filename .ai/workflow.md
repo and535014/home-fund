@@ -129,6 +129,7 @@ trace_links:
   - .ai/verification/search-reimbursement-payment-records.md
   - .ai/release/search-reimbursement-payment-records-local-dev-readiness.md
   - .ai/learning/search-reimbursement-payment-records.md
+  - .ai/archive/archive-search-reimbursement-payment-records-2026-06-26.md
   - .ai/code-understanding/home-family-fund.md
   - .ai/impact-analysis/home-family-fund-mvp-hardening.md
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
