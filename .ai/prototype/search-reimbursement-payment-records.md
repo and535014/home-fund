@@ -1,7 +1,7 @@
 ---
 id: prototype-search-reimbursement-payment-records
 stage: experience-prototype
-status: approved
+status: review
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -26,7 +26,7 @@ trace_links:
 reviewed_at: 2026-06-25
 ---
 
-# Experience Prototype: Search Reimbursement Payment Records
+# Experience Prototype: Search Refund Records
 
 ## Prototype Summary
 
@@ -35,120 +35,133 @@ reviewed_at: 2026-06-25
 - run_command: `npm run dev`
 - frontend_stack: Next.js App Router, React client components, TypeScript, Tailwind CSS, local shadcn-style components, Lucide icons
 - component_library_usage: existing Button, Dialog, Input, NativeSelect, Item components
-- fixture_or_mock_strategy: Uses the real `/search` page and current ledger search action for ordinary records. Reimbursement payment results are a local fixture in `record-search-panel.tsx`; backend search, database joins, pagination, and persistence are intentionally not implemented in this gate.
+- fixture_or_mock_strategy: Uses the real `/search` page and current ledger search action for ordinary records. Refund record results and related-record readback are local fixtures in `record-search-panel.tsx`; backend search, database joins, pagination, and persistence are intentionally not implemented in this gate.
 - release_target: `local_dev`
 
 ## UX Direction
 
-- Search remains one primary surface.
-- When type is `全部`, a keyword search can return both ordinary ledger records and reimbursement payment evidence in the same result stream.
-- The type filter adds `退款金流`.
-- Selecting `退款金流` filters the result stream to reimbursement payment evidence only.
-- Reimbursement payment evidence uses the same row structure and information density as ordinary ledger results; only the leading category visual is replaced by a reimbursement payment icon.
-- Reimbursement payment evidence is read-only in this slice and does not participate in batch delete or batch refund.
-- Search result count can include reimbursement payment evidence, while net amount remains based on ledger records only so payment evidence is not double-counted.
+- Search remains one primary page, but the search input is scoped by two tabs: `收支紀錄` and `退款紀錄`.
+- `收支紀錄` keeps ordinary ledger-record search, filters, selection mode, pagination, and batch actions.
+- `退款紀錄` has its own keyword search and filter dialog, currently scoped to 收款成員, payment date range, and sort order.
+- Refund record evidence uses the same row structure and information density as ordinary ledger results; only the leading category visual is replaced by a refund record icon.
+- Refund record evidence is read-only in this slice and does not participate in batch delete or batch refund.
+- Already-refunded expense details can expose `查看退款紀錄` to open the related refund record modal.
+- Refund record details expose `查看關聯紀錄` to open the related ledger record list.
 
 ## States Covered
 
-- Initial empty search state remains unchanged.
-- Type filter options: `全部`, `收入`, `支出`, `退款金流`.
-- `全部` plus `退款金流紀錄` keyword can show ordinary records and reimbursement payment evidence together when both match.
-- `退款金流` type with no keyword shows reimbursement payment evidence only.
-- `退款金流` type with keyword filters reimbursement payment evidence.
-- Payment evidence row shows the same visible information shape as an ordinary ledger row:
-  - reimbursement payment icon in the leading visual slot
+- Initial `收支紀錄` empty search state remains unchanged.
+- Search tabs: `收支紀錄`, `退款紀錄`.
+- `收支紀錄` keyword and filters show ordinary ledger records only.
+- `退款紀錄` with no keyword shows refund record evidence.
+- `退款紀錄` with keyword filters refund record evidence.
+- `退款紀錄` filters include 收款成員, payment start/end date, and sort.
+- Refund record row shows the same visible information shape as an ordinary ledger row:
+  - refund record icon in the leading visual slot
   - linked ledger record name
-  - paid-to member
+  - 收款成員
   - amount
   - paid date
-- Payment evidence result uses read-only row treatment without selection control.
-- Payment evidence row opens a read-only detail modal when clicked.
+- Refund record result uses read-only row treatment without selection control.
+- Refund record row opens a read-only detail modal when clicked.
+- Refunded expense detail shows a read-only `查看退款紀錄` action when related evidence is available.
+- Refund record detail shows a read-only `查看關聯紀錄` action.
+- Related ledger records are displayed with the same `RecordListItem` row component as ordinary search results.
 - Ordinary ledger record rows keep selection behavior and detail dialog behavior.
-- Selection mode applies only to ordinary ledger records.
+- Selection mode appears only on the `收支紀錄` tab.
 
 ## Interaction Details
 
-- User searches from `/search` with no type filter:
-  - ledger records continue to load from the existing server action.
-  - matching reimbursement payment fixture results are appended to the same result stream.
-- User opens filter dialog and chooses `退款金流`:
-  - the prototype does not call the existing ledger search action, because `退款金流` is not a `LedgerRecord.type`.
-  - the result stream shows only reimbursement payment evidence fixture results.
+- User opens `/search`:
+  - `收支紀錄` is selected by default.
+  - ledger records continue to load from the existing server action only after a keyword or filter is active.
+- User switches to `退款紀錄`:
+  - the prototype does not call the existing ledger search action.
+  - the list shows refund record fixture results and applies refund-record filters locally.
 - User toggles selection mode:
-  - ordinary records show selection controls as before.
-  - reimbursement payment rows stay read-only and cannot be selected.
+  - selection mode is only available on `收支紀錄`.
+  - refund records stay read-only and cannot be selected.
 - User clicks an ordinary record:
   - existing record detail dialog behavior is preserved.
-- User reviews a reimbursement payment row:
-  - the row mirrors ordinary record rows; the leading reimbursement payment icon identifies the item type.
-- User opens reimbursement payment detail:
+- User clicks an already-refunded expense that has related evidence:
+  - the detail modal can open the related refund record modal through `查看退款紀錄`.
+- User reviews a refund record row:
+  - the row mirrors ordinary record rows; the leading refund record icon identifies the item type.
+- User opens refund record detail:
   - the modal follows the ordinary record detail structure with title, amount card, two-column detail fields, and a note block.
-  - the modal shows linked record name, amount, paid-to member, paid date, payment method, and note/reference.
+  - the modal shows linked record name, amount, 收款成員, paid date, payment method, and note/reference.
   - the modal is read-only and does not show edit, delete, refund, or correction actions.
+  - `查看關聯紀錄` opens a related ledger record list.
 
 ## Responsive Baseline
 
 - Desktop: result rows keep the existing compact list density, with amount/date aligned right.
-- Mobile/narrow: payment evidence row uses the same three-column rhythm as record rows; long member names and linked record names truncate instead of overlapping.
-- The search result area remains one scrollable list.
+- Mobile/narrow: tabs sit above the search row, and refund record rows use the same three-column rhythm as record rows; long member names and linked record names truncate instead of overlapping.
+- The search result area remains one scrollable list per active tab.
 - Footer remains anchored by the existing search page layout.
 
 ## Accessibility And Focus
 
-- Type filter is a native select and includes a clear `退款金流` option.
-- Payment evidence result has an `aria-label` identifying it as a reimbursement payment result while keeping ordinary row structure.
-- Payment evidence rows are buttons that open read-only payment detail.
+- Tabs expose `收支紀錄` and `退款紀錄` as the active search surface.
+- Refund record filters use native inputs/selects.
+- Refund record result has an `aria-label` identifying it as a refund record result while keeping ordinary row structure.
+- Refund record rows are buttons that open read-only payment detail.
 - Ordinary record row buttons and selection controls keep the existing keyboard behavior.
-- Selection mode must not make payment evidence focusable as a selected record candidate.
+- Selection mode is not shown on the `退款紀錄` tab.
+- Cross-modal buttons use ordinary buttons and keep focus within the active dialog.
 
 ## Draft UX Acceptance Criteria
 
-- Users can search without a type filter and see both matching ordinary records and matching `退款金流紀錄`.
-- Users can choose type `退款金流` and see only reimbursement payment evidence.
-- Payment evidence result identity is carried by the reimbursement payment icon while the row keeps the same visible information structure as ordinary results.
-- Payment evidence does not affect ledger net total.
-- Payment evidence is not selectable for batch delete or batch refund.
-- Payment evidence detail opens in a modal that follows the ordinary record detail layout pattern.
+- Users can switch between `收支紀錄` and `退款紀錄` tabs above the search input.
+- `收支紀錄` search returns ordinary ledger records only.
+- `退款紀錄` search returns refund record evidence only.
+- Refund record result identity is carried by the refund record icon while the row keeps the same visible information structure as ordinary results.
+- Refund record evidence does not affect ledger net total.
+- Refund record evidence is not selectable for batch delete or batch refund.
+- Refund record detail opens in a modal that follows the ordinary record detail layout pattern.
+- Already-refunded expense detail can open the related refund record modal.
+- Refund record detail can open a related ledger record list.
 - Ordinary search result detail and selection flows remain available.
 - Empty states remain understandable for no keyword/no filters and no matching payment evidence.
 
 ## E2E Scenario Candidates
 
-- Open `/search`, type `退款金流紀錄`, and verify a reimbursement payment result appears with the same row structure as ordinary records.
-- Search a term that matches an ordinary record and a reimbursement payment fixture, and verify both result types are visible.
-- Open filter dialog, choose `退款金流`, apply, and verify only reimbursement payment evidence is visible.
-- Toggle selection mode while payment evidence is visible and verify payment evidence has no selection control.
-- Click a reimbursement payment result and verify a read-only detail modal opens with amount, paid-to member, paid date, payment method, linked record, and note.
-- Verify the footer count includes visible payment evidence while ledger net total does not add reimbursement payment amount.
-- Click an ordinary record in mixed results and verify the existing detail dialog still opens.
+- Open `/search`, switch to `退款紀錄`, and verify a refund record result appears with the same row structure as ordinary records.
+- Search `退款紀錄` in the refund tab and verify refund records are filtered locally.
+- Open refund-tab filters, choose 收款成員 or payment date range, apply, and verify only matching refund record evidence is visible.
+- Verify selection mode is available on `收支紀錄` and hidden on `退款紀錄`.
+- Click a refund record result and verify a read-only detail modal opens with amount, 收款成員, paid date, payment method, linked record, and note.
+- From refund record detail, click `查看關聯紀錄` and verify a related ledger record list opens.
+- From an already-refunded expense detail, click `查看退款紀錄` and verify the related refund record modal opens.
 
 ## Known Gaps
 
-- Reimbursement payment search is fixture-only; there is no backend query, result union, Prisma include, pagination, or permission enforcement yet.
-- Sorting across `LedgerRecord.occurredOn` and `ReimbursementPayment.paidOn` is not final.
+- Refund record search is fixture-only; there is no backend query, Prisma include, pagination, or permission enforcement yet.
+- Sorting within `退款紀錄` is prototype-local and not final.
 - Search matching fields are illustrative and must be finalized in Behavior Spec.
-- Payment evidence detail is prototype-only and not database-backed yet.
-- Result count and net total behavior need Behavior Spec confirmation.
+- Refund record detail and related-record readback are prototype-only and not database-backed yet.
+- The real relationship shape must support one refund record related to one or many ledger records.
 - Production performance, indexes, and database query plans are deferred to technical design and release readiness.
 
 ## Review Gate
 
-- decision: approved
+- decision: review
 - reviewer_focus:
-  - Confirm `全部` should search ordinary records and reimbursement payment evidence together.
-  - Confirm type filter should include `退款金流`.
-  - Confirm payment evidence is read-only and excluded from batch actions in this slice.
-  - Confirm the reimbursement payment item matches ordinary ledger item structure and information, with only the leading visual changed to the reimbursement payment icon.
-  - Confirm the read-only payment detail modal follows the ordinary record modal structure closely enough.
+  - Confirm `收支紀錄` and `退款紀錄` tabs are the right separation for mobile and desktop.
+  - Confirm refund record filters should be 收款成員, payment date range, and sort for this slice.
+  - Confirm refund record evidence is read-only and excluded from batch actions in this slice.
+  - Confirm the refund record item matches ordinary ledger item structure and information, with only the leading visual changed to the refund record icon.
+  - Confirm the read-only refund record detail modal follows the ordinary record modal structure closely enough.
+  - Confirm refunded expense detail should open related refund record, and refund record detail should open related ledger records.
 - must_check:
   - Prototype remains frontend review work; backend query and persistence are deferred.
-  - Behavior Spec must define exact search matching, result count, totals, selection, permission, and empty-state behavior.
-  - Technical Design must define the result union, data ownership, query/pagination, and no-double-count implementation.
+  - Behavior Spec must define exact search matching, totals, selection, permission, related-record readback, and empty-state behavior.
+  - Technical Design must define data ownership, query/pagination, relationship loading, and no-double-count implementation.
 - acceptance_signals:
-  - User accepts the mixed-result and `退款金流` filter direction.
+  - User accepts the tabs and related-record readback direction.
   - User requests only concrete copy/layout adjustments before Behavior Spec.
   - Prototype gives enough evidence to write BDD/E2E scenarios.
 - unresolved_blockers:
-  - Backend result model and sorting/pagination remain design work.
+  - Backend result model, relationship loading, and sorting/pagination remain design work.
 - next_step:
   - Behavior Spec / BDD / E2E for `search-reimbursement-payment-records`.

@@ -264,7 +264,7 @@ export function RecordListItem({
   );
 }
 
-function RecordSummaryContent({
+export function RecordSummaryContent({
   category,
   memberNames,
   record,
@@ -318,6 +318,7 @@ export function RecordDetailDialog({
   categoryName,
   memberNames,
   onMutationSuccess,
+  onOpenReimbursementPayment,
   onRefresh,
   record,
 }: {
@@ -327,6 +328,7 @@ export function RecordDetailDialog({
   categoryName: string;
   memberNames: Record<string, string>;
   onMutationSuccess: () => void;
+  onOpenReimbursementPayment?: (record: LedgerRecord) => void;
   onRefresh: () => void;
   record: LedgerRecord;
 }) {
@@ -343,6 +345,11 @@ export function RecordDetailDialog({
         } satisfies LedgerRecord)
       : record;
   const access = recordActionAccess(actor, displayedRecord);
+  const canOpenReimbursementPayment =
+    Boolean(onOpenReimbursementPayment) &&
+    displayedRecord.type === "expense" &&
+    displayedRecord.paymentSource === "member" &&
+    displayedRecord.reimbursementStatus === "reimbursed";
 
   if (mode === "edit") {
     return (
@@ -388,7 +395,7 @@ export function RecordDetailDialog({
           setIsRefundedLocally(true);
           setMode("detail");
           toast.success("已完成退款", {
-            description: "這筆紀錄已標記為已退款，並保留退款金流資訊。",
+            description: "這筆紀錄已標記為已退款，並保留退款紀錄資訊。",
             id: `refund-record-success-${record.id}`,
           });
           onRefresh();
@@ -461,7 +468,10 @@ export function RecordDetailDialog({
         </div>
       </DialogBody>
 
-      {(access.canEdit || access.canDelete || access.canRefund) &&
+      {(access.canEdit ||
+        access.canDelete ||
+        access.canRefund ||
+        canOpenReimbursementPayment) &&
       !access.blockedReason ? (
         <DialogFooter className="mt-4">
           {access.canDelete ? (
@@ -478,6 +488,16 @@ export function RecordDetailDialog({
             <Button onClick={() => setMode("refund")} type="button">
               <HandCoins />
               退款
+            </Button>
+          ) : null}
+          {canOpenReimbursementPayment ? (
+            <Button
+              onClick={() => onOpenReimbursementPayment?.(displayedRecord)}
+              type="button"
+              variant="outline"
+            >
+              <HandCoins />
+              查看退款紀錄
             </Button>
           ) : null}
           {access.canEdit ? (

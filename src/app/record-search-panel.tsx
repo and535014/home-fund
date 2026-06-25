@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import {
   CalendarDays,
   HandCoins,
+  ListTree,
   ReceiptText,
   StickyNote,
   UserRound,
@@ -26,7 +27,12 @@ import {
   RecordDetailDialog,
   RecordListItem,
 } from "@/app/record-list-detail";
-import { RecordSearchControls } from "@/app/record-search-controls";
+import {
+  initialReimbursementRecordQueryState,
+  RecordSearchControls,
+  type ReimbursementRecordQueryState,
+  type SearchSurface,
+} from "@/app/record-search-controls";
 import {
   buildRecordQueryOptions,
   initialRecordQueryState,
@@ -44,6 +50,7 @@ import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import type { SearchRecordCursor } from "@/modules/reporting/record-search-query";
 import { formatAmount } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogBody,
@@ -63,7 +70,9 @@ import {
 type ReimbursementPaymentSearchResult = {
   id: string;
   amountCents: number;
+  linkedRecords: LedgerRecord[];
   linkedRecordName: string;
+  method: string;
   methodLabel: string;
   note: string;
   paidOn: string;
@@ -74,7 +83,24 @@ const reimbursementPaymentPrototypeResults: ReimbursementPaymentSearchResult[] =
   {
     id: "prototype-reimbursement-payment-1",
     amountCents: 128000,
+    linkedRecords: [
+      {
+        id: "prototype-reimbursement-payment-1-linked-record-1",
+        type: "expense",
+        amountCents: 128000,
+        categoryId: "prototype-linked-expense-category",
+        createdByMemberId: "prototype-paid-to-member",
+        name: "網路費代墊",
+        occurredOn: "2026-06-15",
+        note: "退款紀錄 prototype 關聯紀錄",
+        payerMemberId: "prototype-paid-to-member",
+        paymentSource: "member",
+        reimbursementStatus: "reimbursed",
+        status: "active",
+      },
+    ],
     linkedRecordName: "網路費代墊",
+    method: "bank_transfer",
     methodLabel: "銀行轉帳",
     note: "末五碼 5521",
     paidOn: "2026-06-18",
@@ -94,6 +120,11 @@ export function RecordSearchPanel({
   memberNames: Record<string, string>;
 }) {
   const [query, setQuery] = useState<RecordQueryState>(initialRecordQueryState);
+  const [activeSurface, setActiveSurface] = useState<SearchSurface>("records");
+  const [paymentQuery, setPaymentQuery] =
+    useState<ReimbursementRecordQueryState>(
+      initialReimbursementRecordQueryState,
+    );
   const [loadedRecords, setLoadedRecords] = useState<LedgerRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<SearchRecordCursor | null>(null);
   const [selectedDetailRecordId, setSelectedDetailRecordId] = useState<string | null>(
@@ -102,6 +133,8 @@ export function RecordSearchPanel({
   const [selectedPaymentResultId, setSelectedPaymentResultId] = useState<
     string | null
   >(null);
+  const [selectedPaymentLinkedResultId, setSelectedPaymentLinkedResultId] =
+    useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [totalNetAmountCents, setTotalNetAmountCents] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,20 +152,27 @@ export function RecordSearchPanel({
     [categories, memberNames],
   );
   const hasActiveQuery = !isInitialRecordQuery(query);
-  const isPaymentOnlyQuery = query.type === "reimbursement_payment";
-  const displayedRecords = hasActiveQuery && !isPaymentOnlyQuery ? loadedRecords : [];
-  const displayedPaymentResults = hasActiveQuery
-    ? reimbursementPaymentPrototypeResults.filter((result) =>
-        reimbursementPaymentResultMatchesQuery(result, query),
-      )
+  const isRecordSurface = activeSurface === "records";
+  const isPaymentSurface = activeSurface === "reimbursements";
+  const displayedRecords = isRecordSurface && hasActiveQuery ? loadedRecords : [];
+  const displayedPaymentResults = isPaymentSurface
+    ? reimbursementPaymentPrototypeResults
+        .filter((result) =>
+          reimbursementPaymentResultMatchesQuery(result, paymentQuery),
+        )
+        .sort((left, right) =>
+          compareReimbursementPaymentResults(left, right, paymentQuery.sort),
+        )
     : [];
-  const ledgerTotalCount = isPaymentOnlyQuery ? 0 : totalCount;
-  const ledgerNetAmountCents = isPaymentOnlyQuery ? 0 : totalNetAmountCents;
+  const ledgerTotalCount = isRecordSurface ? totalCount : 0;
+  const ledgerNetAmountCents = isRecordSurface ? totalNetAmountCents : 0;
   const combinedTotalCount = ledgerTotalCount + displayedPaymentResults.length;
-  const hasMoreRecords = !isPaymentOnlyQuery && Boolean(nextCursor);
-  const emptyMessage = hasActiveQuery
+  const hasMoreRecords = isRecordSurface && Boolean(nextCursor);
+  const emptyMessage = isRecordSurface && hasActiveQuery
       ? "沒有符合條件的紀錄。"
-      : "請輸入關鍵字或設定篩選條件。";
+      : isPaymentSurface
+        ? "沒有符合條件的退款紀錄。"
+        : "請輸入關鍵字或設定篩選條件。";
   const selectedRecords = displayedRecords.filter((record) =>
     selectedRecordIds.has(record.id),
   );
@@ -142,15 +182,20 @@ export function RecordSearchPanel({
   const selectedPaymentResult =
     displayedPaymentResults.find((result) => result.id === selectedPaymentResultId) ??
     null;
+  const selectedPaymentLinkedResult =
+    reimbursementPaymentPrototypeResults.find(
+      (result) => result.id === selectedPaymentLinkedResultId,
+    ) ?? null;
+  const selectedPaymentLinkedRecords = selectedPaymentLinkedResult
+    ? loadedRecords.filter(
+        (record) => record.name === selectedPaymentLinkedResult.linkedRecordName,
+      )
+    : [];
 
   useEffect(() => {
     let isCurrent = true;
 
-    if (!hasActiveQuery) {
-      return;
-    }
-
-    if (isPaymentOnlyQuery) {
+    if (!hasActiveQuery || !isRecordSurface) {
       return;
     }
 
@@ -180,7 +225,7 @@ export function RecordSearchPanel({
     return () => {
       isCurrent = false;
     };
-  }, [hasActiveQuery, isPaymentOnlyQuery, query]);
+  }, [hasActiveQuery, isRecordSurface, query]);
 
   function changeQuery(nextQuery: RecordQueryState) {
     setQuery(nextQuery);
@@ -193,6 +238,21 @@ export function RecordSearchPanel({
       setTotalNetAmountCents(0);
       setLoadError(null);
     }
+  }
+
+  function changePaymentQuery(nextQuery: ReimbursementRecordQueryState) {
+    setPaymentQuery(nextQuery);
+    setSelectedPaymentResultId(null);
+  }
+
+  function changeSurface(nextSurface: SearchSurface) {
+    setActiveSurface(nextSurface);
+    setSelectedRecordIds(new Set());
+    setSelectedDetailRecordId(null);
+    setSelectedPaymentResultId(null);
+    setSelectedPaymentLinkedResultId(null);
+    setLoadError(null);
+    setIsSelectionMode(false);
   }
 
   function toggleRecordSelection(recordId: string) {
@@ -222,7 +282,7 @@ export function RecordSearchPanel({
   }
 
   const loadMoreRecords = useCallback(() => {
-    if (!nextCursor || isLoadingMore || !hasActiveQuery || isPaymentOnlyQuery) {
+    if (!nextCursor || isLoadingMore || !hasActiveQuery || !isRecordSurface) {
       return;
     }
 
@@ -241,7 +301,7 @@ export function RecordSearchPanel({
       setTotalNetAmountCents(result.totalNetAmountCents);
       setLoadError(null);
     });
-  }, [hasActiveQuery, isLoadingMore, isPaymentOnlyQuery, nextCursor, query]);
+  }, [hasActiveQuery, isLoadingMore, isRecordSurface, nextCursor, query]);
 
   function toggleSelectionMode() {
     setIsSelectionMode((current) => {
@@ -256,7 +316,7 @@ export function RecordSearchPanel({
   }
 
   function reloadCurrentQuery() {
-    if (!hasActiveQuery || isPaymentOnlyQuery) {
+    if (!hasActiveQuery || !isRecordSurface) {
       return;
     }
 
@@ -332,10 +392,14 @@ export function RecordSearchPanel({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <RecordSearchControls
+        activeSurface={activeSurface}
         isSelectionMode={isSelectionMode}
         onChange={changeQuery}
+        onPaymentQueryChange={changePaymentQuery}
+        onSurfaceChange={changeSurface}
         onToggleSelectionMode={toggleSelectionMode}
         options={queryOptions}
+        paymentQuery={paymentQuery}
         query={query}
       />
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -360,7 +424,7 @@ export function RecordSearchPanel({
           {loadError}
         </p>
       ) : null}
-      {hasActiveQuery ? (
+      {isRecordSurface && hasActiveQuery ? (
         <BatchSearchFooter
           actor={actor}
           isSelectionMode={isSelectionMode}
@@ -412,6 +476,18 @@ export function RecordSearchPanel({
               setSelectedDetailRecordId(null);
               reloadCurrentQuery();
             }}
+            onOpenReimbursementPayment={(record) => {
+              const payment = reimbursementPaymentPrototypeResults.find(
+                (result) => result.linkedRecordName === record.name,
+              );
+
+              if (!payment) {
+                return;
+              }
+
+              setSelectedDetailRecordId(null);
+              setSelectedPaymentResultId(payment.id);
+            }}
             onRefresh={reloadCurrentQuery}
             record={selectedDetailRecord}
           />
@@ -426,7 +502,30 @@ export function RecordSearchPanel({
         }}
       >
         {selectedPaymentResult ? (
-          <ReimbursementPaymentDetailDialog result={selectedPaymentResult} />
+          <ReimbursementPaymentDetailDialog
+            onOpenLinkedRecords={() => {
+              setSelectedPaymentResultId(null);
+              setSelectedPaymentLinkedResultId(selectedPaymentResult.id);
+            }}
+            result={selectedPaymentResult}
+          />
+        ) : null}
+      </Dialog>
+      <Dialog
+        open={Boolean(selectedPaymentLinkedResult)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedPaymentLinkedResultId(null);
+          }
+        }}
+      >
+        {selectedPaymentLinkedResult ? (
+          <LinkedRecordsDialog
+            categoriesById={categoriesById}
+            memberNames={memberNames}
+            records={selectedPaymentLinkedRecords}
+            result={selectedPaymentLinkedResult}
+          />
         ) : null}
       </Dialog>
     </div>
@@ -535,7 +634,7 @@ function ReimbursementPaymentSearchResultItem({
   return (
     <Item asChild size="sm">
       <button
-        aria-label={`查看${result.linkedRecordName}退款金流詳情`}
+        aria-label={`查看${result.linkedRecordName}退款紀錄詳情`}
         className="w-full text-left"
         onClick={onOpen}
         type="button"
@@ -586,8 +685,10 @@ function ReimbursementPaymentSummaryContent({
 }
 
 function ReimbursementPaymentDetailDialog({
+  onOpenLinkedRecords,
   result,
 }: {
+  onOpenLinkedRecords: () => void;
   result: ReimbursementPaymentSearchResult;
 }) {
   return (
@@ -641,6 +742,84 @@ function ReimbursementPaymentDetailDialog({
           </p>
         </div>
       </DialogBody>
+
+      <div className="mt-4 flex justify-end">
+        <Button onClick={onOpenLinkedRecords} type="button" variant="outline">
+          <ListTree />
+          查看關聯紀錄
+        </Button>
+      </div>
+    </DialogContent>
+  );
+}
+
+function LinkedRecordsDialog({
+  categoriesById,
+  memberNames,
+  records,
+  result,
+}: {
+  categoriesById: Record<string, Category>;
+  memberNames: Record<string, string>;
+  records: LedgerRecord[];
+  result: ReimbursementPaymentSearchResult;
+}) {
+  const fallbackCategory = Object.values(categoriesById).find(
+    (category) => category.type === "expense",
+  );
+  const fallbackLinkedRecords = result.linkedRecords.map((record) => {
+    const paidToMemberId = findMemberIdByName(
+      memberNames,
+      result.paidToMemberName,
+    );
+
+    if (record.type === "income") {
+      return {
+        ...record,
+        categoryId: categoriesById[record.categoryId]
+          ? record.categoryId
+          : (fallbackCategory?.id ?? record.categoryId),
+        createdByMemberId: paidToMemberId ?? record.createdByMemberId,
+      };
+    }
+
+    return {
+      ...record,
+      categoryId: categoriesById[record.categoryId]
+        ? record.categoryId
+        : (fallbackCategory?.id ?? record.categoryId),
+      createdByMemberId: paidToMemberId ?? record.createdByMemberId,
+      payerMemberId: paidToMemberId ?? record.payerMemberId,
+    };
+  });
+  const displayedRecords = records.length > 0 ? records : fallbackLinkedRecords;
+
+  return (
+    <DialogContent aria-describedby={undefined} className="max-w-xl">
+      <DialogHeader>
+        <DialogTitle>關聯紀錄</DialogTitle>
+      </DialogHeader>
+
+      <DialogBody className="grid gap-3">
+        {displayedRecords.length > 0 ? (
+          <ItemGroup className="divide-y divide-border rounded-card border border-border">
+            {displayedRecords.map((record) => (
+              <RecordListItem
+                category={categoriesById[record.categoryId]}
+                isSelected={false}
+                key={record.id}
+                memberNames={memberNames}
+                onOpen={() => undefined}
+                record={record}
+              />
+            ))}
+          </ItemGroup>
+        ) : (
+          <div className="rounded-card border border-border p-4 text-body text-muted-foreground">
+            目前載入的收支紀錄裡沒有找到「{result.linkedRecordName}」。
+          </div>
+        )}
+      </DialogBody>
     </DialogContent>
   );
 }
@@ -665,15 +844,25 @@ function PaymentDetailField({
   );
 }
 
+function findMemberIdByName(
+  memberNames: Record<string, string>,
+  memberName: string,
+) {
+  return Object.entries(memberNames).find(([, name]) => name === memberName)?.[0];
+}
+
 function formatPaymentDate(value: string) {
   return value.replaceAll("-", "/");
 }
 
 function reimbursementPaymentResultMatchesQuery(
   result: ReimbursementPaymentSearchResult,
-  query: RecordQueryState,
+  query: ReimbursementRecordQueryState,
 ) {
-  if (query.type !== "all" && query.type !== "reimbursement_payment") {
+  if (
+    query.paidToMemberName !== "all" &&
+    result.paidToMemberName !== query.paidToMemberName
+  ) {
     return false;
   }
 
@@ -687,14 +876,9 @@ function reimbursementPaymentResultMatchesQuery(
 
   const search = query.search.trim().toLocaleLowerCase("zh-TW");
 
-  if (!search) {
-    return query.type === "reimbursement_payment";
-  }
-
   return [
     "退款",
-    "退款金流",
-    "退款金流紀錄",
+    "退款紀錄",
     result.linkedRecordName,
     result.methodLabel,
     result.note,
@@ -706,4 +890,24 @@ function reimbursementPaymentResultMatchesQuery(
     .join(" ")
     .toLocaleLowerCase("zh-TW")
     .includes(search);
+}
+
+function compareReimbursementPaymentResults(
+  left: ReimbursementPaymentSearchResult,
+  right: ReimbursementPaymentSearchResult,
+  sort: ReimbursementRecordQueryState["sort"],
+) {
+  if (sort === "amount_asc") {
+    return left.amountCents - right.amountCents;
+  }
+
+  if (sort === "amount_desc") {
+    return right.amountCents - left.amountCents;
+  }
+
+  if (sort === "oldest") {
+    return left.paidOn.localeCompare(right.paidOn);
+  }
+
+  return right.paidOn.localeCompare(left.paidOn);
 }
