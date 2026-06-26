@@ -10,12 +10,10 @@ import {
   type BatchDeleteSkippedRecord,
 } from "@/modules/fund-ledger/ledger-record-batch-actions";
 import {
-  batchMarkLedgerRecordsReimbursed,
   type BatchReimbursementSkippedRecord,
 } from "@/modules/reimbursement/reimbursement-batch-actions";
-import { writeReimbursementPaymentSettlement } from "@/modules/reimbursement/reimbursement-command";
+import { batchMarkLedgerRecordsReimbursedInDatabase } from "@/modules/reimbursement/reimbursement-command";
 import {
-  validateReimbursementPaymentEvidence,
   type ReimbursementPaymentEvidenceRejectionReason,
 } from "@/modules/reimbursement/reimbursement-payment";
 import { authorize } from "@/modules/identity-access/authorization";
@@ -340,64 +338,27 @@ export async function batchRefundSearchRecordsAction(input: {
     };
   }
 
-  const payment = validateReimbursementPaymentEvidence(input.payment);
-
-  if (!payment.ok) {
-    return {
-      ok: false,
-      reason: payment.reason,
-      message: messageForPaymentError(payment.reason),
-    };
-  }
-
   try {
-    const prisma = getPrismaClient();
-
-    const result = await prisma.$transaction(async (tx) => {
-      const rows = await tx.ledgerRecord.findMany({
-        where: {
-          householdId: session.access.member.householdId,
-          id: {
-            in: selectedRecordIds,
-          },
-        },
-        select: ledgerRecordSelect,
-      });
-      const domainResult = batchMarkLedgerRecordsReimbursed(
-        session.access.member,
-        rows.map(mapPrismaLedgerRecordToLedgerRecord),
-        { selectedRecordIds, requireSinglePayerMember: true },
-      );
-
-      if (!domainResult.ok) {
-        return domainResult;
-      }
-
-      const settlement = await writeReimbursementPaymentSettlement({
-        tx,
+    const result = await batchMarkLedgerRecordsReimbursedInDatabase(
+      session.access.member,
+      { selectedRecordIds, requireSinglePayerMember: true },
+      {
+        prisma: getPrismaClient(),
         householdId: session.access.member.householdId,
-        actorId: session.access.member.id,
-        reimbursedRecords: domainResult.reimbursedRecords,
-        payment: payment.payment,
-      });
-
-      if (!settlement.ok) {
-        return {
-          ok: false as const,
-          reason: "cross_member_batch" as const,
-          skippedRecords: domainResult.skippedRecords,
-        };
-      }
-
-      return domainResult;
-    });
+        payment: input.payment,
+      },
+    );
 
     if (!result.ok) {
       return {
         ok: false,
         reason: result.reason,
-        skippedRecords: result.skippedRecords,
-        message: messageForBatchRefundError(result.reason),
+        skippedRecords: "skippedRecords" in result
+          ? result.skippedRecords
+          : undefined,
+        message: isPaymentErrorReason(result.reason)
+          ? messageForPaymentError(result.reason)
+          : messageForBatchRefundError(result.reason),
       };
     }
 
@@ -420,6 +381,17 @@ export async function batchRefundSearchRecordsAction(input: {
       message: "批次退款失敗，請稍後再試。",
     };
   }
+}
+
+function isPaymentErrorReason(
+  reason: Extract<BatchSearchRecordActionResult, { ok: false }>["reason"],
+): reason is ReimbursementPaymentEvidenceRejectionReason {
+  return [
+    "invalid_payment_date",
+    "invalid_payment_method",
+    "missing_payment_date",
+    "missing_payment_method",
+  ].includes(String(reason));
 }
 
 function messageForPaymentError(
