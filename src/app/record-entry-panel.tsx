@@ -22,13 +22,12 @@ import {
 } from "./record-create-context";
 import { Button } from "@/components/ui/button";
 import {
-  LedgerRecordAmountField,
+  LedgerRecordAmountNameFields,
   LedgerRecordCancelButton,
   LedgerRecordCategoryField,
   LedgerRecordDateField,
   LedgerRecordFormShell,
   LedgerRecordMemberSelectField,
-  LedgerRecordNameField,
   LedgerRecordNoteField,
 } from "./ledger-record-form-fields";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -140,9 +139,8 @@ function RecordEntryForm({
       submitLabel="新增"
     >
       <LedgerRecordCategoryField categories={activeCategories} />
-      <LedgerRecordAmountField />
-      <LedgerRecordNameField
-        placeholder={
+      <LedgerRecordAmountNameFields
+        namePlaceholder={
           recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
         }
       />
