@@ -44,13 +44,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  LedgerRecordAmountField,
+  LedgerRecordAmountNameFields,
   LedgerRecordCancelButton,
   LedgerRecordCategoryField,
   LedgerRecordDateField,
   LedgerRecordFormShell,
   LedgerRecordMemberSelectField,
-  LedgerRecordNameField,
   LedgerRecordNoteField,
 } from "@/app/ledger-record-form-fields";
 import { Item, ItemGroup } from "@/components/ui/item";
@@ -573,10 +572,10 @@ function EditRecordDialog({
           defaultCategoryId={record.categoryId}
         />
 
-        <LedgerRecordAmountField
-          defaultValue={String(record.amountCents / 100)}
+        <LedgerRecordAmountNameFields
+          amountDefaultValue={String(record.amountCents / 100)}
+          nameDefaultValue={record.name}
         />
-        <LedgerRecordNameField defaultValue={record.name} />
 
         <div
           className={

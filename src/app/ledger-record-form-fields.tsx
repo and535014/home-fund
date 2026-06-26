@@ -92,7 +92,7 @@ export function LedgerRecordCategoryField({
       ) : (
         <div
           aria-label="分類"
-          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-cols-5 sm:gap-x-4 sm:gap-y-5 sm:overflow-visible sm:px-1 sm:pb-3 sm:pt-1"
+          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-flow-col sm:grid-rows-2 sm:auto-cols-[4.5rem] sm:gap-x-4 sm:gap-y-5 sm:overflow-x-auto sm:px-1 sm:pb-3 sm:pt-1"
           role="radiogroup"
         >
           {orderedCategories.map((category) => {
@@ -100,7 +100,7 @@ export function LedgerRecordCategoryField({
 
             return (
               <label
-                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-auto"
+                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-full"
                 key={category.id}
               >
                 <input
@@ -173,6 +173,26 @@ export function LedgerRecordMemberSelectField({
         ))}
       </NativeSelect>
     </Field>
+  );
+}
+
+export function LedgerRecordAmountNameFields({
+  amountDefaultValue,
+  nameDefaultValue,
+  namePlaceholder,
+}: {
+  amountDefaultValue?: string;
+  nameDefaultValue?: string;
+  namePlaceholder?: string;
+}) {
+  return (
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4">
+      <LedgerRecordAmountField defaultValue={amountDefaultValue} />
+      <LedgerRecordNameField
+        defaultValue={nameDefaultValue}
+        placeholder={namePlaceholder}
+      />
+    </div>
   );
 }
 

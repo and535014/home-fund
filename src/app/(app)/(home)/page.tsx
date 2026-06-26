@@ -43,7 +43,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 		]),
 	);
 	const monthRecords = dashboardData.records.filter((record) =>
-		record.occurredOn.startsWith(`${month}-`),
+		record.status === "active" && record.occurredOn.startsWith(`${month}-`),
 	);
 	const visibleMonthRecords = monthRecords.toReversed();
 	const trendPoints = buildMonthlyTrendPoints(month, monthRecords);
