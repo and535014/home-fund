@@ -60,6 +60,7 @@ trace_links:
   - .ai/release/category-visual-identity-local-dev-readiness.md
   - .ai/learning/category-visual-identity.md
   - .ai/archive/archive-category-visual-identity-2026-06-21.md
+  - .ai/intent/category-archive-visibility-toggle.md
   - .ai/intent/edit-delete-ledger-records.md
   - .ai/domain-impact/edit-delete-ledger-records.md
   - .ai/prototype/edit-delete-ledger-records.md
@@ -145,7 +146,7 @@ trace_links:
   - .ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md
   - .ai/release/home-family-fund-local-dev-readiness.md
   - .ai/archive/archive-local-dev-mvp-hardening-2026-06-18.md
-reviewed_at: 2026-06-25
+reviewed_at: 2026-06-26
 ---
 
 # DDD Harness Workflow
