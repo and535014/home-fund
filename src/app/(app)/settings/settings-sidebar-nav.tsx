@@ -3,6 +3,7 @@
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useFormStatus } from "react-dom";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -77,14 +78,22 @@ export function SettingsLogoutButton({ className }: { className?: string }) {
     <SidebarMenu className={className}>
       <SidebarMenuItem>
         <form action="/auth/logout" method="post">
-          <SidebarMenuButton asChild size="lg">
-            <button className="w-full" type="submit">
-              <LogOut aria-hidden="true" size={18} />
-              <span>登出</span>
-            </button>
-          </SidebarMenuButton>
+          <SettingsLogoutSubmitButton />
         </form>
       </SidebarMenuItem>
     </SidebarMenu>
+  );
+}
+
+function SettingsLogoutSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <SidebarMenuButton asChild size="lg">
+      <button className="w-full" disabled={pending} type="submit">
+        <LogOut aria-hidden="true" size={18} />
+        <span>{pending ? "登出中..." : "登出"}</span>
+      </button>
+    </SidebarMenuButton>
   );
 }

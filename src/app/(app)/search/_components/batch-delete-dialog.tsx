@@ -17,12 +17,14 @@ import { canBatchDeleteRecord } from "../_lib/record-search-batch-utils";
 
 export function BatchDeleteDialog({
   actor,
+  isPending = false,
   onCancel,
   onConfirm,
   open,
   records,
 }: {
   actor: HouseholdAccessProfile;
+  isPending?: boolean;
   onCancel: () => void;
   onConfirm: (eligibleRecords: LedgerRecord[]) => void;
   open: boolean;
@@ -34,7 +36,10 @@ export function BatchDeleteDialog({
   const skippedCount = records.length - eligibleRecords.length;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => !isPending && !isOpen && onCancel()}
+    >
       <DialogContent aria-describedby={undefined} className="max-w-md">
         <DialogHeader>
           <DialogTitle>確認批次刪除</DialogTitle>
@@ -63,18 +68,23 @@ export function BatchDeleteDialog({
         </DialogBody>
 
         <DialogFooter className="mt-4">
-          <Button onClick={onCancel} type="button" variant="outline">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
             <X />
             取消
           </Button>
           <Button
-            disabled={eligibleRecords.length === 0}
+            disabled={isPending || eligibleRecords.length === 0}
             onClick={() => onConfirm(eligibleRecords)}
             type="button"
             variant="destructive"
           >
             <Trash2 />
-            確認刪除
+            {isPending ? "刪除中..." : "確認刪除"}
           </Button>
         </DialogFooter>
       </DialogContent>

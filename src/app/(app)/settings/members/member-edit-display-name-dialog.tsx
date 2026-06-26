@@ -60,7 +60,14 @@ export function EditMemberDisplayNameDialog({
   );
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={Boolean(member)}>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!isPending) {
+          onOpenChange(open);
+        }
+      }}
+      open={Boolean(member)}
+    >
       <DialogContent aria-describedby={undefined}>
         <form action={formAction} className="grid gap-4">
           <DialogHeader>
@@ -70,6 +77,7 @@ export function EditMemberDisplayNameDialog({
           <Field>
             <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
             <Input
+              disabled={isPending}
               key={member?.id ?? "display-name"}
               defaultValue={member?.displayName ?? ""}
               id="display-name"
@@ -81,6 +89,7 @@ export function EditMemberDisplayNameDialog({
           </Field>
           <DialogFooter>
             <Button
+              disabled={isPending}
               onClick={() => onOpenChange(false)}
               type="button"
               variant="secondary"
@@ -88,7 +97,7 @@ export function EditMemberDisplayNameDialog({
               取消
             </Button>
             <Button disabled={isPending} type="submit">
-              儲存
+              {isPending ? "儲存中..." : "儲存"}
             </Button>
           </DialogFooter>
         </form>

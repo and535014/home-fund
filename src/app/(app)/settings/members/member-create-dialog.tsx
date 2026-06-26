@@ -66,7 +66,9 @@ export function CreateMemberDialog({
   return (
     <Dialog
       onOpenChange={(nextOpen) => {
-        onOpenChange(nextOpen);
+        if (!isPending) {
+          onOpenChange(nextOpen);
+        }
       }}
       open={open}
     >
@@ -79,7 +81,11 @@ export function CreateMemberDialog({
             <FieldLabel htmlFor="member-display-name">
               顯示名稱
             </FieldLabel>
-            <Input id="member-display-name" name="displayName" />
+            <Input
+              disabled={isPending}
+              id="member-display-name"
+              name="displayName"
+            />
             {actionState.fieldErrors?.displayName?.map((error) => (
               <FieldError key={error}>{error}</FieldError>
             ))}
@@ -88,6 +94,7 @@ export function CreateMemberDialog({
             <FieldLabel htmlFor="member-role">角色</FieldLabel>
             <NativeSelect
               defaultValue="general_member"
+              disabled={isPending}
               id="member-role"
               name="role"
             >
@@ -105,6 +112,7 @@ export function CreateMemberDialog({
           </Field>
           <DialogFooter>
             <Button
+              disabled={isPending}
               onClick={() => onOpenChange(false)}
               type="button"
               variant="secondary"
@@ -113,7 +121,7 @@ export function CreateMemberDialog({
             </Button>
             <Button disabled={isPending} type="submit">
               <UserPlus aria-hidden="true" size={18} />
-              建立成員
+              {isPending ? "建立中..." : "建立成員"}
             </Button>
           </DialogFooter>
         </form>

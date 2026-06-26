@@ -29,6 +29,7 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -130,9 +131,11 @@ export function CategoryPanel({
 
 export function CategoryArchiveVisibilitySwitch({
   checked,
+  disabled = false,
   onCheckedChange,
 }: {
   checked: boolean;
+  disabled?: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
@@ -147,6 +150,7 @@ export function CategoryArchiveVisibilitySwitch({
         <Switch
           aria-label="顯示封存分類"
           checked={checked}
+          disabled={disabled}
           onCheckedChange={onCheckedChange}
         />
       </ItemActions>
@@ -165,6 +169,7 @@ export function CategoryForm({
   onNameChange,
   onSubmit,
   onTypeChange,
+  pending = false,
   submitLabel,
   type,
   typeDisabled = false,
@@ -179,6 +184,7 @@ export function CategoryForm({
   onNameChange: (name: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onTypeChange: (type: CategoryType) => void;
+  pending?: boolean;
   submitLabel: string;
   type: CategoryType;
   typeDisabled?: boolean;
@@ -189,92 +195,97 @@ export function CategoryForm({
       <input name="color" type="hidden" value={color} />
       <input name="icon" type="hidden" value={icon} />
       <DialogBody>
-        <FieldGroup>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="category-type">類型</FieldLabel>
-              <NativeSelect
-                disabled={typeDisabled}
-                id="category-type"
-                name="type"
-                onChange={(event) =>
-                  onTypeChange(event.currentTarget.value as CategoryType)
-                }
-                value={type}
-              >
-                <NativeSelectOption value="income">收入</NativeSelectOption>
-                <NativeSelectOption value="expense">支出</NativeSelectOption>
-              </NativeSelect>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
-              <Input
-                id="category-name"
-                name="name"
-                onChange={(event) => onNameChange(event.target.value)}
-                placeholder="例如：水電費"
-                value={name}
-              />
-              {fieldError ? <FieldError>{fieldError}</FieldError> : null}
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel>顏色</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_COLOR_OPTIONS.map((option) => (
-                  <Toggle
-                    aria-label={option.label}
-                    className={cn(
-                      "p-0",
-                      color === option.value && "bg-background",
-                    )}
-                    key={option.value}
-                    onPressedChange={(pressed) => {
-                      if (pressed) {
-                        onColorChange(option.value);
-                      }
-                    }}
-                    pressed={color === option.value}
-                    size="icon"
-                    variant="outline"
-                  >
-                    <span
-                      className="size-5 rounded-full"
-                      style={{ backgroundColor: option.cssColor }}
-                    />
-                  </Toggle>
-                ))}
-              </div>
-            </Field>
-            <Field>
-              <FieldLabel>Icon</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_ICON_OPTIONS.map(({ Icon, key, label }) => (
-                  <Toggle
-                    aria-label={label}
-                    key={key}
-                    onPressedChange={(pressed) => {
-                      if (pressed) {
-                        onIconChange(key);
-                      }
-                    }}
-                    pressed={icon === key}
-                    size="icon"
-                    variant="outline"
-                  >
-                    <Icon aria-hidden="true" size={17} />
-                  </Toggle>
-                ))}
-              </div>
-            </Field>
-          </div>
-        </FieldGroup>
+        <FieldSet
+          className="contents disabled:pointer-events-none disabled:opacity-70"
+          disabled={pending}
+        >
+          <FieldGroup>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="category-type">類型</FieldLabel>
+                <NativeSelect
+                  disabled={typeDisabled}
+                  id="category-type"
+                  name="type"
+                  onChange={(event) =>
+                    onTypeChange(event.currentTarget.value as CategoryType)
+                  }
+                  value={type}
+                >
+                  <NativeSelectOption value="income">收入</NativeSelectOption>
+                  <NativeSelectOption value="expense">支出</NativeSelectOption>
+                </NativeSelect>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
+                <Input
+                  id="category-name"
+                  name="name"
+                  onChange={(event) => onNameChange(event.target.value)}
+                  placeholder="例如：水電費"
+                  value={name}
+                />
+                {fieldError ? <FieldError>{fieldError}</FieldError> : null}
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel>顏色</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_COLOR_OPTIONS.map((option) => (
+                    <Toggle
+                      aria-label={option.label}
+                      className={cn(
+                        "p-0",
+                        color === option.value && "bg-background",
+                      )}
+                      key={option.value}
+                      onPressedChange={(pressed) => {
+                        if (pressed) {
+                          onColorChange(option.value);
+                        }
+                      }}
+                      pressed={color === option.value}
+                      size="icon"
+                      variant="outline"
+                    >
+                      <span
+                        className="size-5 rounded-full"
+                        style={{ backgroundColor: option.cssColor }}
+                      />
+                    </Toggle>
+                  ))}
+                </div>
+              </Field>
+              <Field>
+                <FieldLabel>Icon</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_ICON_OPTIONS.map(({ Icon, key, label }) => (
+                    <Toggle
+                      aria-label={label}
+                      key={key}
+                      onPressedChange={(pressed) => {
+                        if (pressed) {
+                          onIconChange(key);
+                        }
+                      }}
+                      pressed={icon === key}
+                      size="icon"
+                      variant="outline"
+                    >
+                      <Icon aria-hidden="true" size={17} />
+                    </Toggle>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          </FieldGroup>
+        </FieldSet>
       </DialogBody>
       <DialogFooter>
-        <Button type="submit">
+        <Button disabled={pending} type="submit">
           <Tags aria-hidden="true" />
-          {submitLabel}
+          {pending ? "處理中..." : submitLabel}
         </Button>
       </DialogFooter>
     </form>
@@ -380,6 +391,7 @@ function CategoryListItem({
             <TooltipTrigger asChild>
               <Button
                 aria-label={`取消封存 ${category.name}`}
+                disabled={pending}
                 onClick={() => onUnarchive(category)}
                 size="icon-sm"
                 type="button"
@@ -412,6 +424,7 @@ function CategoryListItem({
           <Button
             aria-label={`修改 ${category.name}`}
             aria-pressed={editingId === category.id}
+            disabled={pending}
             onClick={() => onEdit(category)}
             size="icon-sm"
             type="button"
@@ -421,6 +434,7 @@ function CategoryListItem({
           </Button>
           <Button
             aria-label={`封存 ${category.name}`}
+            disabled={pending}
             onClick={() => onArchive(category)}
             size="icon-sm"
             type="button"

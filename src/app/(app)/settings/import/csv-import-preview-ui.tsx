@@ -85,6 +85,7 @@ export function CsvImportEmptyState({
               <Input
                 accept=".csv,text/csv"
                 className="sr-only"
+                disabled={isPending}
                 onChange={(event) => onFileSelected(event.target.files?.[0])}
                 type="file"
               />
@@ -109,10 +110,12 @@ export function CsvImportEmptyState({
 
 export function SelectedImportFileItem({
   fileName,
+  isPending = false,
   onFileSelected,
   onRemove,
 }: {
   fileName: string;
+  isPending?: boolean;
   onFileSelected: (file: File | undefined) => void;
   onRemove: () => void;
 }) {
@@ -130,6 +133,7 @@ export function SelectedImportFileItem({
         <ItemActions>
           <Button
             aria-label="移除匯入檔案"
+            disabled={isPending}
             onClick={onRemove}
             size="icon-sm"
             type="button"
@@ -143,6 +147,7 @@ export function SelectedImportFileItem({
               <Input
                 accept=".csv,text/csv"
                 className="sr-only"
+                disabled={isPending}
                 onChange={(event) => onFileSelected(event.target.files?.[0])}
                 type="file"
               />
@@ -168,6 +173,7 @@ export function CsvImportErrorMessage({ message }: { message: string | null }) {
 
 export function CsvImportPreviewTable({
   categories,
+  isPending = false,
   mappedCategoryId,
   mappedMemberId,
   members,
@@ -178,6 +184,7 @@ export function CsvImportPreviewTable({
   summary,
 }: {
   categories: CategoryOption[];
+  isPending?: boolean;
   mappedCategoryId: (row: LedgerImportPreviewRow) => string;
   mappedMemberId: (row: LedgerImportPreviewRow) => string;
   members: MemberOption[];
@@ -229,22 +236,26 @@ export function CsvImportPreviewTable({
       <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-background">
         <TableRow>
           <SortableTableHead
+            disabled={isPending}
             label="CSV 列"
             onSort={() => toggleSort("csvRowNumber")}
             sort={sort?.key === "csvRowNumber" ? sort : null}
           />
           <SortableTableHead
+            disabled={isPending}
             label="類型"
             onSort={() => toggleSort("type")}
             sort={sort?.key === "type" ? sort : null}
           />
           <SortableTableHead
+            disabled={isPending}
             label="日期"
             onSort={() => toggleSort("date")}
             sort={sort?.key === "date" ? sort : null}
           />
           <TableHead>內容</TableHead>
           <SortableTableHead
+            disabled={isPending}
             label="金額"
             onSort={() => toggleSort("amount")}
             sort={sort?.key === "amount" ? sort : null}
@@ -252,6 +263,7 @@ export function CsvImportPreviewTable({
           <TableHead className="min-w-36">成員對照</TableHead>
           <TableHead className="min-w-36">分類對照</TableHead>
           <SortableTableHead
+            disabled={isPending}
             label="狀態"
             onSort={() => toggleSort("status")}
             sort={sort?.key === "status" ? sort : null}
@@ -293,7 +305,7 @@ export function CsvImportPreviewTable({
               <TableCell className="min-w-36">
                 <NativeSelect
                   aria-label={`第 ${row.csvRowNumber} 列成員對照`}
-                  disabled={removed || row.raw.type === "fund_expense"}
+                  disabled={isPending || removed || row.raw.type === "fund_expense"}
                   onChange={(event) =>
                     onRowMappingChange(
                       row.csvRowNumber,
@@ -324,7 +336,7 @@ export function CsvImportPreviewTable({
               <TableCell className="min-w-36">
                 <NativeSelect
                   aria-label={`第 ${row.csvRowNumber} 列分類對照`}
-                  disabled={removed}
+                  disabled={isPending || removed}
                   onChange={(event) =>
                     onRowMappingChange(
                       row.csvRowNumber,
@@ -358,6 +370,7 @@ export function CsvImportPreviewTable({
                 {removed ? (
                   <Button
                     aria-label={`加回第 ${row.csvRowNumber} 列`}
+                    disabled={isPending}
                     onClick={() => onRowRemovedChange(row.csvRowNumber, false)}
                     size="icon-sm"
                     type="button"
@@ -368,6 +381,7 @@ export function CsvImportPreviewTable({
                 ) : (
                   <Button
                     aria-label={`移除第 ${row.csvRowNumber} 列`}
+                    disabled={isPending}
                     onClick={() => onRowRemovedChange(row.csvRowNumber, true)}
                     size="icon-sm"
                     type="button"
@@ -387,10 +401,12 @@ export function CsvImportPreviewTable({
 }
 
 function SortableTableHead({
+  disabled = false,
   label,
   onSort,
   sort,
 }: {
+  disabled?: boolean;
   label: string;
   onSort: () => void;
   sort: PreviewTableSort;
@@ -415,6 +431,7 @@ function SortableTableHead({
         <Button
           aria-label={`依${label}${directionLabel ? `切換${directionLabel}排序` : "排序"}`}
           className="text-muted-foreground hover:text-foreground"
+          disabled={disabled}
           onClick={onSort}
           size="icon-xs"
           type="button"

@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 
 export function ReimbursementPaymentFields({
+  disabled = false,
   idPrefix,
 }: {
+  disabled?: boolean;
   idPrefix: string;
 }) {
   const defaultPaidOn = useMemo(() => formatLocalDate(new Date()), []);
@@ -29,6 +31,7 @@ export function ReimbursementPaymentFields({
           </FieldLabel>
           <NativeSelect
             defaultValue="bank_transfer"
+            disabled={disabled}
             id={`${idPrefix}-method`}
             name="reimbursementMethod"
           >
@@ -44,6 +47,7 @@ export function ReimbursementPaymentFields({
           </FieldLabel>
           <Input
             defaultValue={defaultPaidOn}
+            disabled={disabled}
             id={`${idPrefix}-paid-on`}
             name="reimbursementPaidOn"
             type="date"
@@ -56,6 +60,7 @@ export function ReimbursementPaymentFields({
           交易備註
         </FieldLabel>
         <Input
+          disabled={disabled}
           id={`${idPrefix}-reference`}
           name="reimbursementReference"
           placeholder="可填轉帳末五碼、收據資訊或付款備註"

@@ -1,6 +1,5 @@
 import { MailPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { getPrismaClient } from "@/db/prisma";
 import { validateMemberInvitationTokenInDatabase } from "@/modules/identity-access/member-invitation-command";
 
@@ -58,15 +58,16 @@ export default async function InviteAcceptPage({
           ) : null}
           <form action="/auth/google" method="post">
             <input name="inviteToken" type="hidden" value={token ?? ""} />
-            <Button
+            <FormSubmitButton
               className="mt-5 w-full"
               disabled={!canSubmit}
+              pendingLabel="登入中..."
               size="lg"
               type="submit"
             >
               <MailPlus aria-hidden="true" size={18} />
               <span>使用 Google 登入</span>
-            </Button>
+            </FormSubmitButton>
           </form>
         </CardContent>
       </Card>

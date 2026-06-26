@@ -251,6 +251,7 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
       <SelectedImportFileItem
         fileName={preview.fileName}
+        isPending={isPending}
         onFileSelected={handleFileSelected}
         onRemove={resetImportState}
       />
@@ -259,6 +260,7 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
 
       <CsvImportPreviewTable
         categories={categories}
+        isPending={isPending}
         mappedCategoryId={mappedCategoryId}
         mappedMemberId={mappedMemberId}
         members={members}
@@ -276,7 +278,7 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
 
       <div className="flex justify-end">
         <Button disabled={!canImport} onClick={handleImport} type="button">
-          匯入
+          {isPending ? "匯入中..." : "匯入"}
         </Button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { AlertTriangle, LogIn } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   Card,
   CardContent,
@@ -69,10 +70,15 @@ export default async function MemberBindPage({ searchParams }: BindPageProps) {
                   type="hidden"
                   value={bindState.kind === "valid" ? bindState.token : ""}
                 />
-                <Button className="w-full" size="lg" type="submit">
+                <FormSubmitButton
+                  className="w-full"
+                  pendingLabel="登入中..."
+                  size="lg"
+                  type="submit"
+                >
                   <LogIn aria-hidden="true" size={18} />
                   使用 Google 登入
-                </Button>
+                </FormSubmitButton>
               </form>
             </>
           )}

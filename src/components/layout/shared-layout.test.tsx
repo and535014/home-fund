@@ -97,11 +97,13 @@ describe("shared app layout", () => {
           canCreateRecordsForOthers: false,
           categories: [],
           close: () => undefined,
+          isCreatePending: false,
           members: [],
           mode: null,
           onRecordCreated: () => undefined,
           openExpense: () => undefined,
           openIncome: () => undefined,
+          setCreatePending: () => undefined,
           profile: {
             capabilities: ["manage_categories"],
             id: "member-1",
