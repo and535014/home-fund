@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Field,
-  FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
@@ -215,7 +215,7 @@ export function CategoryForm({
                 placeholder="例如：水電費"
                 value={name}
               />
-              {fieldError ? <FieldDescription>{fieldError}</FieldDescription> : null}
+              {fieldError ? <FieldError>{fieldError}</FieldError> : null}
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

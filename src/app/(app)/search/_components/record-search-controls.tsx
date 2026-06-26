@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -133,7 +134,8 @@ export function RecordSearchControls({
       </div>
 
       <div className="flex items-center gap-2 p-0.5">
-        <label className="relative block min-w-0 flex-1">
+        <Field className="relative min-w-0 flex-1 gap-0">
+          <FieldLabel className="sr-only">搜尋紀錄</FieldLabel>
           <Search
             aria-hidden="true"
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -169,7 +171,7 @@ export function RecordSearchControls({
               <X />
             </Button>
           ) : null}
-        </label>
+        </Field>
 
         {!isPaymentSurface ? (
           <Button
@@ -324,8 +326,8 @@ function RecordFilterFields({
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        <label className="grid gap-2 text-label">
-          類型
+        <Field>
+          <FieldLabel>類型</FieldLabel>
           <NativeSelect
             aria-label="依類型篩選"
             onChange={(event) => onTypeChange(event.currentTarget.value)}
@@ -335,10 +337,10 @@ function RecordFilterFields({
             <option disabled={incomeOptionDisabled} value="income">收入</option>
             <option value="expense">支出</option>
           </NativeSelect>
-        </label>
+        </Field>
 
-        <label className="grid gap-2 text-label">
-          分類
+        <Field>
+          <FieldLabel>分類</FieldLabel>
           <NativeSelect
             aria-label="依分類篩選"
             onChange={(event) => onChange({ categoryId: event.currentTarget.value })}
@@ -351,12 +353,12 @@ function RecordFilterFields({
               </option>
             ))}
           </NativeSelect>
-        </label>
+        </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="grid gap-2 text-label">
-          收支對象
+        <Field>
+          <FieldLabel>收支對象</FieldLabel>
           <NativeSelect
             aria-label="依收支對象篩選"
             onChange={(event) =>
@@ -371,10 +373,10 @@ function RecordFilterFields({
               </option>
             ))}
           </NativeSelect>
-        </label>
+        </Field>
 
-        <label className="grid gap-2 text-label">
-          退款狀態
+        <Field>
+          <FieldLabel>退款狀態</FieldLabel>
           <NativeSelect
             aria-label="依退款狀態篩選"
             disabled={reimbursementStatusDisabled}
@@ -387,27 +389,27 @@ function RecordFilterFields({
             <option value="refunded">已退款</option>
             <option value="unrefunded">未退款</option>
           </NativeSelect>
-        </label>
+        </Field>
 
-        <label className="grid gap-2 text-label">
-          開始日期
+        <Field>
+          <FieldLabel>開始日期</FieldLabel>
           <Input
             aria-label="開始日期"
             onChange={(event) => onChange({ dateFrom: event.currentTarget.value })}
             type="date"
             value={draftQuery.dateFrom}
           />
-        </label>
+        </Field>
 
-        <label className="grid gap-2 text-label">
-          結束日期
+        <Field>
+          <FieldLabel>結束日期</FieldLabel>
           <Input
             aria-label="結束日期"
             onChange={(event) => onChange({ dateTo: event.currentTarget.value })}
             type="date"
             value={draftQuery.dateTo}
           />
-        </label>
+        </Field>
       </div>
 
       <SortField
@@ -431,8 +433,8 @@ function ReimbursementPaymentFilterFields({
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        <label className="grid gap-2 text-label">
-          收款成員
+        <Field>
+          <FieldLabel>收款成員</FieldLabel>
           <NativeSelect
             aria-label="依收款成員篩選"
             onChange={(event) =>
@@ -447,7 +449,7 @@ function ReimbursementPaymentFilterFields({
               </option>
             ))}
           </NativeSelect>
-        </label>
+        </Field>
 
         <SortField
           label="排序"
@@ -455,25 +457,25 @@ function ReimbursementPaymentFilterFields({
           value={draftPaymentQuery.sort}
         />
 
-        <label className="grid gap-2 text-label">
-          付款開始日期
+        <Field>
+          <FieldLabel>付款開始日期</FieldLabel>
           <Input
             aria-label="付款開始日期"
             onChange={(event) => onChange({ dateFrom: event.currentTarget.value })}
             type="date"
             value={draftPaymentQuery.dateFrom}
           />
-        </label>
+        </Field>
 
-        <label className="grid gap-2 text-label">
-          付款結束日期
+        <Field>
+          <FieldLabel>付款結束日期</FieldLabel>
           <Input
             aria-label="付款結束日期"
             onChange={(event) => onChange({ dateTo: event.currentTarget.value })}
             type="date"
             value={draftPaymentQuery.dateTo}
           />
-        </label>
+        </Field>
       </div>
     </>
   );
@@ -489,8 +491,8 @@ function SortField<TSort extends string>({
   value: TSort;
 }) {
   return (
-    <label className="grid gap-2 text-label">
-      {label}
+    <Field>
+      <FieldLabel>{label}</FieldLabel>
       <NativeSelect
         aria-label={label}
         onChange={(event) =>
@@ -503,7 +505,7 @@ function SortField<TSort extends string>({
         <option value="amount_desc">金額高到低</option>
         <option value="amount_asc">金額低到高</option>
       </NativeSelect>
-    </label>
+    </Field>
   );
 }
 
