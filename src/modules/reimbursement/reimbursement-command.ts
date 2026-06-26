@@ -1,7 +1,12 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import {
+  mapPrismaExpenseLedgerRecordToExpenseLedgerRecord,
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaExpenseLedgerRecordSelect,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type {
   ExpenseLedgerRecord,
-  LedgerRecord,
 } from "@/modules/fund-ledger/ledger-records";
 import type { AuthenticatedMember } from "@/modules/identity-access/authorization";
 import {
@@ -78,24 +83,11 @@ export async function markExpensesReimbursedInDatabase(
         type: "expense",
         status: "active",
       },
-      select: {
-        id: true,
-        type: true,
-        name: true,
-        amountCents: true,
-        occurredOn: true,
-        categoryId: true,
-        createdByMemberId: true,
-        paymentSource: true,
-        payerMemberId: true,
-        reimbursementStatus: true,
-        status: true,
-        note: true,
-      },
+      select: prismaExpenseLedgerRecordSelect,
     });
     const result = markExpensesReimbursed(
       actor,
-      records.map(mapPrismaRecordToExpense),
+      records.map(mapPrismaExpenseLedgerRecordToExpenseLedgerRecord),
       { selectedExpenseIds },
     );
 
@@ -144,11 +136,11 @@ export async function batchMarkLedgerRecordsReimbursedInDatabase(
           in: selectedRecordIds,
         },
       },
-      select: reimbursementLedgerRecordSelect(),
+      select: prismaLedgerRecordSelect,
     });
     const result = batchMarkLedgerRecordsReimbursed(
       actor,
-      rows.map(mapPrismaRecordToLedgerRecord),
+      rows.map(mapPrismaLedgerRecordToLedgerRecord),
       command,
     );
 
@@ -244,103 +236,4 @@ export async function writeReimbursementPaymentSettlement(
 
 function dateOnlyToDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-function reimbursementLedgerRecordSelect() {
-  return {
-    id: true,
-    type: true,
-    name: true,
-    amountCents: true,
-    occurredOn: true,
-    categoryId: true,
-    createdByMemberId: true,
-    sourceMemberId: true,
-    paymentSource: true,
-    payerMemberId: true,
-    reimbursementStatus: true,
-    status: true,
-    note: true,
-  } as const;
-}
-
-function mapPrismaRecordToExpense(record: {
-  id: string;
-  type: "expense" | "income";
-  name: string;
-  amountCents: number;
-  occurredOn: Date;
-  categoryId: string;
-  createdByMemberId: string;
-  paymentSource: "fund" | "member" | null;
-  payerMemberId: string | null;
-  reimbursementStatus: "not_applicable" | "not_refundable" | "refundable" | "reimbursed";
-  status: "active" | "voided";
-  note: string | null;
-}): ExpenseLedgerRecord {
-  return {
-    id: record.id,
-    type: "expense",
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: record.occurredOn.toISOString().slice(0, 10),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-}
-
-function mapPrismaRecordToLedgerRecord(record: {
-  id: string;
-  type: "expense" | "income";
-  name: string;
-  amountCents: number;
-  occurredOn: Date;
-  categoryId: string;
-  createdByMemberId: string;
-  sourceMemberId: string | null;
-  paymentSource: "fund" | "member" | null;
-  payerMemberId: string | null;
-  reimbursementStatus: "not_applicable" | "not_refundable" | "refundable" | "reimbursed";
-  status: "active" | "voided";
-  note: string | null;
-}): LedgerRecord {
-  const base = {
-    id: record.id,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: record.occurredOn.toISOString().slice(0, 10),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    reimbursementStatus: record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-  };
 }

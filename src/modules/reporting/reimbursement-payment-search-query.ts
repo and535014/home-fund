@@ -1,4 +1,8 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export const REIMBURSEMENT_PAYMENT_PAGE_SIZE = 100;
@@ -54,22 +58,6 @@ export type ReimbursementPaymentSearchPageResult = {
 type SortDirection = "asc" | "desc";
 type ReimbursementPaymentMethod = "bank_transfer" | "cash" | "other";
 
-const reimbursementPaymentLedgerRecordSelect = {
-  id: true,
-  type: true,
-  name: true,
-  amountCents: true,
-  occurredOn: true,
-  categoryId: true,
-  createdByMemberId: true,
-  sourceMemberId: true,
-  paymentSource: true,
-  payerMemberId: true,
-  reimbursementStatus: true,
-  status: true,
-  note: true,
-} satisfies Prisma.LedgerRecordSelect;
-
 export const reimbursementPaymentSelect = {
   id: true,
   reimbursementBatchId: true,
@@ -88,7 +76,7 @@ export const reimbursementPaymentSelect = {
       items: {
         select: {
           ledgerRecord: {
-            select: reimbursementPaymentLedgerRecordSelect,
+            select: prismaLedgerRecordSelect,
           },
         },
         orderBy: [
@@ -204,7 +192,7 @@ export function mapReimbursementPaymentSearchResult(
   row: ReimbursementPaymentPrismaRow,
 ): ReimbursementPaymentSearchResult {
   const linkedRecords = row.reimbursementBatch.items.map((item) =>
-    mapLinkedLedgerRecord(item.ledgerRecord),
+    mapPrismaLedgerRecordToLedgerRecord(item.ledgerRecord),
   );
   const linkedRecordNames = linkedRecords.map((record) => record.name);
 
@@ -277,42 +265,6 @@ export function reimbursementPaymentOrderByForSort(sort: ReimbursementPaymentSor
   }
 
   return [{ paidOn: "desc" }, { id: "desc" }];
-}
-
-function mapLinkedLedgerRecord(
-  record: ReimbursementPaymentPrismaRow["reimbursementBatch"]["items"][number]["ledgerRecord"],
-): LedgerRecord {
-  const base = {
-    id: record.id,
-    type: record.type,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: formatDateOnly(record.occurredOn),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-  };
 }
 
 function methodLabel(method: ReimbursementPaymentMethod) {

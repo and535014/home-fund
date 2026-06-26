@@ -1,4 +1,8 @@
 import type { PrismaClient, Prisma } from "@/generated/prisma/client";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { RecordQueryState } from "@/modules/reporting/record-query";
 
@@ -32,26 +36,6 @@ export type RecordSearchPageResult = {
   totalNetAmountCents: number;
 };
 
-const ledgerRecordSelect = {
-  id: true,
-  type: true,
-  name: true,
-  amountCents: true,
-  occurredOn: true,
-  categoryId: true,
-  createdByMemberId: true,
-  sourceMemberId: true,
-  paymentSource: true,
-  payerMemberId: true,
-  reimbursementStatus: true,
-  status: true,
-  note: true,
-} satisfies Prisma.LedgerRecordSelect;
-
-type LedgerRecordPrismaRow = Prisma.LedgerRecordGetPayload<{
-  select: typeof ledgerRecordSelect;
-}>;
-
 export async function loadRecordSearchPageInDatabase({
   cursor,
   householdId,
@@ -71,7 +55,7 @@ export async function loadRecordSearchPageInDatabase({
       ...pageQuery,
       where: pageQuery.where as Prisma.LedgerRecordWhereInput,
       orderBy: pageQuery.orderBy as Prisma.LedgerRecordOrderByWithRelationInput[],
-      select: ledgerRecordSelect,
+      select: prismaLedgerRecordSelect,
     }),
     prisma.ledgerRecord.count({
       where: aggregateWhere as Prisma.LedgerRecordWhereInput,
@@ -328,37 +312,4 @@ function parseSearchAmountCents(search: string): number | null {
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-function mapPrismaLedgerRecordToLedgerRecord(record: LedgerRecordPrismaRow): LedgerRecord {
-  const base = {
-    id: record.id,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: record.occurredOn.toISOString().slice(0, 10),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-  };
 }

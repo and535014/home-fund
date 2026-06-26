@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
   batchDeleteLedgerRecords,
@@ -27,7 +31,6 @@ import {
   type ReimbursementPaymentSearchResult,
 } from "@/modules/reporting/reimbursement-payment-search-query";
 import type { RecordQueryState } from "@/modules/reporting/record-query";
-import { mapPrismaLedgerRecordToLedgerRecord } from "@/app/home-dashboard-data-source";
 
 export type SearchRecordPageRequest = {
   query: RecordQueryState;
@@ -89,22 +92,6 @@ export type BatchSearchRecordActionResult =
       skippedRecords?: (BatchDeleteSkippedRecord | BatchReimbursementSkippedRecord)[];
       message: string;
     };
-
-const ledgerRecordSelect = {
-  id: true,
-  type: true,
-  name: true,
-  amountCents: true,
-  occurredOn: true,
-  categoryId: true,
-  createdByMemberId: true,
-  sourceMemberId: true,
-  paymentSource: true,
-  payerMemberId: true,
-  reimbursementStatus: true,
-  status: true,
-  note: true,
-} as const;
 
 export async function loadRecordSearchPageAction(
   request: SearchRecordPageRequest,
@@ -194,7 +181,7 @@ export async function batchDeleteSearchRecordsAction(
             in: selectedRecordIds,
           },
         },
-        select: ledgerRecordSelect,
+        select: prismaLedgerRecordSelect,
       });
       const domainResult = batchDeleteLedgerRecords(
         session.access.member,
