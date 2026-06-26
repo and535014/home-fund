@@ -1,7 +1,7 @@
 ---
 id: spec-category-archive-visibility-toggle
 stage: behavior-spec
-status: draft
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -224,7 +224,7 @@ And active categories remain available in persisted active order
 
 ## Review Gate
 
-- decision: needs_user_review
+- decision: approve
 - reviewer_focus:
   - Confirm final AC match the accepted prototype and domain decisions.
   - Confirm direct unarchive without confirmation is acceptable.
@@ -241,4 +241,4 @@ And active categories remain available in persisted active order
   - None for Feature Technical Design.
 - recommended_next_gate:
   - feature-technical-design
-- stop_condition: Wait for explicit user approval before Feature Technical Design, Implementation, Verification, Release, Learning, Artifact Compression, or committing implementation changes.
+- stop_condition: Feature Technical Design may proceed; wait for explicit approval before Implementation, Verification, Release, Learning, Artifact Compression, or committing implementation changes.
