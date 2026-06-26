@@ -215,6 +215,18 @@ VALUES
   ('member-fin', 'manage_categories')
 ON CONFLICT ("memberId", "capability") DO NOTHING;
 
+INSERT INTO "Category" ("id", "householdId", "type", "name", "color", "icon", "sortOrder", "status", "updatedAt")
+VALUES
+  ('income-old', 'household-demo', 'income', '舊收入', 'lime', 'badge-dollar-sign', 30, 'archived', CURRENT_TIMESTAMP),
+  ('expense-old-dining', 'household-demo', 'expense', '舊餐飲', 'rose', 'utensils', 40, 'archived', CURRENT_TIMESTAMP)
+ON CONFLICT ("id") DO UPDATE
+SET "name" = EXCLUDED."name",
+    "color" = EXCLUDED."color",
+    "icon" = EXCLUDED."icon",
+    "sortOrder" = EXCLUDED."sortOrder",
+    "status" = EXCLUDED."status",
+    "updatedAt" = CURRENT_TIMESTAMP;
+
 INSERT INTO "User" (
   "id",
   "name",

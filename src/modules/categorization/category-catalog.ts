@@ -31,7 +31,7 @@ export type CategoryCatalogResult =
   | {
       ok: true;
       category: Category;
-      events: ("Category created" | "Category updated")[];
+      events: ("Category created" | "Category updated" | "Category unarchived")[];
     }
   | {
       ok: false;
@@ -41,6 +41,7 @@ export type CategoryCatalogResult =
         | "invalid_color"
         | "invalid_icon"
         | "invalid_order"
+        | "invalid_state"
         | "category_not_found"
         | "archived_category"
         | "duplicate_active_category_name";
@@ -67,6 +68,10 @@ export type RenameCategoryCommand = {
 };
 
 export type ArchiveCategoryCommand = {
+  categoryId: string;
+};
+
+export type UnarchiveCategoryCommand = {
   categoryId: string;
 };
 
@@ -236,6 +241,48 @@ export function archiveCategory(
       status: "archived",
     },
     events: ["Category updated"],
+  };
+}
+
+export function unarchiveCategory(
+  actor: AuthenticatedMember,
+  command: UnarchiveCategoryCommand,
+  context: CategoryCatalogContext,
+): CategoryCatalogResult {
+  const permission = canManageCategories(actor);
+
+  if (permission.ok === false) {
+    return permission;
+  }
+
+  const category = findCategory(context.categories, command.categoryId);
+
+  if (!category) {
+    return { ok: false, reason: "category_not_found" };
+  }
+
+  if (category.status === "active") {
+    return { ok: false, reason: "invalid_state" };
+  }
+
+  if (
+    hasDuplicateActiveName(
+      context.categories.filter((candidate) => candidate.id !== category.id),
+      category.type,
+      category.name,
+    )
+  ) {
+    return { ok: false, reason: "duplicate_active_category_name" };
+  }
+
+  return {
+    ok: true,
+    category: {
+      ...category,
+      sortOrder: nextSortOrder(context.categories, category.type),
+      status: "active",
+    },
+    events: ["Category unarchived"],
   };
 }
 

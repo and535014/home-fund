@@ -6,6 +6,7 @@ import {
   listAvailableCategories,
   renameCategory,
   reorderCategories,
+  unarchiveCategory,
   updateCategory,
   type Category,
 } from "./category-catalog";
@@ -209,6 +210,68 @@ describe("category catalog", () => {
         status: "archived",
       },
       events: ["Category updated"],
+    });
+  });
+
+  it("unarchives categories and appends them to active order", () => {
+    expect(unarchiveCategory(admin, {
+      categoryId: "category-expense-archived",
+    }, { categories })).toEqual({
+      ok: true,
+      category: {
+        id: "category-expense-archived",
+        type: "expense",
+        name: "舊分類",
+        color: "rose",
+        icon: "tags",
+        sortOrder: 30,
+        status: "active",
+      },
+      events: ["Category unarchived"],
+    });
+  });
+
+  it("rejects invalid unarchive commands", () => {
+    expect(unarchiveCategory(generalMember, {
+      categoryId: "category-expense-archived",
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "permission_denied",
+      authorizationReason: "admin_required",
+    });
+
+    expect(unarchiveCategory(admin, {
+      categoryId: "category-missing",
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "category_not_found",
+    });
+
+    expect(unarchiveCategory(admin, {
+      categoryId: "category-expense-grocery",
+    }, { categories })).toEqual({
+      ok: false,
+      reason: "invalid_state",
+    });
+
+    expect(unarchiveCategory(admin, {
+      categoryId: "category-expense-archived",
+    }, {
+      categories: [
+        ...categories.filter((category) => category.id !== "category-expense-grocery"),
+        {
+          id: "category-expense-duplicate",
+          type: "expense",
+          name: "舊分類",
+          color: "blue",
+          icon: "tags",
+          sortOrder: 40,
+          status: "active",
+        },
+      ],
+    })).toEqual({
+      ok: false,
+      reason: "duplicate_active_category_name",
     });
   });
 

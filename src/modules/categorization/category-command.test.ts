@@ -6,6 +6,7 @@ import {
   getCategoryReferenceCounts,
   renameCategoryInDatabase,
   reorderCategoriesInDatabase,
+  unarchiveCategoryInDatabase,
   updateCategoryInDatabase,
   type CategoryCommandPrismaClient,
 } from "./category-command";
@@ -49,6 +50,15 @@ const categories = [
     icon: "wifi" as const,
     sortOrder: 20,
     status: "active" as const,
+  },
+  {
+    id: "category-expense-archived",
+    type: "expense" as const,
+    name: "舊分類",
+    color: "rose" as const,
+    icon: "tags" as const,
+    sortOrder: 30,
+    status: "archived" as const,
   },
 ];
 
@@ -200,6 +210,50 @@ describe("category command database adapter", () => {
         status: "archived",
       },
     });
+  });
+
+  it("unarchives categories by updating status and appended sort order", async () => {
+    const prisma = createPrismaStub({
+      $transaction: vi.fn(async (callback) => callback(prisma)),
+    } as Partial<CategoryCommandPrismaClient>);
+
+    const result = await unarchiveCategoryInDatabase(admin, {
+      categoryId: "category-expense-archived",
+    }, { prisma });
+
+    expect(result).toMatchObject({
+      ok: true,
+      category: {
+        id: "category-expense-archived",
+        sortOrder: 30,
+        status: "active",
+      },
+      events: ["Category unarchived"],
+    });
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: {
+        id: "category-expense-archived",
+      },
+      data: {
+        sortOrder: 30,
+        status: "active",
+      },
+    });
+  });
+
+  it("does not write when unarchive is rejected", async () => {
+    const prisma = createPrismaStub();
+
+    const result = await unarchiveCategoryInDatabase(generalMember, {
+      categoryId: "category-expense-archived",
+    }, { prisma });
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "permission_denied",
+      authorizationReason: "admin_required",
+    });
+    expect(prisma.category.update).not.toHaveBeenCalled();
   });
 
   it("counts historical ledger references by category", async () => {

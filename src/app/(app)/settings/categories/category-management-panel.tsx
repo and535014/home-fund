@@ -9,10 +9,12 @@ import {
   archiveCategoryAction,
   createCategoryAction,
   reorderCategoriesAction,
+  unarchiveCategoryAction,
   updateCategoryAction,
   type ArchiveCategoryActionState,
   type CreateCategoryActionState,
   type ReorderCategoryActionState,
+  type UnarchiveCategoryActionState,
   type UpdateCategoryActionState,
 } from "@/app/category-actions";
 import {
@@ -275,30 +277,33 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   }
 
   function unarchiveCategory(category: EditableCategory) {
-    const activeTypeCategories = displayedCategories.filter(
-      (candidate) =>
-        candidate.type === category.type && candidate.status === "active",
-    );
+    const formData = new FormData();
+    formData.set("categoryId", category.id);
 
-    if (hasDuplicateActiveName(displayedCategories, category.type, category.name)) {
-      toast.error("同類型已有啟用中的相同分類名稱，請先調整分類名稱。");
-      return;
-    }
+    startTransition(async () => {
+      const result = await unarchiveCategoryAction(
+        initialActionState() as UnarchiveCategoryActionState,
+        formData,
+      );
 
-    const nextSortOrder =
-      activeTypeCategories.reduce(
-        (max, candidate) => Math.max(max, candidate.sortOrder),
-        0,
-      ) + 10;
+      if (result.status === "error") {
+        toast.error(result.message ?? "分類取消封存失敗。");
+        return;
+      }
 
-    setDisplayedCategories((current) =>
-      current.map((candidate) =>
-        candidate.id === category.id
-          ? { ...candidate, sortOrder: nextSortOrder, status: "active" }
-          : candidate,
-      ),
-    );
-    toast.success("分類已取消封存");
+      setDisplayedCategories((current) =>
+        current.map((candidate) =>
+          candidate.id === category.id && result.data
+            ? {
+                ...candidate,
+                sortOrder: result.data.sortOrder,
+                status: "active",
+              }
+            : candidate,
+        ),
+      );
+      toast.success(result.message ?? "分類已取消封存");
+    });
   }
 
   function persistCategoryOrder(type: CategoryType, orderedCategories: EditableCategory[]) {

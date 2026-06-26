@@ -10,6 +10,7 @@ import {
   createCategory,
   renameCategory,
   reorderCategories,
+  unarchiveCategory,
   updateCategory,
   type ArchiveCategoryCommand,
   type Category,
@@ -17,6 +18,7 @@ import {
   type CreateCategoryCommand,
   type ReorderCategoriesCommand,
   type RenameCategoryCommand,
+  type UnarchiveCategoryCommand,
   type UpdateCategoryCommand,
 } from "./category-catalog";
 
@@ -191,6 +193,40 @@ export async function archiveCategoryInDatabase(
   });
 
   return result;
+}
+
+export async function unarchiveCategoryInDatabase(
+  actor: AuthenticatedMember,
+  command: UnarchiveCategoryCommand,
+  context: CategoryCommandDatabaseContext,
+): Promise<CategoryCatalogResult> {
+  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const runTransaction = context.prisma.$transaction
+    ? (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
+        context.prisma.$transaction!(callback)
+    : (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
+        callback(context.prisma);
+
+  return runTransaction(async (prisma) => {
+    const categories = await loadCategories(prisma, householdId);
+    const result = unarchiveCategory(actor, command, { categories });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    await prisma.category.update({
+      where: {
+        id: result.category.id,
+      },
+      data: {
+        sortOrder: result.category.sortOrder,
+        status: result.category.status,
+      },
+    });
+
+    return result;
+  });
 }
 
 export async function reorderCategoriesInDatabase(

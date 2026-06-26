@@ -13,6 +13,7 @@ import {
   createCategoryInDatabase,
   renameCategoryInDatabase,
   reorderCategoriesInDatabase,
+  unarchiveCategoryInDatabase,
   updateCategoryInDatabase,
 } from "@/modules/categorization/category-command";
 import type { Category } from "@/modules/categorization/category-catalog";
@@ -27,6 +28,7 @@ export type CategoryActionCode =
   | "invalid_color"
   | "invalid_icon"
   | "invalid_order"
+  | "invalid_state"
   | "category_not_found"
   | "archived_category"
   | "duplicate_active_category_name"
@@ -69,6 +71,13 @@ export type ArchiveCategoryActionField = "categoryId";
 export type ArchiveCategoryActionState = ActionState<
   { categoryId: string },
   ArchiveCategoryActionField,
+  CategoryActionCode
+>;
+
+export type UnarchiveCategoryActionField = "categoryId";
+export type UnarchiveCategoryActionState = ActionState<
+  { categoryId: string; sortOrder: number },
+  UnarchiveCategoryActionField,
   CategoryActionCode
 >;
 
@@ -207,6 +216,35 @@ export async function archiveCategoryAction(
   });
 }
 
+export async function unarchiveCategoryAction(
+  _previousState: UnarchiveCategoryActionState,
+  formData: FormData,
+): Promise<UnarchiveCategoryActionState> {
+  const categoryId = readFormValue(formData, "categoryId");
+
+  if (!categoryId) {
+    return unarchiveCategoryError("category_not_found");
+  }
+
+  const session = await requireServerActionAccess({ type: "manage_categories" });
+
+  const result = await unarchiveCategoryInDatabase(
+    session.access.member,
+    { categoryId },
+    { prisma: getPrismaClient() },
+  );
+
+  if (!result.ok) {
+    return unarchiveCategoryError(result.reason);
+  }
+
+  revalidateCategoryPaths();
+  return actionSuccess("分類已取消封存", {
+    categoryId: result.category.id,
+    sortOrder: result.category.sortOrder,
+  });
+}
+
 export async function reorderCategoriesAction(
   _previousState: ReorderCategoryActionState,
   formData: FormData,
@@ -295,6 +333,15 @@ function archiveCategoryError(
   );
 }
 
+function unarchiveCategoryError(
+  code: CategoryActionCode,
+): UnarchiveCategoryActionState {
+  return categoryError<UnarchiveCategoryActionState, UnarchiveCategoryActionField>(
+    code,
+    "categoryId",
+  );
+}
+
 function reorderCategoryError(
   code: CategoryActionCode,
   field: ReorderCategoryActionField,
@@ -317,6 +364,7 @@ function categoryError<
     invalid_icon: "請選擇有效的分類 icon。",
     invalid_name: "請輸入分類名稱。",
     invalid_order: "分類排序無效，請重新整理後再試。",
+    invalid_state: "這個分類目前不是封存狀態。",
     permission_denied: "只有管理者可以管理分類。",
     unknown_error: "分類管理失敗，請稍後再試。",
   };
