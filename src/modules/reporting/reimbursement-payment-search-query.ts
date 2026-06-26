@@ -1,4 +1,4 @@
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export const REIMBURSEMENT_PAYMENT_PAGE_SIZE = 100;
@@ -42,6 +42,13 @@ export type ReimbursementPaymentSearchResult = {
   linkedRecordNames: string[];
   primaryLinkedRecordName: string;
   linkedRecords: LedgerRecord[];
+};
+
+export type ReimbursementPaymentSearchPageResult = {
+  records: ReimbursementPaymentSearchResult[];
+  nextCursor: ReimbursementPaymentSearchCursor | null;
+  totalCount: number;
+  totalAmountCents: number;
 };
 
 type SortDirection = "asc" | "desc";
@@ -96,6 +103,55 @@ export const reimbursementPaymentSelect = {
 export type ReimbursementPaymentPrismaRow = Prisma.ReimbursementPaymentGetPayload<{
   select: typeof reimbursementPaymentSelect;
 }>;
+
+export async function loadReimbursementPaymentSearchPageInDatabase({
+  cursor,
+  householdId,
+  prisma,
+  query,
+}: ReimbursementPaymentSearchPageQueryInput & {
+  prisma: PrismaClient;
+}): Promise<ReimbursementPaymentSearchPageResult> {
+  const pageQuery = buildReimbursementPaymentSearchPageQuery({
+    householdId,
+    query,
+    cursor,
+  });
+  const aggregateWhere = buildReimbursementPaymentSearchWhere(
+    householdId,
+    query,
+  );
+  const [rows, totalCount, aggregate] = await Promise.all([
+    prisma.reimbursementPayment.findMany({
+      ...pageQuery,
+      where: pageQuery.where as Prisma.ReimbursementPaymentWhereInput,
+      orderBy:
+        pageQuery.orderBy as Prisma.ReimbursementPaymentOrderByWithRelationInput[],
+      select: reimbursementPaymentSelect,
+    }),
+    prisma.reimbursementPayment.count({
+      where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+    }),
+    prisma.reimbursementPayment.aggregate({
+      where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+      _sum: {
+        amountCents: true,
+      },
+    }),
+  ]);
+  const pageRows = rows.slice(0, REIMBURSEMENT_PAYMENT_PAGE_SIZE);
+  const records = pageRows.map(mapReimbursementPaymentSearchResult);
+  const lastRecord = records.at(-1);
+
+  return {
+    records,
+    nextCursor: rows.length > REIMBURSEMENT_PAYMENT_PAGE_SIZE && lastRecord
+      ? cursorFromReimbursementPayment(lastRecord)
+      : null,
+    totalCount,
+    totalAmountCents: aggregate._sum.amountCents ?? 0,
+  };
+}
 
 export const initialReimbursementPaymentQueryState: ReimbursementPaymentQueryState = {
   dateFrom: "",

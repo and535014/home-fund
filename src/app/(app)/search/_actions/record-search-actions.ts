@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
   batchDeleteLedgerRecords,
@@ -18,19 +17,11 @@ import {
 } from "@/modules/reimbursement/reimbursement-payment";
 import { authorize } from "@/modules/identity-access/authorization";
 import {
-  buildRecordSearchPageQuery,
-  buildRecordSearchWhere,
-  calculateRecordSearchNetTotal,
-  cursorFromRecord,
+  loadRecordSearchPageInDatabase,
   type SearchRecordCursor,
 } from "@/modules/reporting/record-search-query";
 import {
-  buildReimbursementPaymentSearchPageQuery,
-  buildReimbursementPaymentSearchWhere,
-  cursorFromReimbursementPayment,
-  mapReimbursementPaymentSearchResult,
-  REIMBURSEMENT_PAYMENT_PAGE_SIZE,
-  reimbursementPaymentSelect,
+  loadReimbursementPaymentSearchPageInDatabase,
   type ReimbursementPaymentQueryState,
   type ReimbursementPaymentSearchCursor,
   type ReimbursementPaymentSearchResult,
@@ -121,44 +112,16 @@ export async function loadRecordSearchPageAction(
   const session = await requireAuthenticatedMember();
 
   try {
-    const prisma = getPrismaClient();
-    const householdId = session.access.member.householdId;
-    const pageQuery = buildRecordSearchPageQuery({
-      householdId,
+    const page = await loadRecordSearchPageInDatabase({
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
       query: request.query,
       cursor: request.cursor,
     });
-    const aggregateWhere = buildRecordSearchWhere(householdId, request.query);
-    const [rows, totalCount, groups] = await Promise.all([
-      prisma.ledgerRecord.findMany({
-        ...pageQuery,
-        where: pageQuery.where as Prisma.LedgerRecordWhereInput,
-        orderBy: pageQuery.orderBy as Prisma.LedgerRecordOrderByWithRelationInput[],
-        select: ledgerRecordSelect,
-      }),
-      prisma.ledgerRecord.count({
-        where: aggregateWhere as Prisma.LedgerRecordWhereInput,
-      }),
-      prisma.ledgerRecord.groupBy({
-        by: ["type"],
-        where: aggregateWhere as Prisma.LedgerRecordWhereInput,
-        _sum: {
-          amountCents: true,
-        },
-      }),
-    ]);
-    const pageRows = rows.slice(0, 100);
-    const records = pageRows.map(mapPrismaLedgerRecordToLedgerRecord);
-    const lastRecord = records.at(-1);
 
     return {
       ok: true,
-      records,
-      nextCursor: rows.length > 100 && lastRecord
-        ? cursorFromRecord(lastRecord)
-        : null,
-      totalCount,
-      totalNetAmountCents: calculateRecordSearchNetTotal(groups),
+      ...page,
     };
   } catch {
     return {
@@ -186,47 +149,16 @@ export async function loadReimbursementPaymentSearchPageAction(
   }
 
   try {
-    const prisma = getPrismaClient();
-    const householdId = session.access.member.householdId;
-    const pageQuery = buildReimbursementPaymentSearchPageQuery({
-      householdId,
+    const page = await loadReimbursementPaymentSearchPageInDatabase({
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
       query: request.query,
       cursor: request.cursor,
     });
-    const aggregateWhere = buildReimbursementPaymentSearchWhere(
-      householdId,
-      request.query,
-    );
-    const [rows, totalCount, aggregate] = await Promise.all([
-      prisma.reimbursementPayment.findMany({
-        ...pageQuery,
-        where: pageQuery.where as Prisma.ReimbursementPaymentWhereInput,
-        orderBy:
-          pageQuery.orderBy as Prisma.ReimbursementPaymentOrderByWithRelationInput[],
-        select: reimbursementPaymentSelect,
-      }),
-      prisma.reimbursementPayment.count({
-        where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
-      }),
-      prisma.reimbursementPayment.aggregate({
-        where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
-        _sum: {
-          amountCents: true,
-        },
-      }),
-    ]);
-    const pageRows = rows.slice(0, REIMBURSEMENT_PAYMENT_PAGE_SIZE);
-    const records = pageRows.map(mapReimbursementPaymentSearchResult);
-    const lastRecord = records.at(-1);
 
     return {
       ok: true,
-      records,
-      nextCursor: rows.length > REIMBURSEMENT_PAYMENT_PAGE_SIZE && lastRecord
-        ? cursorFromReimbursementPayment(lastRecord)
-        : null,
-      totalCount,
-      totalAmountCents: aggregate._sum.amountCents ?? 0,
+      ...page,
     };
   } catch {
     return {

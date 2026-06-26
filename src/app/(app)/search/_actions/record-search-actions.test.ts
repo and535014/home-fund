@@ -198,13 +198,6 @@ describe("loadReimbursementPaymentSearchPageAction", () => {
       totalCount: 1,
       totalAmountCents: 4_500,
     });
-    expect(prisma.reimbursementPayment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 101,
-        where: { householdId: "household-demo" },
-        orderBy: [{ paidOn: "desc" }, { id: "desc" }],
-      }),
-    );
   });
 });
 

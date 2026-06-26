@@ -1,3 +1,5 @@
+import type { PrismaClient, Prisma } from "@/generated/prisma/client";
+import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { RecordQueryState } from "@/modules/reporting/record-query";
 
 export const SEARCH_RECORD_PAGE_SIZE = 100;
@@ -22,6 +24,79 @@ export type RecordSearchGroupSum = {
     amountCents: number | null;
   };
 };
+
+export type RecordSearchPageResult = {
+  records: LedgerRecord[];
+  nextCursor: SearchRecordCursor | null;
+  totalCount: number;
+  totalNetAmountCents: number;
+};
+
+const ledgerRecordSelect = {
+  id: true,
+  type: true,
+  name: true,
+  amountCents: true,
+  occurredOn: true,
+  categoryId: true,
+  createdByMemberId: true,
+  sourceMemberId: true,
+  paymentSource: true,
+  payerMemberId: true,
+  reimbursementStatus: true,
+  status: true,
+  note: true,
+} satisfies Prisma.LedgerRecordSelect;
+
+type LedgerRecordPrismaRow = Prisma.LedgerRecordGetPayload<{
+  select: typeof ledgerRecordSelect;
+}>;
+
+export async function loadRecordSearchPageInDatabase({
+  cursor,
+  householdId,
+  prisma,
+  query,
+}: RecordSearchPageQueryInput & {
+  prisma: PrismaClient;
+}): Promise<RecordSearchPageResult> {
+  const pageQuery = buildRecordSearchPageQuery({
+    householdId,
+    query,
+    cursor,
+  });
+  const aggregateWhere = buildRecordSearchWhere(householdId, query);
+  const [rows, totalCount, groups] = await Promise.all([
+    prisma.ledgerRecord.findMany({
+      ...pageQuery,
+      where: pageQuery.where as Prisma.LedgerRecordWhereInput,
+      orderBy: pageQuery.orderBy as Prisma.LedgerRecordOrderByWithRelationInput[],
+      select: ledgerRecordSelect,
+    }),
+    prisma.ledgerRecord.count({
+      where: aggregateWhere as Prisma.LedgerRecordWhereInput,
+    }),
+    prisma.ledgerRecord.groupBy({
+      by: ["type"],
+      where: aggregateWhere as Prisma.LedgerRecordWhereInput,
+      _sum: {
+        amountCents: true,
+      },
+    }),
+  ]);
+  const pageRows = rows.slice(0, SEARCH_RECORD_PAGE_SIZE);
+  const records = pageRows.map(mapPrismaLedgerRecordToLedgerRecord);
+  const lastRecord = records.at(-1);
+
+  return {
+    records,
+    nextCursor: rows.length > SEARCH_RECORD_PAGE_SIZE && lastRecord
+      ? cursorFromRecord(lastRecord)
+      : null,
+    totalCount,
+    totalNetAmountCents: calculateRecordSearchNetTotal(groups),
+  };
+}
 
 export function buildRecordSearchPageQuery({
   householdId,
@@ -253,4 +328,37 @@ function parseSearchAmountCents(search: string): number | null {
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
+}
+
+function mapPrismaLedgerRecordToLedgerRecord(record: LedgerRecordPrismaRow): LedgerRecord {
+  const base = {
+    id: record.id,
+    name: record.name,
+    amountCents: record.amountCents,
+    occurredOn: record.occurredOn.toISOString().slice(0, 10),
+    categoryId: record.categoryId,
+    createdByMemberId: record.createdByMemberId,
+    reimbursementStatus:
+      record.reimbursementStatus === "not_applicable"
+        ? "not_refundable"
+        : record.reimbursementStatus,
+    status: record.status,
+    ...(record.note ? { note: record.note } : {}),
+  };
+
+  if (record.type === "income") {
+    return {
+      ...base,
+      type: "income",
+      sourceMemberId: record.sourceMemberId ?? "",
+      reimbursementStatus: "not_applicable",
+    };
+  }
+
+  return {
+    ...base,
+    type: "expense",
+    paymentSource: record.paymentSource ?? "fund",
+    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
+  };
 }
