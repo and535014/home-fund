@@ -39,6 +39,7 @@ describe("createCurrentMemberDataSource", () => {
     const findMany = vi.fn(async () => [
       {
         id: "member-mei",
+        householdId: "household-demo",
         displayName: "Mei",
         avatarUrl: "https://example.com/mei.png",
         googleAccountEmail: "mei@example.com",
@@ -64,6 +65,7 @@ describe("createCurrentMemberDataSource", () => {
     await expect(dataSource.listHouseholdMembers()).resolves.toEqual([
       {
         id: "member-mei",
+        householdId: "household-demo",
         displayName: "Mei",
         avatarUrl: "https://example.com/mei.png",
         googleAccountEmail: "mei@example.com",
@@ -76,6 +78,7 @@ describe("createCurrentMemberDataSource", () => {
     expect(findMany).toHaveBeenCalledWith({
       select: {
         id: true,
+        householdId: true,
         displayName: true,
         avatarUrl: true,
         googleAccountEmail: true,
@@ -103,6 +106,7 @@ describe("mapPrismaMemberToHouseholdMember", () => {
   it("omits nullable Google account fields when the member is not linked yet", () => {
     expect(mapPrismaMemberToHouseholdMember({
       id: "member-invited",
+      householdId: "household-demo",
       displayName: "Invited",
       avatarUrl: null,
       googleAccountEmail: null,
@@ -116,6 +120,7 @@ describe("mapPrismaMemberToHouseholdMember", () => {
       capabilities: [],
     })).toEqual({
       id: "member-invited",
+      householdId: "household-demo",
       displayName: "Invited",
       status: "invited",
       roles: ["general_member"],

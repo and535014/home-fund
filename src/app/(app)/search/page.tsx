@@ -5,10 +5,10 @@ import { RecordSearchPanel } from "./_components/record-search-panel";
 import { PageLayout } from "@/components/layout/page-layout";
 
 export default async function SearchPage() {
-  const [session, dashboardData] = await Promise.all([
-    requireAuthenticatedMember(),
-    createHomeDashboardDataSource(getPrismaClient()).getSearchPageData(),
-  ]);
+  const session = await requireAuthenticatedMember();
+  const dashboardData = await createHomeDashboardDataSource(
+    getPrismaClient(),
+  ).getSearchPageData(session.access.member.householdId);
   const categoriesById = Object.fromEntries(
     dashboardData.categories.map((category) => [category.id, category]),
   );

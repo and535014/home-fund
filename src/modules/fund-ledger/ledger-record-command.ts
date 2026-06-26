@@ -15,8 +15,6 @@ import {
   type UpdateLedgerRecordResult,
 } from "./ledger-record-corrections";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 export type LedgerRecordCommandPrismaClient = {
   category: {
     findMany(args: {
@@ -107,7 +105,7 @@ type LedgerRecordMutationTransaction = {
 
 export type CreateLedgerRecordInDatabaseContext = {
   prisma: LedgerRecordCommandPrismaClient;
-  householdId?: string;
+  householdId: string;
   generateId?: () => string;
 };
 
@@ -116,7 +114,7 @@ export async function createLedgerRecordInDatabase(
   command: CreateLedgerRecordCommand,
   context: CreateLedgerRecordInDatabaseContext,
 ): Promise<CreateLedgerRecordResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await context.prisma.category.findMany({
     where: { householdId },
     select: {
@@ -162,10 +160,10 @@ export async function updateLedgerRecordInDatabase(
   command: UpdateLedgerRecordInDatabaseCommand,
   context: {
     prisma: LedgerRecordMutationPrismaClient;
-    householdId?: string;
+    householdId: string;
   },
 ): Promise<UpdateLedgerRecordResult | LedgerRecordPersistenceFailure> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
 
   return context.prisma.$transaction(async (tx) => {
     const [record, categories] = await Promise.all([
@@ -216,10 +214,10 @@ export async function voidLedgerRecordInDatabase(
   command: VoidLedgerRecordInDatabaseCommand,
   context: {
     prisma: LedgerRecordMutationPrismaClient;
-    householdId?: string;
+    householdId: string;
   },
 ): Promise<DeleteLedgerRecordResult | LedgerRecordPersistenceFailure> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
 
   return context.prisma.$transaction(async (tx) => {
     const record = await tx.ledgerRecord.findFirst({

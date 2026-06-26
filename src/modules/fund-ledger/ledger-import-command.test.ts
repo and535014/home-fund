@@ -66,6 +66,7 @@ describe("previewLedgerImportInDatabase", () => {
     await expect(previewLedgerImportInDatabase(actor, {
       csv,
     }, {
+      householdId: "household-demo",
       prisma,
     })).resolves.toMatchObject({
       ok: true,
@@ -102,6 +103,7 @@ describe("previewLedgerImportInDatabase", () => {
         memberId: "member-mei",
       }],
     }, {
+      householdId: "household-demo",
       prisma,
     })).resolves.toMatchObject({
       ok: true,
@@ -130,6 +132,7 @@ describe("confirmLedgerImportInDatabase", () => {
       fileName: "ledger.csv",
       removedCsvRowNumbers: [],
     }, {
+      householdId: "household-demo",
       prisma,
       generateBatchId: () => "import-batch-1",
       generateRecordId: (index) => `record-${index + 1}`,
@@ -188,6 +191,7 @@ describe("confirmLedgerImportInDatabase", () => {
       fileName: "ledger.csv",
       removedCsvRowNumbers: [],
     }, {
+      householdId: "household-demo",
       prisma,
       generateBatchId: () => "import-batch-1",
       generateRecordId: (index) => `record-${index + 1}`,
@@ -226,6 +230,7 @@ describe("confirmLedgerImportInDatabase", () => {
       fileName: "ledger.csv",
       removedCsvRowNumbers: [3],
     }, {
+      householdId: "household-demo",
       prisma,
       generateBatchId: () => "import-batch-1",
       generateRecordId: () => "record-1",
@@ -267,6 +272,7 @@ describe("confirmLedgerImportInDatabase", () => {
       fileName: "ledger.csv",
       removedCsvRowNumbers: [],
     }, {
+      householdId: "household-demo",
       prisma,
       generateBatchId: () => "import-batch-1",
       generateRecordId: () => "record-1",
@@ -319,6 +325,7 @@ describe("confirmLedgerImportInDatabase", () => {
       fileName: "ledger.csv",
       removedCsvRowNumbers: [],
     }, {
+      householdId: "household-demo",
       prisma,
       generateBatchId: () => "import-batch-1",
       generateImportRowId: () => "import-row-1",

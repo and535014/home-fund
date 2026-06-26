@@ -12,10 +12,11 @@ export default async function ImportSettingsPage() {
   }
 
   const prisma = getPrismaClient();
+  const householdId = session.access.member.householdId;
   const [members, categories] = await Promise.all([
     prisma.member.findMany({
       where: {
-        householdId: "household-demo",
+        householdId,
         status: {
           in: ["active", "invited"],
         },
@@ -30,7 +31,7 @@ export default async function ImportSettingsPage() {
     }),
     prisma.category.findMany({
       where: {
-        householdId: "household-demo",
+        householdId,
         status: "active",
       },
       orderBy: [

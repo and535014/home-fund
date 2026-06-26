@@ -295,6 +295,7 @@ function mockAuthenticatedMember() {
     access: {
       member: {
         id: "member-fin",
+        householdId: "household-demo",
         googleAccountLinked: true,
         roles: ["finance_manager"],
       },

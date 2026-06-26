@@ -61,6 +61,7 @@ describe("markExpensesReimbursedInDatabase", () => {
     await expect(markExpensesReimbursedInDatabase(financeManager, {
       selectedExpenseIds: ["expense-1", "expense-2"],
     }, {
+      householdId: "household-demo",
       prisma: prisma as never,
       generateBatchId: () => "batch-1",
       generatePaymentId: () => "payment-1",

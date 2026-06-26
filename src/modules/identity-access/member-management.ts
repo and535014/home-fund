@@ -10,6 +10,7 @@ export type HouseholdMemberStatus = "invited" | "active" | "disabled";
 
 export type HouseholdMemberAccount = {
   id: string;
+  householdId: string;
   displayName: string;
   avatarUrl?: string;
   googleAccountEmail?: string;
@@ -20,6 +21,7 @@ export type HouseholdMemberAccount = {
 };
 
 export type MemberManagementContext = {
+  householdId: string;
   members: HouseholdMemberAccount[];
   generateId?: () => string;
 };
@@ -96,6 +98,7 @@ export function createMember(
     ok: true,
     member: {
       id: context.generateId?.() ?? crypto.randomUUID(),
+      householdId: context.householdId,
       displayName,
       ...(googleAccountEmail ? { googleAccountEmail } : {}),
       roles: [command.role ?? "general_member"],

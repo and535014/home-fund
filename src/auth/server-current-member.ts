@@ -117,12 +117,14 @@ function resolveE2eCurrentMember(headers: Headers) {
     ok: true as const,
     member: {
       id: "member-e2e-fin",
+      householdId: "household-demo",
       googleAccountLinked: true,
       roles: ["finance_manager" as const],
       capabilities: ["manage_categories" as const],
     },
     profile: {
       id: "member-e2e-fin",
+      householdId: "household-demo",
       displayName: "Lin",
       roles: ["finance_manager" as const],
       capabilities: ["manage_categories" as const],

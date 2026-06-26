@@ -126,6 +126,7 @@ export async function createLedgerRecordAction(
     parsed.command,
     {
       prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -156,6 +157,7 @@ export async function updateLedgerRecordAction(
     parsed.command,
     {
       prisma: getPrismaClient() as unknown as LedgerRecordMutationPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -186,6 +188,7 @@ export async function voidLedgerRecordAction(
     parsed.command,
     {
       prisma: getPrismaClient() as unknown as LedgerRecordMutationPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -216,6 +219,7 @@ export async function reimburseLedgerRecordAction(
     parsed.command,
     {
       prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
       payment: parsed.command.payment,
     },
   );

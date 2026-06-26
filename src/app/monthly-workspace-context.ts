@@ -40,7 +40,7 @@ export async function loadMonthlyWorkspaceContext({
   );
   const dashboardData = await createHomeDashboardDataSource(
     getPrismaClient(),
-  ).getMonthlyDashboardData(month);
+  ).getMonthlyDashboardData(session.access.member.householdId, month);
   const homeView = buildHomeAccessViewFromAccess({
     access: session.access,
     authError: readSearchParam(rawSearchParams, "error"),

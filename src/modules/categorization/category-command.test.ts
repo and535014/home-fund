@@ -89,6 +89,7 @@ describe("category command database adapter", () => {
       color: "blue",
       icon: "home",
     }, {
+      householdId: "household-demo",
       prisma,
       generateId: () => "category-expense-internet",
     });
@@ -122,7 +123,7 @@ describe("category command database adapter", () => {
     const result = await createCategoryInDatabase(generalMember, {
       type: "expense",
       name: "網路費",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toEqual({
       ok: false,
@@ -138,7 +139,7 @@ describe("category command database adapter", () => {
     const result = await renameCategoryInDatabase(admin, {
       categoryId: "category-expense-grocery",
       name: "家庭用品",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toMatchObject({
       ok: true,
@@ -165,7 +166,7 @@ describe("category command database adapter", () => {
       color: "teal",
       icon: "home",
       name: "家庭用品",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toMatchObject({
       ok: true,
@@ -193,7 +194,7 @@ describe("category command database adapter", () => {
 
     const result = await archiveCategoryInDatabase(admin, {
       categoryId: "category-expense-grocery",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toMatchObject({
       ok: true,
@@ -219,7 +220,7 @@ describe("category command database adapter", () => {
 
     const result = await unarchiveCategoryInDatabase(admin, {
       categoryId: "category-expense-archived",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toMatchObject({
       ok: true,
@@ -246,7 +247,7 @@ describe("category command database adapter", () => {
 
     const result = await unarchiveCategoryInDatabase(generalMember, {
       categoryId: "category-expense-archived",
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toEqual({
       ok: false,
@@ -267,6 +268,7 @@ describe("category command database adapter", () => {
 
     await expect(getCategoryReferenceCounts({
       prisma,
+      householdId: "household-demo",
       categoryIds: ["category-expense-grocery", "category-income-rent"],
     })).resolves.toEqual(new Map([
       ["category-expense-grocery", 2],
@@ -285,7 +287,7 @@ describe("category command database adapter", () => {
         "category-expense-internet",
         "category-expense-grocery",
       ],
-    }, { prisma });
+    }, { householdId: "household-demo", prisma });
 
     expect(result).toMatchObject({
       ok: true,

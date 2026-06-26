@@ -62,8 +62,12 @@ const ledgerRecordSelect = {
 export type HomeDashboardPrismaClient = {
   member: {
     findMany(args: {
+      where: {
+        householdId: string;
+      };
       select: {
         id: true;
+        householdId: true;
         displayName: true;
         avatarUrl: true;
         googleAccountEmail: true;
@@ -87,6 +91,9 @@ export type HomeDashboardPrismaClient = {
   };
   category: {
     findMany(args: {
+      where: {
+        householdId: string;
+      };
       select: {
         id: true;
         type: true;
@@ -101,7 +108,11 @@ export type HomeDashboardPrismaClient = {
   };
   ledgerRecord: {
     findMany(args: {
-      where: { occurredOn?: { gte: Date; lt: Date }; status: "active" };
+      where: {
+        householdId: string;
+        occurredOn?: { gte: Date; lt: Date };
+        status: "active";
+      };
       select: typeof ledgerRecordSelect;
       orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }];
     }): Promise<PrismaLedgerRecordRow[]>;
@@ -112,16 +123,23 @@ export function createHomeDashboardDataSource(
   prisma: HomeDashboardPrismaClient,
 ) {
   return {
-    async getMonthlyDashboardData(month: string): Promise<HomeDashboardData> {
+    async getMonthlyDashboardData(
+      householdId: string,
+      month: string,
+    ): Promise<HomeDashboardData> {
       const [householdMembers, categories, records] =
         await Promise.all([
           prisma.member.findMany({
+            where: {
+              householdId,
+            },
             select: {
-        id: true,
-        displayName: true,
-        avatarUrl: true,
-        googleAccountEmail: true,
-        googleSubject: true,
+              id: true,
+              householdId: true,
+              displayName: true,
+              avatarUrl: true,
+              googleAccountEmail: true,
+              googleSubject: true,
               status: true,
               roles: {
                 select: {
@@ -139,6 +157,9 @@ export function createHomeDashboardDataSource(
             },
           }),
           prisma.category.findMany({
+            where: {
+              householdId,
+            },
             select: {
               id: true,
               type: true,
@@ -152,6 +173,7 @@ export function createHomeDashboardDataSource(
           }),
           prisma.ledgerRecord.findMany({
             where: {
+              householdId,
               occurredOn: monthDateRange(month),
               status: "active",
             },
@@ -166,11 +188,15 @@ export function createHomeDashboardDataSource(
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
       };
     },
-    async getSearchPageData(): Promise<HomeDashboardData> {
+    async getSearchPageData(householdId: string): Promise<HomeDashboardData> {
       const [householdMembers, categories] = await Promise.all([
         prisma.member.findMany({
+          where: {
+            householdId,
+          },
           select: {
             id: true,
+            householdId: true,
             displayName: true,
             avatarUrl: true,
             googleAccountEmail: true,
@@ -192,6 +218,9 @@ export function createHomeDashboardDataSource(
           },
         }),
         prisma.category.findMany({
+          where: {
+            householdId,
+          },
           select: {
             id: true,
             type: true,

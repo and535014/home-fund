@@ -105,6 +105,7 @@ describe("shared app layout", () => {
           profile: {
             capabilities: ["manage_categories"],
             id: "member-1",
+            householdId: "household-demo",
             displayName: "Lin 管理者",
             roles: ["admin"],
           },

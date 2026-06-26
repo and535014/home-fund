@@ -40,8 +40,6 @@ import {
 import type { RecordQueryState } from "@/modules/reporting/record-query";
 import { mapPrismaLedgerRecordToLedgerRecord } from "@/app/home-dashboard-data-source";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 export type SearchRecordPageRequest = {
   query: RecordQueryState;
   cursor?: SearchRecordCursor | null;
@@ -122,11 +120,11 @@ const ledgerRecordSelect = {
 export async function loadRecordSearchPageAction(
   request: SearchRecordPageRequest,
 ): Promise<SearchRecordPageResult> {
-  await requireAuthenticatedMember();
+  const session = await requireAuthenticatedMember();
 
   try {
     const prisma = getPrismaClient();
-    const householdId = DEFAULT_HOUSEHOLD_ID;
+    const householdId = session.access.member.householdId;
     const pageQuery = buildRecordSearchPageQuery({
       householdId,
       query: request.query,
@@ -191,7 +189,7 @@ export async function loadReimbursementPaymentSearchPageAction(
 
   try {
     const prisma = getPrismaClient();
-    const householdId = DEFAULT_HOUSEHOLD_ID;
+    const householdId = session.access.member.householdId;
     const pageQuery = buildReimbursementPaymentSearchPageQuery({
       householdId,
       query: request.query,
@@ -261,7 +259,7 @@ export async function batchDeleteSearchRecordsAction(
     const result = await prisma.$transaction(async (tx) => {
       const rows = await tx.ledgerRecord.findMany({
         where: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
+          householdId: session.access.member.householdId,
           id: {
             in: selectedRecordIds,
           },
@@ -280,7 +278,7 @@ export async function batchDeleteSearchRecordsAction(
 
       await tx.ledgerRecord.updateMany({
         where: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
+          householdId: session.access.member.householdId,
           id: {
             in: domainResult.processedRecords.map((record) => record.id),
           },
@@ -358,7 +356,7 @@ export async function batchRefundSearchRecordsAction(input: {
     const result = await prisma.$transaction(async (tx) => {
       const rows = await tx.ledgerRecord.findMany({
         where: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
+          householdId: session.access.member.householdId,
           id: {
             in: selectedRecordIds,
           },
@@ -377,7 +375,7 @@ export async function batchRefundSearchRecordsAction(input: {
 
       const settlement = await writeReimbursementPaymentSettlement({
         tx,
-        householdId: DEFAULT_HOUSEHOLD_ID,
+        householdId: session.access.member.householdId,
         actorId: session.access.member.id,
         reimbursedRecords: domainResult.reimbursedRecords,
         payment: payment.payment,

@@ -83,7 +83,10 @@ export async function createMemberAction(
   const result = await createMemberInDatabase(
     session.access.member,
     { displayName, role },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -136,7 +139,10 @@ export async function updateMemberDisplayNameAction(
   const result = await updateMemberDisplayNameInDatabase(
     session.access.member,
     { memberId, displayName },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {

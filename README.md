@@ -119,6 +119,21 @@ MEMBER_BINDING_TOKEN_ENCRYPTION_KEY="generated-base64-key"
 
 本機、production 請各自使用不同 key。正式環境若更換 key，尚未失效的既有綁定連結將無法再由管理者重新複製，需要等連結失效後重新產生。
 
+#### `CSV_IMPORT_PREVIEW_SECRET`
+
+CSV 匯入預覽 token 的 HMAC 簽章 secret。production 必須設定，不能共用
+`BETTER_AUTH_SECRET`。
+
+產生方式：
+
+```sh
+openssl rand -base64 32
+```
+
+```env
+CSV_IMPORT_PREVIEW_SECRET="generated-base64-secret"
+```
+
 #### `GOOGLE_CLIENT_ID` 和 `GOOGLE_CLIENT_SECRET`
 
 建立 Google OAuth client：

@@ -106,7 +106,10 @@ export async function createCategoryAction(
   const result = await createCategoryInDatabase(
     session.access.member,
     { color, icon, type, name },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -140,7 +143,10 @@ export async function renameCategoryAction(
   const result = await renameCategoryInDatabase(
     session.access.member,
     { categoryId, name },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -172,7 +178,10 @@ export async function updateCategoryAction(
   const result = await updateCategoryInDatabase(
     session.access.member,
     { categoryId, color, icon, name },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -203,7 +212,10 @@ export async function archiveCategoryAction(
   const result = await archiveCategoryInDatabase(
     session.access.member,
     { categoryId },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -231,7 +243,10 @@ export async function unarchiveCategoryAction(
   const result = await unarchiveCategoryInDatabase(
     session.access.member,
     { categoryId },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
@@ -263,7 +278,10 @@ export async function reorderCategoriesAction(
   const result = await reorderCategoriesInDatabase(
     session.access.member,
     { type, orderedCategoryIds: categoryIds },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {

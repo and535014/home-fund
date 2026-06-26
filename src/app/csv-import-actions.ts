@@ -48,6 +48,7 @@ export async function previewCsvImportAction(formData: FormData) {
     { csv },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -92,6 +93,7 @@ export async function confirmCsvImportAction(formData: FormData) {
     },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -126,6 +128,7 @@ export async function repreviewCsvImportAction(formData: FormData) {
     },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 }
@@ -197,7 +200,15 @@ function signPreviewPayload(payload: string): string {
 }
 
 function previewTokenSecret(): string {
-  return process.env.CSV_IMPORT_PREVIEW_SECRET ?? "local-dev-preview-secret";
+  if (process.env.CSV_IMPORT_PREVIEW_SECRET) {
+    return process.env.CSV_IMPORT_PREVIEW_SECRET;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("CSV_IMPORT_PREVIEW_SECRET is required in production");
+  }
+
+  return "local-dev-preview-secret";
 }
 
 async function tryConfirmLedgerImport(

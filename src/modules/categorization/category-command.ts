@@ -22,8 +22,6 @@ import {
   type UpdateCategoryCommand,
 } from "./category-catalog";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 type PrismaCategoryRow = Omit<Category, "color" | "icon"> & {
   color: string;
   icon: string;
@@ -88,7 +86,7 @@ export type CategoryCommandPrismaClient = {
 
 export type CategoryCommandDatabaseContext = {
   prisma: CategoryCommandPrismaClient;
-  householdId?: string;
+  householdId: string;
   generateId?: () => string;
 };
 
@@ -97,7 +95,7 @@ export async function createCategoryInDatabase(
   command: CreateCategoryCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await loadCategories(context.prisma, householdId);
   const result = createCategory(actor, command, {
     categories,
@@ -123,7 +121,7 @@ export async function renameCategoryInDatabase(
   command: RenameCategoryCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await loadCategories(context.prisma, householdId);
   const result = renameCategory(actor, command, { categories });
 
@@ -148,7 +146,7 @@ export async function updateCategoryInDatabase(
   command: UpdateCategoryCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await loadCategories(context.prisma, householdId);
   const result = updateCategory(actor, command, { categories });
 
@@ -175,7 +173,7 @@ export async function archiveCategoryInDatabase(
   command: ArchiveCategoryCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await loadCategories(context.prisma, householdId);
   const result = archiveCategory(actor, command, { categories });
 
@@ -200,7 +198,7 @@ export async function unarchiveCategoryInDatabase(
   command: UnarchiveCategoryCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const runTransaction = context.prisma.$transaction
     ? (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
         context.prisma.$transaction!(callback)
@@ -234,7 +232,7 @@ export async function reorderCategoriesInDatabase(
   command: ReorderCategoriesCommand,
   context: CategoryCommandDatabaseContext,
 ): Promise<CategoryCatalogResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const runTransaction = context.prisma.$transaction
     ? (callback: (transaction: CategoryCommandPrismaClient) => Promise<CategoryCatalogResult>) =>
         context.prisma.$transaction!(callback)
@@ -268,11 +266,11 @@ export async function reorderCategoriesInDatabase(
 
 export async function getCategoryReferenceCounts({
   categoryIds,
-  householdId = DEFAULT_HOUSEHOLD_ID,
+  householdId,
   prisma,
 }: {
   categoryIds: string[];
-  householdId?: string;
+  householdId: string;
   prisma: CategoryCommandPrismaClient;
 }): Promise<Map<string, number>> {
   const counts = new Map(categoryIds.map((categoryId) => [categoryId, 0]));

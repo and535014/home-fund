@@ -8,11 +8,9 @@ import {
 } from "./reimbursements";
 import type { ReimbursementPaymentEvidenceInput } from "./reimbursement-payment";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 export type MarkExpensesReimbursedInDatabaseContext = {
   prisma: PrismaClient;
-  householdId?: string;
+  householdId: string;
   generateBatchId?: () => string;
   generatePaymentId?: () => string;
   reimbursedAt?: Date;
@@ -35,7 +33,7 @@ export async function markExpensesReimbursedInDatabase(
   command: MarkExpensesReimbursedCommand,
   context: MarkExpensesReimbursedInDatabaseContext,
 ): Promise<MarkExpensesReimbursedResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const selectedExpenseIds = [...new Set(command.selectedExpenseIds)];
 
   return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {

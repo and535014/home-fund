@@ -63,6 +63,7 @@ jobs:
       DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
       BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      CSV_IMPORT_PREVIEW_SECRET: ${{ secrets.CSV_IMPORT_PREVIEW_SECRET }}
       MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: ${{ secrets.MEMBER_BINDING_TOKEN_ENCRYPTION_KEY }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -128,3 +129,10 @@ jobs:
             echo "- Confirm non-admin access to admin routes is denied."
             echo "- Confirm logout returns to login."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke production deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          curl --fail --location --max-time 30 "$DEPLOYMENT_URL/login" >/dev/null
+          curl --fail --location --max-time 30 "$DEPLOYMENT_URL/favicon.ico" >/dev/null
