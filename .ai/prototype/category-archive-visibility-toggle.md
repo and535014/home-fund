@@ -1,7 +1,7 @@
 ---
 id: prototype-category-archive-visibility-toggle
 stage: prototype
-status: draft
+status: approved
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: local_dev
@@ -28,7 +28,7 @@ reviewed_at: 2026-06-26
 
 ## Decision Summary
 
-- decision: proceed_to_review
+- decision: accepted_for_behavior_spec
 - route: `/settings/categories`
 - review_url: `http://localhost:3000/settings/categories`
 - run_command: `npm run dev`
@@ -105,7 +105,7 @@ reviewed_at: 2026-06-26
 
 ## Review Gate
 
-- decision: needs_user_review
+- decision: approve
 - reviewer_focus:
   - confirm one page-level switch is enough
   - confirm archived rows belong under active rows in the same panels
@@ -119,4 +119,4 @@ reviewed_at: 2026-06-26
   - None for Behavior Spec after review approval.
 - recommended_next_gate:
   - behavior-spec
-- stop_condition: Wait for explicit user approval before Behavior Spec, Technical Design, Implementation, Verification, Release, Learning, Artifact Compression, or committing prototype changes.
+- stop_condition: Behavior Spec may proceed; wait for explicit approval before Feature Technical Design, Implementation, Verification, Release, Learning, or Artifact Compression.

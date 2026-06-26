@@ -63,6 +63,7 @@ trace_links:
   - .ai/intent/category-archive-visibility-toggle.md
   - .ai/domain-impact/category-archive-visibility-toggle.md
   - .ai/prototype/category-archive-visibility-toggle.md
+  - .ai/spec/category-archive-visibility-toggle.md
   - .ai/intent/edit-delete-ledger-records.md
   - .ai/domain-impact/edit-delete-ledger-records.md
   - .ai/prototype/edit-delete-ledger-records.md
