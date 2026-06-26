@@ -124,7 +124,6 @@ function RecordEntryForm({
     categories,
     recordType,
   );
-  const activeMembers = useActiveMembers(members);
 
   return (
     <RecordEntryFormShell
@@ -152,7 +151,7 @@ function RecordEntryForm({
             entryKind === RECORD_ENTRY_KIND.fundExpense ? "基金" : undefined
           }
           label={memberFieldLabel}
-          members={activeMembers}
+          members={members}
           name={memberFieldName}
         />
         <LedgerRecordDateField />
@@ -285,13 +284,6 @@ function useActiveCategories(
         (category) => category.status === "active" && category.type === type,
       ),
     [categories, type],
-  );
-}
-
-function useActiveMembers(members: RecordCreateData["members"]) {
-  return useMemo(
-    () => members.filter((member) => member.status === "active"),
-    [members],
   );
 }
 

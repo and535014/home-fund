@@ -18,9 +18,6 @@ export type LedgerImportCommandPrismaClient = {
     findMany(args: {
       where: {
         householdId: string;
-        status: {
-          in: ("active" | "invited")[];
-        };
       };
       select: {
         id: true;
@@ -316,9 +313,6 @@ async function loadPreviewContext(
     prisma.member.findMany({
       where: {
         householdId,
-        status: {
-          in: ["active", "invited"],
-        },
       },
       select: {
         id: true,

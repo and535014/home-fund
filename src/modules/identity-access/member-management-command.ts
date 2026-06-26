@@ -27,7 +27,7 @@ export type MemberManagementCommandPrismaClient = {
       data: {
         householdId: string;
         displayName: string;
-        status: "invited";
+        status: "active";
         roles: {
           create: Array<{
             role: "admin" | "finance_manager" | "general_member";
@@ -96,7 +96,7 @@ export async function createMemberInDatabase(
     data: {
       householdId: context.householdId,
       displayName: result.member.displayName,
-      status: "invited",
+      status: "active",
       roles: {
         create: result.member.roles.map((role) => ({ role })),
       },

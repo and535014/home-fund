@@ -48,7 +48,7 @@ export type MemberManagementResult =
       ok: true;
       member: HouseholdMemberAccount;
       events: (
-        | "Member invited"
+        | "Member created"
         | "Member account updated"
         | "Member permissions changed"
       )[];
@@ -103,9 +103,9 @@ export function createMember(
       ...(googleAccountEmail ? { googleAccountEmail } : {}),
       roles: [command.role ?? "general_member"],
       capabilities: [],
-      status: "invited",
+      status: "active",
     },
-    events: ["Member invited"],
+    events: ["Member created"],
   };
 }
 

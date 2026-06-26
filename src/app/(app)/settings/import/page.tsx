@@ -17,9 +17,6 @@ export default async function ImportSettingsPage() {
     prisma.member.findMany({
       where: {
         householdId,
-        status: {
-          in: ["active", "invited"],
-        },
       },
       orderBy: {
         displayName: "asc",

@@ -43,7 +43,7 @@ const memberRows = [
 ];
 
 describe("createMemberInDatabase", () => {
-  it("persists an invited member with the selected role", async () => {
+  it("persists an active member with the selected role", async () => {
     const create = vi.fn(async () => ({
       id: "member-kai",
       householdId: "household-demo",
@@ -51,7 +51,7 @@ describe("createMemberInDatabase", () => {
       avatarUrl: null,
       googleAccountEmail: null,
       googleSubject: null,
-      status: "invited" as const,
+      status: "active" as const,
       roles: [{ role: "finance_manager" as const }],
       capabilities: [],
     }));
@@ -74,14 +74,14 @@ describe("createMemberInDatabase", () => {
         id: "member-kai",
         displayName: "Kai",
         roles: ["finance_manager"],
-        status: "invited",
+        status: "active",
       },
     });
     expect(create).toHaveBeenCalledWith({
       data: {
         displayName: "Kai",
         householdId: "household-demo",
-        status: "invited",
+        status: "active",
         roles: {
           create: [
             {
