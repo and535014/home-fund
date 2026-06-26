@@ -4,6 +4,7 @@ import {
   prismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
+import { reimbursementPaymentMethodLabel } from "@/modules/reimbursement/reimbursement-payment";
 
 export const REIMBURSEMENT_PAYMENT_PAGE_SIZE = 100;
 
@@ -273,13 +274,7 @@ export function reimbursementPaymentOrderByForSort(sort: ReimbursementPaymentSor
 }
 
 function methodLabel(method: ReimbursementPaymentMethod) {
-  const labels: Record<ReimbursementPaymentMethod, ReimbursementPaymentSearchResult["methodLabel"]> = {
-    bank_transfer: "銀行轉帳",
-    cash: "現金",
-    other: "其他",
-  };
-
-  return labels[method];
+  return reimbursementPaymentMethodLabel(method);
 }
 
 function mergeWhere(
