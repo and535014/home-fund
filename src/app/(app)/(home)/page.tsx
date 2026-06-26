@@ -202,9 +202,9 @@ function CategoryStatsPanel({
 		type: "expense" | "income";
 	}[];
 }) {
-	const expenseSummaries = summaries
-		.filter((summary) => summary.type === "expense")
-		.slice(0, 5);
+	const expenseSummaries = summaries.filter(
+		(summary) => summary.type === "expense",
+	);
 	const totalExpenseCents = expenseSummaries.reduce(
 		(total, summary) => total + summary.totalAmountCents,
 		0,
@@ -212,11 +212,11 @@ function CategoryStatsPanel({
 
 	return (
 		<DashboardPanel
-			contentClassName="flex flex-col justify-start"
+			contentClassName="flex flex-col justify-start overflow-y-auto pr-1 md:overflow-y-auto"
 			title="支出分類"
 		>
 			{totalExpenseCents > 0 ? (
-				<div className="grid h-full content-start items-start gap-3">
+				<div className="grid content-start items-start gap-3">
 					{expenseSummaries.map((summary) => (
 						<CategoryStatRow
 							key={summary.categoryId}
@@ -255,7 +255,7 @@ function CategoryStatRow({
 			: 0;
 
 	return (
-		<div className="grid grid-cols-[minmax(0,1.8fr)_minmax(0,3fr)_minmax(0,1.5fr)] items-center gap-3">
+		<div className="grid grid-cols-[minmax(6.25rem,1fr)_minmax(4.5rem,1.35fr)_max-content] items-center gap-2 md:grid-cols-[minmax(0,1.8fr)_minmax(3rem,3fr)_max-content] md:gap-3">
 			<CategoryVisualLabel
 				category={{
 					id: summary.categoryId,
@@ -278,7 +278,7 @@ function CategoryStatRow({
 					}}
 				/>
 			</div>
-			<div className="flex min-w-0 items-baseline justify-end gap-2 text-right">
+			<div className="grid min-w-0 grid-cols-[4.75rem_2rem] items-baseline justify-end gap-1.5 text-right tabular-nums md:grid-cols-[5.5rem_2.5rem] md:gap-2">
 				<span className="text-body-strong text-expense">
 					{formatAmount(summary.totalAmountCents)}
 				</span>
