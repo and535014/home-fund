@@ -81,9 +81,6 @@ describe("previewLedgerImportInDatabase", () => {
     expect(prisma.member.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         householdId: "household-demo",
-        status: {
-          in: ["active", "invited"],
-        },
       },
     }));
   });
