@@ -199,7 +199,7 @@ test("filters reimbursement payments and opens detail with related records", asy
   await expect(dialog).toContainText("2026/06/18");
   await expect(dialog).toContainText("銀行轉帳");
   await expect(dialog).toContainText("末五碼 5521");
-  await expect(dialog.getByRole("button", { name: "編輯" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "編輯" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "刪除" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "退款" })).toHaveCount(0);
 
@@ -230,6 +230,92 @@ test("opens reimbursement payment detail from a reimbursed expense", async ({
   await expect(paymentDialog.getByRole("heading", { name: "退款紀錄" })).toBeVisible();
   await expect(paymentDialog).toContainText("Mei");
   await expect(paymentDialog).toContainText("銀行轉帳");
+});
+
+test("edits reimbursement payment detail from reimbursement search", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("tab", { name: "退款紀錄" }).click();
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("退款紀錄");
+  await page.getByRole("button", {
+    name: "查看付給 Mei 退款紀錄詳情",
+  }).click();
+
+  let detailDialog = page.getByRole("dialog", { name: "退款紀錄" });
+  await expect(detailDialog).toContainText("2026/06/18");
+  await expect(detailDialog).toContainText("銀行轉帳");
+  await expect(detailDialog).toContainText("末五碼 5521");
+
+  await detailDialog.getByRole("button", { name: "編輯" }).click();
+
+  const editDialog = page.getByRole("dialog", { name: "編輯退款紀錄" });
+  await expect(editDialog.getByLabel("付款日期")).toHaveValue("2026-06-18");
+  await expect(editDialog.getByLabel("付款方式")).toHaveValue("bank_transfer");
+  await expect(editDialog.getByLabel("備註")).toHaveAttribute(
+    "placeholder",
+    "可填轉帳末五碼、收據資訊或付款備註",
+  );
+
+  await editDialog.getByLabel("付款日期").fill("2026-06-24");
+  await editDialog.getByLabel("付款方式").selectOption("cash");
+  await editDialog.getByLabel("備註").fill("現金補登 E2E");
+  await editDialog.getByRole("button", { name: "儲存變更" }).click();
+
+  await expect(page.getByText("退款紀錄已更新")).toBeVisible();
+  await expect(editDialog).toHaveCount(0);
+
+  detailDialog = page.getByRole("dialog", { name: "退款紀錄" });
+  await expect(detailDialog).toContainText("2026/06/24");
+  await expect(detailDialog).toContainText("現金");
+  await expect(detailDialog).toContainText("現金補登 E2E");
+});
+
+test("cancels reimbursement payment edits without changing readback", async ({
+  page,
+}) => {
+  await page.goto("/search");
+
+  await page.getByRole("tab", { name: "退款紀錄" }).click();
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("退款紀錄");
+  await page.getByRole("button", {
+    name: "查看付給 Mei 退款紀錄詳情",
+  }).click();
+
+  const detailDialog = page.getByRole("dialog", { name: "退款紀錄" });
+  await detailDialog.getByRole("button", { name: "編輯" }).click();
+
+  const editDialog = page.getByRole("dialog", { name: "編輯退款紀錄" });
+  await editDialog.getByLabel("付款日期").fill("2026-06-24");
+  await editDialog.getByLabel("付款方式").selectOption("cash");
+  await editDialog.getByLabel("備註").fill("不應該儲存");
+  await editDialog.getByRole("button", { name: "取消" }).click();
+
+  await expect(editDialog).toHaveCount(0);
+  await expect(detailDialog).toContainText("2026/06/18");
+  await expect(detailDialog).toContainText("銀行轉帳");
+  await expect(detailDialog).toContainText("末五碼 5521");
+  await expect(detailDialog).not.toContainText("不應該儲存");
+});
+
+test("hides reimbursement payment edit action from general members", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({
+    "x-e2e-auth-user-id": "user-e2e-general",
+  });
+  await page.goto("/search");
+
+  await page.getByRole("tab", { name: "退款紀錄" }).click();
+  await page.getByRole("textbox", { name: "搜尋紀錄" }).fill("退款紀錄");
+  await page.getByRole("button", {
+    name: "查看付給 Mei 退款紀錄詳情",
+  }).click();
+
+  const detailDialog = page.getByRole("dialog", { name: "退款紀錄" });
+  await expect(detailDialog).toContainText("銀行轉帳");
+  await expect(detailDialog.getByRole("button", { name: "編輯" })).toHaveCount(0);
 });
 
 test("keeps mobile reimbursement search tabs and close control in one row", async ({
