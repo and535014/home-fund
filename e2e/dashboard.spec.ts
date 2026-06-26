@@ -23,7 +23,12 @@ test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await expect(page.getByText("支出分類")).toBeVisible();
   await expect(page.getByText("收支趨勢")).toHaveCount(0);
   await expect(page.getByRole("region", { name: "收支趨勢" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "紀錄" })).toBeVisible();
+  const recordsRegion = page.getByRole("region", { name: "紀錄" });
+  await expect(recordsRegion).toBeVisible();
+  await expect(recordsRegion.getByRole("heading", { name: "紀錄" })).toHaveCount(0);
+  await expect(recordsRegion.getByRole("tab", { name: "全部收支" })).toBeVisible();
+  await expect(recordsRegion.getByRole("tab", { name: "支出紀錄" })).toBeVisible();
+  await expect(recordsRegion.getByRole("tab", { name: "收入紀錄" })).toBeVisible();
   await expect(page.locator('[data-slot="card"]')).toHaveCount(3);
   await expect(page.getByRole("link", { name: "紀錄頁" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "紀錄" })).toHaveCount(0);
@@ -37,6 +42,31 @@ test("renders the dashboard from the E2E database seed", async ({ page }) => {
   await expect(page.getByRole("columnheader", { name: "分類" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "狀態" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "金額" })).toHaveCount(0);
+});
+
+test("filters dashboard records by all, expense, and income tabs", async ({
+  page,
+}) => {
+  await page.goto("/?month=2026-06");
+
+  const recordsRegion = page.getByRole("region", { name: "紀錄" });
+
+  await expect(
+    recordsRegion.getByRole("tab", { name: "全部收支" }),
+  ).toHaveAttribute("data-state", "active");
+  await expect(recordsRegion.getByText("六月生活費")).toBeVisible();
+  await expect(recordsRegion.getByText("補充用品代墊")).toBeVisible();
+  await expect(recordsRegion.getByText("網路費")).toBeVisible();
+
+  await recordsRegion.getByRole("tab", { name: "支出紀錄" }).click();
+  await expect(recordsRegion.getByText("補充用品代墊")).toBeVisible();
+  await expect(recordsRegion.getByText("網路費")).toBeVisible();
+  await expect(recordsRegion.getByText("六月生活費")).toHaveCount(0);
+
+  await recordsRegion.getByRole("tab", { name: "收入紀錄" }).click();
+  await expect(recordsRegion.getByText("六月生活費")).toBeVisible();
+  await expect(recordsRegion.getByText("補充用品代墊")).toHaveCount(0);
+  await expect(recordsRegion.getByText("網路費")).toHaveCount(0);
 });
 
 test("opens record details from the dashboard list", async ({ page }) => {
@@ -214,7 +244,7 @@ test("keeps dashboard visual panels inside the fixed-height page", async ({
   expect(recordsBox!.width).toBeGreaterThan(0);
   await expectPanelTopLayout(reimbursementRegion, "待退款");
   await expectPanelTopLayout(categoryRegion, "支出分類");
-  await expectPanelTopLayout(recordsRegion, "紀錄");
+  await expectRecordsPanelTopLayout(recordsRegion);
   await expect(recordsRegion).toHaveCSS("border-left-width", "1px");
   expect((await categoryRegion.getByText("日用品").boundingBox())!.y).toBeLessThan(
     categoryBox!.y + categoryBox!.height / 2,
@@ -255,5 +285,25 @@ async function expectPanelTopLayout(
   ).toBeGreaterThanOrEqual(12);
   expect(
     contentBox!.y - (titleBox!.y + titleBox!.height),
+  ).toBeLessThanOrEqual(16);
+}
+
+async function expectRecordsPanelTopLayout(panel: Locator) {
+  const panelBox = await panel.boundingBox();
+  const tabListBox = await panel.locator('[data-slot="tabs-list"]').boundingBox();
+  const itemGroupBox = await panel.locator('[data-slot="item-group"]').boundingBox();
+
+  expect(panelBox).not.toBeNull();
+  expect(tabListBox).not.toBeNull();
+  expect(itemGroupBox).not.toBeNull();
+  expect(tabListBox!.y).toBeLessThan(panelBox!.y + panelBox!.height / 3);
+  expect(itemGroupBox!.y).toBeGreaterThanOrEqual(
+    tabListBox!.y + tabListBox!.height,
+  );
+  expect(
+    itemGroupBox!.y - (tabListBox!.y + tabListBox!.height),
+  ).toBeGreaterThanOrEqual(12);
+  expect(
+    itemGroupBox!.y - (tabListBox!.y + tabListBox!.height),
   ).toBeLessThanOrEqual(16);
 }

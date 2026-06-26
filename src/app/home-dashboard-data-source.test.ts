@@ -27,23 +27,42 @@ describe("createHomeDashboardDataSource", () => {
         status: "active" as const,
       },
     ]);
-    const ledgerRecordFindMany = vi.fn(async () => [
-      {
-        id: "expense-grocery-june",
-        type: "expense" as const,
-        name: "日用品代墊",
-        amountCents: 642_000,
-        occurredOn: new Date("2026-06-09T00:00:00.000Z"),
-        categoryId: "expense-grocery",
-        createdByMemberId: "member-fin",
-        sourceMemberId: null,
-        paymentSource: "member" as const,
-        payerMemberId: "member-fin",
-        reimbursementStatus: "refundable" as const,
-        status: "active" as const,
-        note: "日用品代墊",
-      },
-    ]);
+    const ledgerRecordFindMany = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: "expense-grocery-june",
+          type: "expense" as const,
+          name: "日用品代墊",
+          amountCents: 642_000,
+          occurredOn: new Date("2026-06-09T00:00:00.000Z"),
+          categoryId: "expense-grocery",
+          createdByMemberId: "member-fin",
+          sourceMemberId: null,
+          paymentSource: "member" as const,
+          payerMemberId: "member-fin",
+          reimbursementStatus: "refundable" as const,
+          status: "active" as const,
+          note: "日用品代墊",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "income-january",
+          type: "income" as const,
+          name: "年初收入",
+          amountCents: 10_000,
+          occurredOn: new Date("2026-01-05T00:00:00.000Z"),
+          categoryId: "income-living",
+          createdByMemberId: "member-fin",
+          sourceMemberId: "member-fin",
+          paymentSource: null,
+          payerMemberId: null,
+          reimbursementStatus: "not_applicable" as const,
+          status: "active" as const,
+          note: "年初收入",
+        },
+      ]);
     const dataSource = createHomeDashboardDataSource({
       member: { findMany: memberFindMany },
       category: { findMany: categoryFindMany },
@@ -93,13 +112,38 @@ describe("createHomeDashboardDataSource", () => {
           note: "日用品代墊",
         },
       ],
+      yearlyRecords: [
+        {
+          id: "income-january",
+          type: "income",
+          name: "年初收入",
+          amountCents: 10_000,
+          occurredOn: "2026-01-05",
+          categoryId: "income-living",
+          createdByMemberId: "member-fin",
+          sourceMemberId: "member-fin",
+          reimbursementStatus: "not_applicable",
+          status: "active",
+          note: "年初收入",
+        },
+      ],
     });
-    expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(ledgerRecordFindMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
       where: {
         householdId: "household-demo",
         occurredOn: {
           gte: new Date("2026-06-01T00:00:00.000Z"),
           lt: new Date("2026-07-01T00:00:00.000Z"),
+        },
+        status: "active",
+      },
+    }));
+    expect(ledgerRecordFindMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: {
+        householdId: "household-demo",
+        occurredOn: {
+          gte: new Date("2026-01-01T00:00:00.000Z"),
+          lt: new Date("2027-01-01T00:00:00.000Z"),
         },
         status: "active",
       },
@@ -156,6 +200,7 @@ describe("createHomeDashboardDataSource", () => {
     const data = await dataSource.getSearchPageData("household-demo");
 
     expect(data.records).toEqual([]);
+    expect(data.yearlyRecords).toEqual([]);
     expect(ledgerRecordFindMany).not.toHaveBeenCalled();
   });
 });
