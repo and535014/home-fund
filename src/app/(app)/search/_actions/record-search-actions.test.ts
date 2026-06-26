@@ -10,6 +10,9 @@ import {
   loadReimbursementPaymentByLedgerRecordAction,
   loadReimbursementPaymentsByLedgerRecordIdsAction,
 } from "@/app/_record-detail/reimbursement-payment-readback-actions";
+import {
+  editReimbursementPaymentAction,
+} from "@/app/_record-detail/reimbursement-payment-edit-actions";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -233,6 +236,156 @@ describe("loadReimbursementPaymentByLedgerRecordAction", () => {
   });
 });
 
+describe("editReimbursementPaymentAction", () => {
+  it("updates only editable refund evidence fields and returns readback", async () => {
+    const row = reimbursementPaymentRow({
+      id: "payment-1",
+      ledgerRecordId: "expense-1",
+      ledgerRecordName: "網路費代墊",
+    });
+    const tx = {
+      reimbursementPayment: {
+        findFirst: vi.fn()
+          .mockResolvedValueOnce({ id: "payment-1" })
+          .mockResolvedValueOnce({
+            ...row,
+            method: "cash",
+            paidOn: new Date("2026-06-27T00:00:00.000Z"),
+            note: "現金補登",
+          }),
+        update: vi.fn(async () => undefined),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    const result = await editReimbursementPaymentAction({
+      paymentId: "payment-1",
+      method: "cash",
+      paidOn: "2026-06-27",
+      note: "現金補登",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      message: "退款紀錄已更新",
+      record: {
+        id: "payment-1",
+        method: "cash",
+        methodLabel: "現金",
+        paidOn: "2026-06-27",
+        note: "現金補登",
+      },
+    });
+    expect(tx.reimbursementPayment.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "payment-1",
+        householdId: "household-demo",
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(tx.reimbursementPayment.update).toHaveBeenCalledWith({
+      where: {
+        id: "payment-1",
+      },
+      data: {
+        method: "cash",
+        paidOn: new Date("2026-06-27T00:00:00.000Z"),
+        note: "現金補登",
+        editedAt: expect.any(Date),
+        editedByMemberId: "member-fin",
+      },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith("/search");
+  });
+
+  it("rejects general members before mutating refund evidence", async () => {
+    mockAuthenticatedMember({
+      id: "member-general",
+      roles: ["general_member"],
+    });
+    const prisma = {
+      $transaction: vi.fn(),
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    await expect(
+      editReimbursementPaymentAction({
+        paymentId: "payment-1",
+        method: "cash",
+        paidOn: "2026-06-27",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "unauthorized",
+      message: "目前帳號沒有編輯退款紀錄權限。",
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns field errors for invalid payment evidence", async () => {
+    const prisma = {
+      $transaction: vi.fn(),
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    await expect(
+      editReimbursementPaymentAction({
+        paymentId: "payment-1",
+        method: "line_pay",
+        paidOn: "2026-06-27",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "invalid_payment_method",
+      message: "付款方式不支援。",
+      fieldErrors: {
+        method: ["付款方式不支援。"],
+      },
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("does not update cross-household refund evidence", async () => {
+    const tx = {
+      reimbursementPayment: {
+        findFirst: vi.fn(async () => null),
+        update: vi.fn(),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    await expect(
+      editReimbursementPaymentAction({
+        paymentId: "payment-other-household",
+        method: "cash",
+        paidOn: "2026-06-27",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "not_found",
+      message: "找不到這筆退款紀錄。",
+    });
+    expect(tx.reimbursementPayment.update).not.toHaveBeenCalled();
+  });
+});
+
 describe("loadReimbursementPaymentsByLedgerRecordIdsAction", () => {
   it("maps payment evidence back to requested ledger record ids", async () => {
     const prisma = {
@@ -283,14 +436,17 @@ describe("loadReimbursementPaymentsByLedgerRecordIdsAction", () => {
   });
 });
 
-function mockAuthenticatedMember() {
+function mockAuthenticatedMember(overrides?: {
+  id?: string;
+  roles?: ("admin" | "finance_manager" | "general_member")[];
+}) {
   vi.mocked(requireAuthenticatedMember).mockResolvedValue({
     access: {
       member: {
-        id: "member-fin",
+        id: overrides?.id ?? "member-fin",
         householdId: "household-demo",
         googleAccountLinked: true,
-        roles: ["finance_manager"],
+        roles: overrides?.roles ?? ["finance_manager"],
       },
     },
   } as Awaited<ReturnType<typeof requireAuthenticatedMember>>);

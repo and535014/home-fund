@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { REIMBURSEMENT_PAYMENT_METHOD_OPTIONS } from "@/modules/reimbursement/reimbursement-payment";
 
 export function ReimbursementPaymentFields({
   disabled = false,
@@ -35,9 +36,11 @@ export function ReimbursementPaymentFields({
             id={`${idPrefix}-method`}
             name="reimbursementMethod"
           >
-            <option value="bank_transfer">銀行轉帳</option>
-            <option value="cash">現金</option>
-            <option value="other">其他</option>
+            {REIMBURSEMENT_PAYMENT_METHOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </NativeSelect>
         </Field>
 

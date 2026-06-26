@@ -7,6 +7,29 @@ export const REIMBURSEMENT_PAYMENT_METHODS = [
 export type ReimbursementPaymentMethod =
   typeof REIMBURSEMENT_PAYMENT_METHODS[number];
 
+export type ReimbursementPaymentMethodLabel = "銀行轉帳" | "現金" | "其他";
+
+export const REIMBURSEMENT_PAYMENT_METHOD_LABELS = {
+  bank_transfer: "銀行轉帳",
+  cash: "現金",
+  other: "其他",
+} as const satisfies Record<
+  ReimbursementPaymentMethod,
+  ReimbursementPaymentMethodLabel
+>;
+
+export const REIMBURSEMENT_PAYMENT_METHOD_OPTIONS =
+  REIMBURSEMENT_PAYMENT_METHODS.map((value) => ({
+    label: REIMBURSEMENT_PAYMENT_METHOD_LABELS[value],
+    value,
+  }));
+
+export function reimbursementPaymentMethodLabel(
+  method: ReimbursementPaymentMethod,
+): ReimbursementPaymentMethodLabel {
+  return REIMBURSEMENT_PAYMENT_METHOD_LABELS[method];
+}
+
 export type ReimbursementPaymentEvidenceInput = {
   method: ReimbursementPaymentMethod;
   paidOn: string;

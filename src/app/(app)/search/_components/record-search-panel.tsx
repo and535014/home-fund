@@ -40,6 +40,9 @@ import {
   type BatchSearchRecordActionResult,
 } from "../_actions/record-search-actions";
 import { loadReimbursementPaymentsByLedgerRecordIdsAction } from "@/app/_record-detail/reimbursement-payment-readback-actions";
+import {
+  type ReimbursementPaymentSearchResult as UpdatedReimbursementPaymentSearchResult,
+} from "@/app/_record-detail/reimbursement-payment-ui";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -55,11 +58,13 @@ import { Dialog } from "@/components/ui/dialog";
 
 export function RecordSearchPanel({
   actor,
+  canEditReimbursementPayments,
   categories,
   categoriesById,
   memberNames,
 }: {
   actor: HouseholdAccessProfile;
+  canEditReimbursementPayments: boolean;
   categories: Category[];
   categoriesById: Record<string, Category>;
   memberNames: Record<string, string>;
@@ -416,6 +421,48 @@ export function RecordSearchPanel({
     });
   }
 
+  function reloadCurrentPaymentQuery() {
+    if (!hasActivePaymentQuery || !isPaymentSurface) {
+      return;
+    }
+
+    startTransition(() => {
+      loadReimbursementPaymentSearchPageAction({ query: paymentQuery }).then((result) => {
+        if (!result.ok) {
+          setLoadError(result.message);
+          return;
+        }
+
+        setLoadedPaymentResults(result.records);
+        setNextPaymentCursor(result.nextCursor);
+        setTotalPaymentCount(result.totalCount);
+        setTotalPaymentAmountCents(result.totalAmountCents);
+        setLoadError(null);
+      });
+    });
+  }
+
+  function handleReimbursementPaymentUpdated(
+    record: UpdatedReimbursementPaymentSearchResult,
+  ) {
+    setSelectedPaymentResult(record);
+    setLoadedPaymentResults((current) =>
+      current.map((payment) =>
+        payment.id === record.id ? record : payment,
+      ),
+    );
+    setReimbursementPaymentByRecordId((current) => {
+      const next = { ...current };
+
+      record.linkedRecords.forEach((linkedRecord) => {
+        next[linkedRecord.id] = record;
+      });
+
+      return next;
+    });
+    reloadCurrentPaymentQuery();
+  }
+
   function completeBatchDelete(selectedRecordsForAction: LedgerRecord[]) {
     const recordIds = selectedRecordsForAction.map((record) => record.id);
 
@@ -595,10 +642,12 @@ export function RecordSearchPanel({
       >
         {selectedPaymentResult ? (
           <ReimbursementPaymentDetailDialog
+            canEdit={canEditReimbursementPayments}
             onOpenLinkedRecords={() => {
               setSelectedPaymentResult(null);
               setSelectedPaymentLinkedResult(selectedPaymentResult);
             }}
+            onUpdated={handleReimbursementPaymentUpdated}
             result={selectedPaymentResult}
           />
         ) : null}

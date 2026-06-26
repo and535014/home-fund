@@ -112,6 +112,23 @@ describe("authorize", () => {
     });
   });
 
+  it("allows admins and finance managers to edit reimbursement payment evidence", () => {
+    expect(authorize(admin, command("edit_reimbursement_payment"))).toEqual({
+      allowed: true,
+    });
+    expect(
+      authorize(financeManager, command("edit_reimbursement_payment")),
+    ).toEqual({
+      allowed: true,
+    });
+    expect(
+      authorize(generalMember, command("edit_reimbursement_payment")),
+    ).toEqual({
+      allowed: false,
+      reason: "finance_manager_required",
+    });
+  });
+
   it("allows admins and finance managers to import ledger records", () => {
     expect(authorize(admin, command("import_ledger_records"))).toEqual({
       allowed: true,

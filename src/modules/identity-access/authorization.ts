@@ -17,6 +17,7 @@ export type AuthorizationCommand =
   | { type: "edit_ledger_record"; recordOwnerId: string }
   | { type: "delete_ledger_record"; recordOwnerId: string }
   | { type: "import_ledger_records" }
+  | { type: "edit_reimbursement_payment" }
   | { type: "perform_reimbursement" };
 
 export type AuthorizationResult =
@@ -73,7 +74,10 @@ export function authorize(
     return canDeleteRecord(member, command.recordOwnerId);
   }
 
-  if (command.type === "perform_reimbursement") {
+  if (
+    command.type === "perform_reimbursement" ||
+    command.type === "edit_reimbursement_payment"
+  ) {
     return hasRole(member, "admin") || hasRole(member, "finance_manager")
       ? { allowed: true }
       : { allowed: false, reason: "finance_manager_required" };
