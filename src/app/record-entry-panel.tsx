@@ -8,11 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  CategoryVisualMark,
-  compareCategoryVisualOrder,
-  getCategoryVisual,
-} from "@/app/category-visuals";
 import { initialActionState } from "./action-state";
 import {
   createLedgerRecordAction,
@@ -25,12 +20,17 @@ import {
   type RecordCreateData,
   type RecordCreateMode,
 } from "./record-create-context";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { DialogBody, DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  LedgerRecordAmountField,
+  LedgerRecordCancelButton,
+  LedgerRecordCategoryField,
+  LedgerRecordDateField,
+  LedgerRecordFormShell,
+  LedgerRecordMemberSelectField,
+  LedgerRecordNameField,
+  LedgerRecordNoteField,
+} from "./ledger-record-form-fields";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useActionStateEffect } from "./use-action-state-effect";
 
@@ -59,8 +59,6 @@ const RECORD_ENTRY_KIND = {
 type RecordEntryKind =
   (typeof RECORD_ENTRY_KIND)[keyof typeof RECORD_ENTRY_KIND];
 
-type Category = RecordCreateData["categories"][number];
-type Member = RecordCreateData["members"][number];
 type Profile = RecordCreateData["profile"];
 
 export function RecordEntryPanel() {
@@ -141,15 +139,15 @@ function RecordEntryForm({
       setCreatePending={setCreatePending}
       submitLabel="新增"
     >
-      <CategoryField categories={activeCategories} />
-      <AmountField />
-      <NameField
+      <LedgerRecordCategoryField categories={activeCategories} />
+      <LedgerRecordAmountField />
+      <LedgerRecordNameField
         placeholder={
           recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
         }
       />
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <MemberSelectField
+        <LedgerRecordMemberSelectField
           canSelectOthers={canSelectOthers}
           defaultMemberId={profile.id}
           disabledDisplayValue={
@@ -159,9 +157,9 @@ function RecordEntryForm({
           members={activeMembers}
           name={memberFieldName}
         />
-        <DateField />
+        <LedgerRecordDateField />
       </div>
-      <NoteField />
+      <LedgerRecordNoteField />
     </RecordEntryFormShell>
   );
 }
@@ -215,56 +213,33 @@ function RecordEntryFormShell({
   );
 
   return (
-    <section
-      aria-label="新增紀錄表單"
-      className="flex min-h-0 flex-1 flex-col scroll-mt-32"
-    >
-      {feedbackMessage ? (
-        <Alert
-          className="mb-3 shrink-0"
-          role={feedbackMessage.tone === "error" ? "alert" : "status"}
-          variant={feedbackMessage.tone === "success" ? "default" : "destructive"}
-        >
-          <AlertDescription>{feedbackMessage.message}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <form action={formAction} className="flex min-h-0 flex-1 flex-col">
-        <input name="recordType" type="hidden" value={recordType} />
-        <input name="paymentSource" type="hidden" value={paymentSource} />
-        <DialogBody>
-          <FieldSet
-            className="contents disabled:pointer-events-none disabled:opacity-70"
-            disabled={isPending}
-          >
-            <FieldGroup>
-              <RecordKindTabs
-                disabled={isPending}
-                entryKind={entryKind}
-                onEntryKindChange={onEntryKindChange}
-              />
-              {children}
-            </FieldGroup>
-          </FieldSet>
-        </DialogBody>
-        <DialogFooter className="mt-4">
-          <Button
-            disabled={isPending}
-            onClick={close}
-            type="button"
-            variant="secondary"
-          >
-            取消
-          </Button>
-          <Button
-            disabled={!hasCategories || isPending}
-            type="submit"
-          >
+    <LedgerRecordFormShell
+      ariaLabel="新增紀錄表單"
+      action={formAction}
+      feedbackMessage={feedbackMessage}
+      hiddenFields={
+        <>
+          <input name="recordType" type="hidden" value={recordType} />
+          <input name="paymentSource" type="hidden" value={paymentSource} />
+        </>
+      }
+      isPending={isPending}
+      footer={
+        <>
+          <LedgerRecordCancelButton disabled={isPending} onClick={close} />
+          <Button disabled={!hasCategories || isPending} type="submit">
             <span>{isPending ? "新增中..." : submitLabel}</span>
           </Button>
-        </DialogFooter>
-      </form>
-    </section>
+        </>
+      }
+    >
+      <RecordKindTabs
+        disabled={isPending}
+        entryKind={entryKind}
+        onEntryKindChange={onEntryKindChange}
+      />
+      {children}
+    </LedgerRecordFormShell>
   );
 }
 
@@ -302,150 +277,6 @@ function RecordKindTabs({
   );
 }
 
-function DateField() {
-  return (
-    <Field>
-      <FieldLabel>日期</FieldLabel>
-      <Input
-        defaultValue={formatDateInputValue()}
-        name="occurredOn"
-        required
-        type="date"
-      />
-    </Field>
-  );
-}
-
-function CategoryField({ categories }: { categories: Category[] }) {
-  const orderedCategories = [...categories].sort(compareCategoryVisualOrder);
-
-  return (
-    <Field>
-      {categories.length === 0 ? (
-        <p className="text-caption text-muted-foreground">
-          尚未建立可用分類。
-        </p>
-      ) : (
-        <div
-          aria-label="分類"
-          className="flex gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:grid-cols-5 sm:gap-x-4 sm:gap-y-5 sm:overflow-visible sm:px-1 sm:pb-3 sm:pt-1"
-          role="radiogroup"
-        >
-        {orderedCategories.map((category) => {
-          const visual = getCategoryVisual(category);
-
-          return (
-          <label
-            className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-auto"
-            key={category.id}
-          >
-            <input
-              className="peer sr-only"
-              name="categoryId"
-              required
-              type="radio"
-              value={category.id}
-            />
-            <CategoryVisualMark
-              className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
-              color={visual.color}
-              icon={visual.icon}
-              size="lg"
-            />
-            <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
-              {category.name}
-            </span>
-          </label>
-          );
-        })}
-        </div>
-      )}
-    </Field>
-  );
-}
-
-function MemberSelectField({
-  canSelectOthers,
-  defaultMemberId,
-  disabledDisplayValue,
-  label,
-  members,
-  name,
-}: {
-  canSelectOthers: boolean;
-  defaultMemberId: string;
-  disabledDisplayValue?: string;
-  label: string;
-  members: Member[];
-  name: "payerMemberId" | "sourceMemberId";
-}) {
-  if (disabledDisplayValue) {
-    return (
-      <Field>
-        <FieldLabel>{label}</FieldLabel>
-        <Input disabled value={disabledDisplayValue} />
-      </Field>
-    );
-  }
-
-  return (
-    <Field>
-      {!canSelectOthers ? (
-        <input name={name} type="hidden" value={defaultMemberId} />
-      ) : null}
-      <FieldLabel>{label}</FieldLabel>
-      <NativeSelect
-        aria-label={label}
-        defaultValue={defaultMemberId}
-        disabled={!canSelectOthers}
-        name={name}
-        required
-      >
-        {members.map((member) => (
-          <option key={member.id} value={member.id}>
-            {member.displayName}
-          </option>
-        ))}
-      </NativeSelect>
-    </Field>
-  );
-}
-
-function AmountField() {
-  return (
-    <Field>
-      <FieldLabel>金額</FieldLabel>
-      <Input
-        inputMode="decimal"
-        min="1"
-        name="amountTwd"
-        placeholder="例如 1200"
-        required
-        step="0.01"
-        type="number"
-      />
-    </Field>
-  );
-}
-
-function NameField({ placeholder }: { placeholder: string }) {
-  return (
-    <Field>
-      <FieldLabel>名稱</FieldLabel>
-      <Input name="name" placeholder={placeholder} required type="text" />
-    </Field>
-  );
-}
-
-function NoteField() {
-  return (
-    <Field>
-      <FieldLabel>備註</FieldLabel>
-      <Input name="note" placeholder="可留空" type="text" />
-    </Field>
-  );
-}
-
 function useActiveCategories(
   categories: RecordCreateData["categories"],
   type: RecordEntryMode,
@@ -464,14 +295,6 @@ function useActiveMembers(members: RecordCreateData["members"]) {
     () => members.filter((member) => member.status === "active"),
     [members],
   );
-}
-
-function formatDateInputValue(date = new Date()) {
-  const localDate = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60_000,
-  );
-
-  return localDate.toISOString().slice(0, 10);
 }
 
 function createRecordFeedbackMessage(

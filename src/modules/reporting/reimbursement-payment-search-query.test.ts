@@ -56,29 +56,35 @@ describe("reimbursement payment search query", () => {
     })).toMatchObject({
       take: REIMBURSEMENT_PAYMENT_PAGE_SIZE + 1,
       where: {
-        householdId: "household-demo",
-        paidToMemberId: "member-mei",
-        paidOn: {
-          gte: new Date("2026-06-01T00:00:00.000Z"),
-          lte: new Date("2026-06-30T00:00:00.000Z"),
-        },
         AND: [
           {
-            OR: [
-              { paidToMember: { displayName: { contains: "銀行轉帳", mode: "insensitive" } } },
-              { note: { contains: "銀行轉帳", mode: "insensitive" } },
+            householdId: "household-demo",
+            AND: [
+              { paidToMemberId: "member-mei" },
               {
-                reimbursementBatch: {
-                  items: {
-                    some: {
-                      ledgerRecord: {
-                        name: { contains: "銀行轉帳", mode: "insensitive" },
+                paidOn: {
+                  gte: new Date("2026-06-01T00:00:00.000Z"),
+                  lte: new Date("2026-06-30T00:00:00.000Z"),
+                },
+              },
+              {
+                OR: [
+                  { paidToMember: { displayName: { contains: "銀行轉帳", mode: "insensitive" } } },
+                  { note: { contains: "銀行轉帳", mode: "insensitive" } },
+                  {
+                    reimbursementBatch: {
+                      items: {
+                        some: {
+                          ledgerRecord: {
+                            name: { contains: "銀行轉帳", mode: "insensitive" },
+                          },
+                        },
                       },
                     },
                   },
-                },
+                  { method: "bank_transfer" },
+                ],
               },
-              { method: "bank_transfer" },
             ],
           },
           {
@@ -113,19 +119,23 @@ describe("reimbursement payment search query", () => {
         search: "餐費",
       },
     }).where).toMatchObject({
-      OR: [
-        { paidToMember: { displayName: { contains: "餐費", mode: "insensitive" } } },
-        { note: { contains: "餐費", mode: "insensitive" } },
+      AND: [
         {
-          reimbursementBatch: {
-            items: {
-              some: {
-                ledgerRecord: {
-                  name: { contains: "餐費", mode: "insensitive" },
+          OR: [
+            { paidToMember: { displayName: { contains: "餐費", mode: "insensitive" } } },
+            { note: { contains: "餐費", mode: "insensitive" } },
+            {
+              reimbursementBatch: {
+                items: {
+                  some: {
+                    ledgerRecord: {
+                      name: { contains: "餐費", mode: "insensitive" },
+                    },
+                  },
                 },
               },
             },
-          },
+          ],
         },
       ],
     });
@@ -137,7 +147,9 @@ describe("reimbursement payment search query", () => {
         search: "680",
       },
     }).where).toMatchObject({
-      OR: expect.arrayContaining([{ amountCents: 68_000 }]),
+      AND: expect.arrayContaining([
+        { OR: expect.arrayContaining([{ amountCents: 68_000 }]) },
+      ]),
     });
 
     expect(buildReimbursementPaymentSearchPageQuery({
@@ -147,8 +159,12 @@ describe("reimbursement payment search query", () => {
         search: "2026/06/10",
       },
     }).where).toMatchObject({
-      OR: expect.arrayContaining([
-        { paidOn: new Date("2026-06-10T00:00:00.000Z") },
+      AND: expect.arrayContaining([
+        {
+          OR: expect.arrayContaining([
+            { paidOn: new Date("2026-06-10T00:00:00.000Z") },
+          ]),
+        },
       ]),
     });
   });
@@ -166,11 +182,18 @@ describe("reimbursement payment search query", () => {
       },
     })).toMatchObject({
       where: {
-        OR: [
-          { paidOn: { gt: new Date("2026-06-10T00:00:00.000Z") } },
+        AND: [
           {
-            paidOn: new Date("2026-06-10T00:00:00.000Z"),
-            id: { gt: "payment-100" },
+            householdId: "household-demo",
+          },
+          {
+            OR: [
+              { paidOn: { gt: new Date("2026-06-10T00:00:00.000Z") } },
+              {
+                paidOn: new Date("2026-06-10T00:00:00.000Z"),
+                id: { gt: "payment-100" },
+              },
+            ],
           },
         ],
       },
@@ -185,6 +208,52 @@ describe("reimbursement payment search query", () => {
       id: "payment-100",
       paidOn: "2026-06-10",
       amountCents: 3_200,
+    });
+  });
+
+  it("combines payment date range, keyword search, and cursor as AND conditions", () => {
+    expect(buildReimbursementPaymentSearchPageQuery({
+      householdId: "household-demo",
+      query: {
+        ...initialReimbursementPaymentQueryState,
+        dateFrom: "2026-06-01",
+        dateTo: "2026-06-30",
+        search: "2026/07/01",
+      },
+      cursor: {
+        id: "payment-200",
+        paidOn: "2026-06-15",
+      },
+    })).toMatchObject({
+      where: {
+        AND: [
+          {
+            householdId: "household-demo",
+            AND: [
+              {
+                paidOn: {
+                  gte: new Date("2026-06-01T00:00:00.000Z"),
+                  lte: new Date("2026-06-30T00:00:00.000Z"),
+                },
+              },
+              {
+                OR: expect.arrayContaining([
+                  { paidOn: new Date("2026-07-01T00:00:00.000Z") },
+                ]),
+              },
+            ],
+          },
+          {
+            OR: [
+              { paidOn: { lt: new Date("2026-06-15T00:00:00.000Z") } },
+              {
+                paidOn: new Date("2026-06-15T00:00:00.000Z"),
+                id: { lt: "payment-200" },
+              },
+            ],
+          },
+        ],
+      },
     });
   });
 
