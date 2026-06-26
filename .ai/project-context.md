@@ -1,9 +1,9 @@
 ---
 id: project
-stage: init
+stage: release-execution
 status: active
 delivery_profile: mvp
-release_target: local_dev
+release_target: production
 inputs: []
 outputs:
   - .ai/workflow.md
@@ -14,7 +14,7 @@ trace_links:
   - playwright.config.ts
   - vitest.config.ts
   - docker-compose.yml
-reviewed_at: 2026-06-20
+reviewed_at: 2026-06-26
 ---
 
 # Project Context
@@ -27,12 +27,12 @@ reviewed_at: 2026-06-20
 - business outcome: provide a Traditional Chinese dark-theme household fund dashboard with role-aware access and traceable financial workflows.
 - repository state: Next.js app with Prisma/PostgreSQL schema, Better Auth Google sign-in integration, domain modules, UI components, unit tests, and Playwright E2E foundation.
 - selected stack: Next.js, React, TypeScript, Prisma, PostgreSQL, Better Auth, Vitest, Playwright, Tailwind CSS, shadcn-style UI components.
-- deployment signals: Docker Compose for local PostgreSQL, README references Vercel/Neon as future deployment targets, and local_dev readiness is drafted in `.ai/release/home-family-fund-local-dev-readiness.md`.
+- deployment signals: Production deployment is now recorded through `.ai/deployment/production-v0.1.2-2026-06-26.md`; the current assumed production source is tag `v0.1.2` at commit `9358ca8f6c44b292f9906f7d3c5602067075c66a`, pending production URL and smoke evidence confirmation.
 
 ## Harness Defaults
 
 - delivery_profile: mvp
-- release_target: local_dev
+- release_target: production
 - workflow_version: ddd-website-lifecycle-v2
 - migration_report: `.ai/workflow-migration/migration-v2-home-family-fund-2026-06-18.md`
 - artifact id convention: kebab-case product/change ids, usually prefixed with `home-family-fund`.
@@ -55,6 +55,7 @@ reviewed_at: 2026-06-20
   - foundation-architecture
   - technical-design
   - release
+  - deployment
   - learning
 - optional_artifacts:
   - workflow-review
@@ -73,6 +74,7 @@ reviewed_at: 2026-06-20
   - .ai/implementation
   - .ai/verification
   - .ai/release
+  - .ai/deployment
   - .ai/learning
   - .ai/workflow-migration
   - .ai/archive
@@ -89,7 +91,7 @@ reviewed_at: 2026-06-20
 - integrations: Google OAuth through Better Auth, Prisma PostgreSQL adapter, local Playwright browser automation.
 - test commands: `corepack pnpm test`, `corepack pnpm type-check`, `corepack pnpm lint`, `pnpm test:e2e`.
 - build commands: `corepack pnpm build`.
-- deploy commands: `corepack pnpm db:deploy` exists; production deployment workflow is not yet documented in `.ai/release/`.
+- deploy commands: production deployment is documented in `docs/deployment.md` and implemented by `.github/workflows/deploy-production.yml`; `corepack pnpm db:deploy` runs inside the production workflow before Vercel deploy.
 
 ## Code Understanding Tools
 
@@ -105,22 +107,22 @@ reviewed_at: 2026-06-20
 
 - product_analytics_provider: unknown
 - error_monitoring_provider: unknown
-- logging_provider: unknown
+- logging_provider: Vercel runtime logs expected, ownership/evidence pending
 - feedback_channels: unknown
-- notes: define during deploy-readiness or post-release tracking before production release.
+- notes: production deployment is recorded, but post-release learning signals, monitoring provider, production URL, GitHub Actions run URL, Vercel deployment URL, and manual smoke results still need to be attached.
 
 ## Constraints
 
-- hard constraints: UI copy is Traditional Chinese; interface is dark-theme first; Google sign-in is required before household access; local MVP target is `local_dev`.
-- non-goals: production OAuth smoke, production monitoring, backup/restore, and release rollback are not covered by init.
-- compliance or security notes: E2E current-member override is guarded by `NODE_ENV !== "production"` and an explicit test header; production Google OAuth and Better Auth secrets remain required before deployment.
+- hard constraints: UI copy is Traditional Chinese; interface is dark-theme first; Google sign-in is required before household access; production deployment must remain tag-based and auditable.
+- non-goals: automatic production OAuth E2E, full monitoring instrumentation, automated database rollback, and hosted preview remain out of scope unless a new intent selects them.
+- compliance or security notes: E2E current-member override is guarded by `NODE_ENV !== "production"` and an explicit test header; production Google OAuth and Better Auth secrets remain required for safe operation.
 - operational assumptions: local development uses pnpm, Prisma generation before checks, and Docker/Neon-compatible PostgreSQL connection strings.
 
 ## Next Step
 
-- latest_completed_slice: category archive visibility toggle, compressed in `.ai/archive/archive-category-archive-visibility-toggle-2026-06-26.md`.
-- active_change: github-actions-vercel-neon-deployment
-- recommended_resume_gate: Target-Aware Release update after GitHub/Vercel/Neon/Google OAuth services are configured
-- recommended_next_skill: target-aware-release for live-service readiness; release-execution only after production approval
-- required input: `.ai/intent/github-actions-vercel-neon-deployment.md`, `.ai/release/github-actions-vercel-neon-deployment-readiness.md`, `.ai/technical-design/github-actions-vercel-neon-deployment.md`, `.ai/implementation/github-actions-vercel-neon-deployment.md`, `.ai/verification/github-actions-vercel-neon-deployment.md`, `.ai/archive/archive-category-archive-visibility-toggle-2026-06-26.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
-- reason: Local verification passed for the production-only GitHub Actions deployment pipeline, including CI, production tag/manual deploy workflow, Prisma `DATABASE_URL_UNPOOLED` support, and deployment documentation. Production execution remains blocked until external service setup and live smoke checks complete.
+- latest_completed_slice: production deployment status recorded in `.ai/deployment/production-v0.1.2-2026-06-26.md`.
+- active_change: production deployment evidence completion
+- recommended_resume_gate: Learning Loop after production URL, GitHub Actions run, Vercel deployment URL, smoke results, backup/restore evidence, and monitoring/log review are attached.
+- recommended_next_skill: learning-loop for production monitoring and feedback; release-execution only if deployment evidence needs to be amended or another production tag is deployed.
+- required input: `.ai/deployment/production-v0.1.2-2026-06-26.md`, `.ai/intent/github-actions-vercel-neon-deployment.md`, `.ai/release/github-actions-vercel-neon-deployment-readiness.md`, `.ai/technical-design/github-actions-vercel-neon-deployment.md`, `.ai/implementation/github-actions-vercel-neon-deployment.md`, `.ai/verification/github-actions-vercel-neon-deployment.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
+- reason: Production deployment has been reported complete and is recorded as tag `v0.1.2` on `main`, but live evidence is still incomplete. The next project-management work should close evidence gaps rather than assume OAuth, role permissions, monitoring, and backup posture are fully proven.

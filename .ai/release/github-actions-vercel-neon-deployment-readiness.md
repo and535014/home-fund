@@ -1,7 +1,7 @@
 ---
 id: release-github-actions-vercel-neon-deployment-readiness
 stage: release
-status: draft
+status: complete_with_deployment_record
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: production
@@ -20,11 +20,13 @@ outputs:
   - migration_strategy
   - deployment_documentation_requirements
   - blocked_readiness_items
+  - production_deployment_record
 trace_links:
   - .ai/intent/github-actions-vercel-neon-deployment.md
   - .ai/workflow.md
   - .ai/project-context.md
   - .ai/release/home-family-fund-local-dev-readiness.md
+  - .ai/deployment/production-v0.1.2-2026-06-26.md
 reviewed_at: 2026-06-26
 ---
 
@@ -32,12 +34,13 @@ reviewed_at: 2026-06-26
 
 ## Decision
 
-- decision: not_ready_for_production_execution
+- decision: superseded_by_recorded_production_deployment
 - preview_readiness: explicitly_skipped_with_accepted_risk
-- production_readiness: blocked_until_service_setup_and_live_smoke
-- rationale: The deployment workflow and documentation now support production-only release through GitHub Actions. Preview is intentionally skipped to reduce MVP operational complexity. Actual production deployment is not ready because Vercel project identifiers, Neon production database, GitHub secrets/environment, Google OAuth callback URL, monitoring, and smoke checks have not been created or verified.
+- production_readiness: deployed_by_maintainer_report_with_evidence_pending
+- deployment_record: `.ai/deployment/production-v0.1.2-2026-06-26.md`
+- rationale: This artifact originally blocked production execution until external GitHub, Vercel, Neon, Google OAuth, and smoke-check setup existed. The maintainer later reported that production deployment is complete. The current status is therefore no longer "not ready to execute"; it is "deployed, with production evidence still needing attachment."
 
-Passing this Target-Aware Release gate does not authorize production deployment. It authorizes repository merge and external service configuration before a stricter production execution gate.
+This Target-Aware Release artifact remains useful as the design/readiness baseline. The current production truth now lives in the deployment record, and the evidence gaps in that record must be closed before treating the release as fully audited.
 
 ## Release Scope
 
@@ -235,7 +238,7 @@ Create a deployment guide in Traditional Chinese that includes:
 - Post-deploy smoke checklist.
 - Troubleshooting section for failed CI, failed migration, failed Vercel deploy, and OAuth callback mismatch.
 
-## Blockers Before Production Execution
+## Original Blockers Before Production Execution
 
 - GitHub Actions workflows need live GitHub validation after secrets are configured.
 - Deployment documentation exists and needs live-service validation.
@@ -247,9 +250,21 @@ Create a deployment guide in Traditional Chinese that includes:
 - `DATABASE_URL_UNPOOLED` is adopted and needs live secret configuration.
 - Production smoke checks are not automated or documented.
 
+## Current Production Evidence Gaps
+
+Production is recorded as deployed, but these items are still pending in `.ai/deployment/production-v0.1.2-2026-06-26.md`:
+
+- Production URL.
+- GitHub Actions run URL.
+- Vercel deployment URL.
+- Manual smoke checklist result.
+- Google OAuth production callback confirmation.
+- Monitoring/error reporting decision.
+- Production backup/restore evidence.
+
 ## Review Gate
 
-- decision: approve_for_feature_technical_design
+- decision: complete_with_deployment_record
 - reviewer_focus:
   - Confirm preview environment is intentionally skipped for the first version.
   - Confirm PRs run CI only and do not deploy.
@@ -258,6 +273,7 @@ Create a deployment guide in Traditional Chinese that includes:
   - Confirm deployment docs should be created before workflow usage.
 - accepted_risks:
   - PRs have no hosted preview URL.
+  - Production deployment completion is currently recorded from maintainer report plus local tag evidence; live execution evidence must still be attached.
   - Hosted database migrations are first exercised in production deploy.
   - Production zero-downtime migrations are not guaranteed yet.
   - Real Google OAuth smoke remains manual unless a later automation decision is made.
