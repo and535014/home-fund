@@ -19,7 +19,6 @@ import {
 } from "@/app/ledger-record-actions";
 import { formatRecordDate } from "./record-display-utils";
 import {
-  EditCategoryField,
   RecordDetailView,
   type RecordDetailActionAccess,
 } from "./record-detail-ui";
@@ -44,15 +43,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldLabel, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  LedgerRecordAmountField,
+  LedgerRecordCancelButton,
+  LedgerRecordCategoryField,
+  LedgerRecordDateField,
+  LedgerRecordFormShell,
+  LedgerRecordMemberSelectField,
+  LedgerRecordNameField,
+  LedgerRecordNoteField,
+} from "@/app/ledger-record-form-fields";
 import { Item, ItemGroup } from "@/components/ui/item";
-import { Textarea } from "@/components/ui/textarea";
-import { compareCategoryVisualOrder } from "@/app/category-visuals";
 import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
 import { formatAmount } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -470,9 +473,7 @@ function EditRecordDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const [paymentSource, setPaymentSource] = useState(
-    record.type === "expense" ? record.paymentSource : "member",
-  );
+  const paymentSource = record.type === "expense" ? record.paymentSource : null;
   const [actionState, setActionState] = useState(() =>
     initialActionState<
       { recordId: string },
@@ -492,41 +493,26 @@ function EditRecordDialog({
       (category) =>
         category.type === record.type &&
         (category.status === "active" || category.id === record.categoryId),
-    )
-    .sort(compareCategoryVisualOrder);
+    );
   const members = Object.entries(memberNames).map(([id, displayName]) => ({
     id,
     displayName,
   }));
   const payerField =
     record.type === "income" ? (
-      <Field className="min-w-0">
-        <FieldLabel>支付者</FieldLabel>
-        <NativeSelect
-          defaultValue={record.sourceMemberId}
-          name="sourceMemberId"
-        >
-          {members.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.displayName}
-            </option>
-          ))}
-        </NativeSelect>
-      </Field>
+      <LedgerRecordMemberSelectField
+        defaultMemberId={record.sourceMemberId}
+        label="支付者"
+        members={members}
+        name="sourceMemberId"
+      />
     ) : paymentSource === "member" ? (
-      <Field className="min-w-0">
-        <FieldLabel>支付者</FieldLabel>
-        <NativeSelect
-          defaultValue={record.payerMemberId ?? ""}
-          name="payerMemberId"
-        >
-          {members.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.displayName}
-            </option>
-          ))}
-        </NativeSelect>
-      </Field>
+      <LedgerRecordMemberSelectField
+        defaultMemberId={record.payerMemberId ?? ""}
+        label="支付者"
+        members={members}
+        name="payerMemberId"
+      />
     ) : null;
 
   function formAction(formData: FormData) {
@@ -547,91 +533,64 @@ function EditRecordDialog({
         <DialogTitle>編輯紀錄</DialogTitle>
       </DialogHeader>
 
-      <form action={formAction}>
-        {actionState.status === "error" && actionState.message ? (
-          <Alert className="mb-3" role="alert" variant="destructive">
-            <AlertDescription>{actionState.message}</AlertDescription>
-          </Alert>
-        ) : null}
-        <input name="recordId" type="hidden" value={record.id} />
-        <input name="recordType" type="hidden" value={record.type} />
-        <DialogBody className="grid gap-4">
-          <FieldSet
-            className="contents disabled:pointer-events-none disabled:opacity-70"
-            disabled={isPending}
-          >
-            <EditCategoryField
-              categories={editableCategories}
-              defaultCategoryId={record.categoryId}
-            />
-
-            {record.type === "expense" ? (
-              <Field className="min-w-0">
-                <FieldLabel>支出類型</FieldLabel>
-                <NativeSelect
-                  name="paymentSource"
-                  onChange={(event) =>
-                    setPaymentSource(
-                      event.currentTarget.value as "fund" | "member",
-                    )
-                  }
-                  value={paymentSource}
-                >
-                  <option value="member">成員代墊</option>
-                  <option value="fund">基金支出</option>
-                </NativeSelect>
-              </Field>
+      <LedgerRecordFormShell
+        action={formAction}
+        ariaLabel="編輯紀錄表單"
+        feedbackMessage={
+          actionState.status === "error" && actionState.message
+            ? { message: actionState.message, tone: "error" }
+            : undefined
+        }
+        hiddenFields={
+          <>
+            <input name="recordId" type="hidden" value={record.id} />
+            <input name="recordType" type="hidden" value={record.type} />
+            {paymentSource ? (
+              <input name="paymentSource" type="hidden" value={paymentSource} />
             ) : null}
+          </>
+        }
+        isPending={isPending}
+        footer={
+          <>
+            <LedgerRecordCancelButton
+              disabled={isPending}
+              onClick={onCancel}
+              variant="outline"
+            >
+              <X />
+              取消
+            </LedgerRecordCancelButton>
+            <Button disabled={isPending} type="submit">
+              <Save />
+              {isPending ? "儲存中..." : "儲存變更"}
+            </Button>
+          </>
+        }
+      >
+        <LedgerRecordCategoryField
+          categories={editableCategories}
+          defaultCategoryId={record.categoryId}
+        />
 
-            <Field className="min-w-0">
-              <FieldLabel>金額</FieldLabel>
-              <Input
-                defaultValue={String(record.amountCents / 100)}
-                inputMode="decimal"
-                name="amountTwd"
-              />
-            </Field>
+        <LedgerRecordAmountField
+          defaultValue={String(record.amountCents / 100)}
+        />
+        <LedgerRecordNameField defaultValue={record.name} />
 
-            <Field className="min-w-0">
-              <FieldLabel>名稱</FieldLabel>
-              <Input defaultValue={record.name} name="name" />
-            </Field>
+        <div
+          className={
+            payerField
+              ? "grid min-w-0 grid-cols-2 gap-3 sm:gap-4"
+              : "grid min-w-0 gap-3 sm:gap-4"
+          }
+        >
+          {payerField}
+          <LedgerRecordDateField defaultValue={record.occurredOn} />
+        </div>
 
-            <div className={cn("grid min-w-0 gap-3", payerField && "grid-cols-2")}>
-              {payerField}
-              <Field className="min-w-0">
-                <FieldLabel>日期</FieldLabel>
-                <Input
-                  defaultValue={record.occurredOn}
-                  name="occurredOn"
-                  type="date"
-                />
-              </Field>
-            </div>
-
-            <Field className="min-w-0">
-              <FieldLabel>備註</FieldLabel>
-              <Textarea defaultValue={record.note ?? ""} name="note" />
-            </Field>
-          </FieldSet>
-        </DialogBody>
-
-        <DialogFooter className="mt-4">
-          <Button
-            disabled={isPending}
-            onClick={onCancel}
-            type="button"
-            variant="outline"
-          >
-            <X />
-            取消
-          </Button>
-          <Button disabled={isPending} type="submit">
-            <Save />
-            {isPending ? "儲存中..." : "儲存變更"}
-          </Button>
-        </DialogFooter>
-      </form>
+        <LedgerRecordNoteField defaultValue={record.note ?? ""} />
+      </LedgerRecordFormShell>
     </DialogContent>
   );
 }
