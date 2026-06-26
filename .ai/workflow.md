@@ -61,6 +61,7 @@ trace_links:
   - .ai/learning/category-visual-identity.md
   - .ai/archive/archive-category-visual-identity-2026-06-21.md
   - .ai/intent/category-archive-visibility-toggle.md
+  - .ai/domain-impact/category-archive-visibility-toggle.md
   - .ai/intent/edit-delete-ledger-records.md
   - .ai/domain-impact/edit-delete-ledger-records.md
   - .ai/prototype/edit-delete-ledger-records.md
