@@ -4,6 +4,11 @@ import path from "node:path";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "3mb",
+    },
+  },
   turbopack: {
     root: path.resolve("."),
   },

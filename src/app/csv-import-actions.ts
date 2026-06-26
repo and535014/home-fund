@@ -82,7 +82,7 @@ export async function confirmCsvImportAction(formData: FormData) {
     };
   }
 
-  const result = await confirmLedgerImportInDatabase(
+  const result = await tryConfirmLedgerImport(
     session.access.member,
     {
       csv: tokenResult.csv,
@@ -198,6 +198,28 @@ function signPreviewPayload(payload: string): string {
 
 function previewTokenSecret(): string {
   return process.env.CSV_IMPORT_PREVIEW_SECRET ?? "local-dev-preview-secret";
+}
+
+async function tryConfirmLedgerImport(
+  ...args: Parameters<typeof confirmLedgerImportInDatabase>
+): Promise<
+  Awaited<ReturnType<typeof confirmLedgerImportInDatabase>> | {
+    ok: false;
+    reason: "unexpected_error";
+    message: string;
+  }
+> {
+  try {
+    return await confirmLedgerImportInDatabase(...args);
+  } catch (error) {
+    console.error("CSV import confirmation failed", error);
+
+    return {
+      ok: false,
+      reason: "unexpected_error",
+      message: "CSV 匯入失敗，請稍後再試；若問題持續，請檢查 production 資料庫 migration 是否已套用。",
+    };
+  }
 }
 
 function parseOverrides(value: string): LedgerImportRowOverride[] {

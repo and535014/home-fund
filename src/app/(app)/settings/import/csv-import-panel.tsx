@@ -167,7 +167,7 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
       const result = await confirmCsvImportAction(formData);
 
       if (!result.ok) {
-        setErrorMessage("匯入前驗證已更新，請重新確認預覽結果。");
+        setErrorMessage(confirmErrorMessage(result));
 
         if ("rows" in result && result.rows) {
           setPreview({
@@ -288,6 +288,26 @@ function previewErrorMessage(result: {
   ok: false;
 }): string {
   return result.message ?? "CSV 預覽失敗。";
+}
+
+function confirmErrorMessage(result: {
+  message?: string;
+  ok: false;
+  reason?: string;
+}): string {
+  if (result.message) {
+    return result.message;
+  }
+
+  if (result.reason === "preview_expired") {
+    return "CSV 預覽已過期，請重新選擇檔案。";
+  }
+
+  if (result.reason === "no_importable_rows") {
+    return "沒有可匯入的資料列，請至少保留一筆可匯入紀錄。";
+  }
+
+  return "匯入前驗證已更新，請重新確認預覽結果。";
 }
 
 function upsertOverride(
