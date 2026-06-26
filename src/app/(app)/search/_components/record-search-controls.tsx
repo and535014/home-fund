@@ -138,7 +138,7 @@ export function RecordSearchControls({
           <FieldLabel className="sr-only">搜尋紀錄</FieldLabel>
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3 top-1/2 !size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             aria-label="搜尋紀錄"
@@ -156,7 +156,7 @@ export function RecordSearchControls({
           {currentSearch ? (
             <Button
               aria-label="清除搜尋"
-              className="absolute right-1 top-1/2 size-8 -translate-y-1/2"
+              className="absolute right-1 top-1/2 !size-8 -translate-y-1/2"
               onClick={() => {
                 if (isPaymentSurface) {
                   patchPaymentQuery({ search: "" });
