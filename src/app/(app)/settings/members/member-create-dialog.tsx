@@ -20,10 +20,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Field,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+  ActionField,
+  ActionFieldError,
+  ActionFieldLabel,
+  getActionFieldControlProps,
+} from "@/components/forms/action-field";
 import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
@@ -77,26 +78,46 @@ export function CreateMemberDialog({
           <DialogHeader>
             <DialogTitle>建立成員</DialogTitle>
           </DialogHeader>
-          <Field>
-            <FieldLabel htmlFor="member-display-name">
+          <ActionField
+            errors={actionState.fieldErrors}
+            field="displayName"
+            id="member-display-name"
+          >
+            <ActionFieldLabel id="member-display-name">
               顯示名稱
-            </FieldLabel>
+            </ActionFieldLabel>
             <Input
               disabled={isPending}
               id="member-display-name"
               name="displayName"
+              {...getActionFieldControlProps({
+                errors: actionState.fieldErrors,
+                field: "displayName",
+                id: "member-display-name",
+              })}
             />
-            {actionState.fieldErrors?.displayName?.map((error) => (
-              <FieldError key={error}>{error}</FieldError>
-            ))}
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="member-role">角色</FieldLabel>
+            <ActionFieldError
+              errors={actionState.fieldErrors}
+              field="displayName"
+              id="member-display-name"
+            />
+          </ActionField>
+          <ActionField
+            errors={actionState.fieldErrors}
+            field="role"
+            id="member-role"
+          >
+            <ActionFieldLabel id="member-role">角色</ActionFieldLabel>
             <NativeSelect
               defaultValue="general_member"
               disabled={isPending}
               id="member-role"
               name="role"
+              {...getActionFieldControlProps({
+                errors: actionState.fieldErrors,
+                field: "role",
+                id: "member-role",
+              })}
             >
               <NativeSelectOption value="general_member">
                 一般成員
@@ -106,10 +127,12 @@ export function CreateMemberDialog({
               </NativeSelectOption>
               <NativeSelectOption value="admin">管理者</NativeSelectOption>
             </NativeSelect>
-            {actionState.fieldErrors?.role?.map((error) => (
-              <FieldError key={error}>{error}</FieldError>
-            ))}
-          </Field>
+            <ActionFieldError
+              errors={actionState.fieldErrors}
+              field="role"
+              id="member-role"
+            />
+          </ActionField>
           <DialogFooter>
             <Button
               disabled={isPending}

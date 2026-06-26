@@ -20,10 +20,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Field,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+  ActionField,
+  ActionFieldError,
+  ActionFieldLabel,
+  getActionFieldControlProps,
+} from "@/components/forms/action-field";
 import { Input } from "@/components/ui/input";
 import { useActionStateEffect } from "@/app/use-action-state-effect";
 
@@ -74,19 +75,30 @@ export function EditMemberDisplayNameDialog({
             <DialogTitle>修改顯示名稱</DialogTitle>
           </DialogHeader>
           <input name="memberId" type="hidden" value={member?.id ?? ""} />
-          <Field>
-            <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
+          <ActionField
+            errors={actionState.fieldErrors}
+            field="displayName"
+            id="display-name"
+          >
+            <ActionFieldLabel id="display-name">顯示名稱</ActionFieldLabel>
             <Input
               disabled={isPending}
               key={member?.id ?? "display-name"}
               defaultValue={member?.displayName ?? ""}
               id="display-name"
               name="displayName"
+              {...getActionFieldControlProps({
+                errors: actionState.fieldErrors,
+                field: "displayName",
+                id: "display-name",
+              })}
             />
-            {actionState.fieldErrors?.displayName?.map((error) => (
-              <FieldError key={error}>{error}</FieldError>
-            ))}
-          </Field>
+            <ActionFieldError
+              errors={actionState.fieldErrors}
+              field="displayName"
+              id="display-name"
+            />
+          </ActionField>
           <DialogFooter>
             <Button
               disabled={isPending}

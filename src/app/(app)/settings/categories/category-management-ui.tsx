@@ -21,12 +21,17 @@ import {
 } from "@/app/category-visuals";
 import { Button } from "@/components/ui/button";
 import {
+  ActionField,
+  ActionFieldError,
+  ActionFieldLabel,
+  getActionFieldControlProps,
+} from "@/components/forms/action-field";
+import {
   DialogBody,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
@@ -189,6 +194,8 @@ export function CategoryForm({
   type: CategoryType;
   typeDisabled?: boolean;
 }) {
+  const fieldErrors = fieldError ? { name: [fieldError] } : undefined;
+
   return (
     <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={onSubmit}>
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
@@ -216,17 +223,30 @@ export function CategoryForm({
                   <NativeSelectOption value="expense">支出</NativeSelectOption>
                 </NativeSelect>
               </Field>
-              <Field>
-                <FieldLabel htmlFor="category-name">分類名稱</FieldLabel>
+              <ActionField
+                errors={fieldErrors}
+                field="name"
+                id="category-name"
+              >
+                <ActionFieldLabel id="category-name">分類名稱</ActionFieldLabel>
                 <Input
                   id="category-name"
                   name="name"
                   onChange={(event) => onNameChange(event.target.value)}
                   placeholder="例如：水電費"
                   value={name}
+                  {...getActionFieldControlProps({
+                    errors: fieldErrors,
+                    field: "name",
+                    id: "category-name",
+                  })}
                 />
-                {fieldError ? <FieldError>{fieldError}</FieldError> : null}
-              </Field>
+                <ActionFieldError
+                  errors={fieldErrors}
+                  field="name"
+                  id="category-name"
+                />
+              </ActionField>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
