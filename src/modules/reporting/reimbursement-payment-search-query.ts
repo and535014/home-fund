@@ -219,9 +219,10 @@ export function buildReimbursementPaymentSearchWhere(
   const where: Record<string, unknown> = {
     householdId,
   };
+  const andPredicates: Record<string, unknown>[] = [];
 
   if (query.paidToMemberId !== "all") {
-    where.paidToMemberId = query.paidToMemberId;
+    andPredicates.push({ paidToMemberId: query.paidToMemberId });
   }
 
   const paidOnRange: Record<string, Date> = {};
@@ -232,12 +233,16 @@ export function buildReimbursementPaymentSearchWhere(
     paidOnRange.lte = dateOnly(query.dateTo);
   }
   if (Object.keys(paidOnRange).length > 0) {
-    where.paidOn = paidOnRange;
+    andPredicates.push({ paidOn: paidOnRange });
   }
 
   const searchPredicates = reimbursementPaymentSearchPredicates(query.search);
   if (searchPredicates.length > 0) {
-    where.OR = searchPredicates;
+    andPredicates.push({ OR: searchPredicates });
+  }
+
+  if (andPredicates.length > 0) {
+    where.AND = andPredicates;
   }
 
   return where;
@@ -285,18 +290,8 @@ function mergeWhere(
     return baseWhere;
   }
 
-  if (baseWhere.OR) {
-    const { OR, ...rest } = baseWhere;
-
-    return {
-      ...rest,
-      AND: [{ OR }, cursorWhere],
-    };
-  }
-
   return {
-    ...baseWhere,
-    ...cursorWhere,
+    AND: [baseWhere, cursorWhere],
   };
 }
 

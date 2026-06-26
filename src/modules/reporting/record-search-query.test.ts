@@ -20,9 +20,13 @@ describe("record search query", () => {
       where: {
         householdId: "household-demo",
         status: "active",
-        OR: [
-          { name: { contains: "80,000", mode: "insensitive" } },
-          { amountCents: 8_000_000 },
+        AND: [
+          {
+            OR: [
+              { name: { contains: "80,000", mode: "insensitive" } },
+              { amountCents: 8_000_000 },
+            ],
+          },
         ],
       },
       orderBy: [{ occurredOn: "desc" }, { id: "desc" }],
@@ -53,21 +57,22 @@ describe("record search query", () => {
           {
             householdId: "household-demo",
             status: "active",
-            type: "expense",
-            categoryId: "expense-grocery",
-            paymentSource: "member",
-            payerMemberId: "member-mei",
             AND: [
+              { type: "expense" },
+              { categoryId: "expense-grocery" },
+              { paymentSource: "member", payerMemberId: "member-mei" },
               {
                 type: "expense",
                 paymentSource: "member",
                 reimbursementStatus: "refundable",
               },
+              {
+                occurredOn: {
+                  gte: new Date("2026-06-01T00:00:00.000Z"),
+                  lte: new Date("2026-06-30T00:00:00.000Z"),
+                },
+              },
             ],
-            occurredOn: {
-              gte: new Date("2026-06-01T00:00:00.000Z"),
-              lte: new Date("2026-06-30T00:00:00.000Z"),
-            },
           },
           {
             OR: [
@@ -105,12 +110,59 @@ describe("record search query", () => {
       where: {
         householdId: "household-demo",
         status: "active",
-        type: "income",
         AND: [
+          { type: "income" },
           {
             type: "expense",
             paymentSource: "member",
             reimbursementStatus: "reimbursed",
+          },
+        ],
+      },
+    });
+  });
+
+  it("combines date range, keyword search, and cursor as AND conditions", () => {
+    expect(buildRecordSearchPageQuery({
+      householdId: "household-demo",
+      query: {
+        ...initialRecordQueryState,
+        dateFrom: "2026-06-01",
+        dateTo: "2026-06-30",
+        search: "房租",
+      },
+      cursor: {
+        id: "record-200",
+        occurredOn: "2026-06-15",
+      },
+    })).toMatchObject({
+      where: {
+        AND: [
+          {
+            householdId: "household-demo",
+            status: "active",
+            AND: [
+              {
+                occurredOn: {
+                  gte: new Date("2026-06-01T00:00:00.000Z"),
+                  lte: new Date("2026-06-30T00:00:00.000Z"),
+                },
+              },
+              {
+                OR: [
+                  { name: { contains: "房租", mode: "insensitive" } },
+                ],
+              },
+            ],
+          },
+          {
+            OR: [
+              { occurredOn: { lt: new Date("2026-06-15T00:00:00.000Z") } },
+              {
+                occurredOn: new Date("2026-06-15T00:00:00.000Z"),
+                id: { lt: "record-200" },
+              },
+            ],
           },
         ],
       },

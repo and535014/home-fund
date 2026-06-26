@@ -119,17 +119,18 @@ export function buildRecordSearchWhere(
     householdId,
     status: "active",
   };
+  const andPredicates: Record<string, unknown>[] = [];
 
   if (query.type !== "all") {
-    where.type = query.type;
+    andPredicates.push({ type: query.type });
   }
 
   if (query.categoryId !== "all") {
-    where.categoryId = query.categoryId;
+    andPredicates.push({ categoryId: query.categoryId });
   }
 
   if (query.participant === "fund") {
-    addAndPredicate(where, {
+    andPredicates.push({
       type: "expense",
       paymentSource: "fund",
     });
@@ -137,20 +138,24 @@ export function buildRecordSearchWhere(
     const memberId = query.participant.replace("member:", "");
 
     if (query.type === "income") {
-      where.sourceMemberId = memberId;
+      andPredicates.push({ sourceMemberId: memberId });
     } else if (query.type === "expense") {
-      where.paymentSource = "member";
-      where.payerMemberId = memberId;
+      andPredicates.push({
+        paymentSource: "member",
+        payerMemberId: memberId,
+      });
     } else {
-      where.OR = [
-        { type: "income", sourceMemberId: memberId },
-        { type: "expense", paymentSource: "member", payerMemberId: memberId },
-      ];
+      andPredicates.push({
+        OR: [
+          { type: "income", sourceMemberId: memberId },
+          { type: "expense", paymentSource: "member", payerMemberId: memberId },
+        ],
+      });
     }
   }
 
   if (query.reimbursementStatus !== "all") {
-    addAndPredicate(where, {
+    andPredicates.push({
       type: "expense",
       paymentSource: "member",
       reimbursementStatus:
@@ -166,7 +171,7 @@ export function buildRecordSearchWhere(
     dateRange.lte = dateOnly(query.dateTo);
   }
   if (Object.keys(dateRange).length > 0) {
-    where.occurredOn = dateRange;
+    andPredicates.push({ occurredOn: dateRange });
   }
 
   const search = query.search.trim();
@@ -180,30 +185,14 @@ export function buildRecordSearchWhere(
       searchPredicates.push({ amountCents });
     }
 
-    if (where.OR) {
-      addAndPredicate(where, { OR: where.OR });
-      addAndPredicate(where, { OR: searchPredicates });
-      delete where.OR;
-    } else {
-      where.OR = searchPredicates;
-    }
+    andPredicates.push({ OR: searchPredicates });
+  }
+
+  if (andPredicates.length > 0) {
+    where.AND = andPredicates;
   }
 
   return where;
-}
-
-function addAndPredicate(
-  where: Record<string, unknown>,
-  predicate: Record<string, unknown>,
-) {
-  const current = where.AND;
-
-  if (Array.isArray(current)) {
-    current.push(predicate);
-    return;
-  }
-
-  where.AND = current ? [current, predicate] : [predicate];
 }
 
 function mergeWhere(
