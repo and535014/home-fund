@@ -212,7 +212,7 @@ corepack pnpm db:migrate
 ```
 
 匯入 bootstrap seed。這會建立或更新系統啟動所需的最小基準資料，
-包含 household、第一個 admin member、admin role 和預設分類；不會清空既有資料：
+包含 household、第一個 admin member 和 admin role；不會建立分類，也不會清空既有資料：
 
 ```sh
 corepack pnpm db:seed
@@ -261,11 +261,10 @@ corepack pnpm db:studio
 - 一個 household
 - 第一個 active admin member，email 來自 `SEED_GOOGLE_ACCOUNT_EMAIL`
 - admin role assignment
-- 預設 categories
 
-`prisma/seed.sql` 不應刪除 user、member、ledger、invitation、reimbursement、
-recurring 或 Better Auth data。E2E fixture 資料由 `prisma/seed.e2e.sql`
-負責，而且只在 E2E 專用 database 重建後載入。
+`prisma/seed.sql` 不應建立分類，也不應刪除 user、member、ledger、category、
+invitation、reimbursement、recurring 或 Better Auth data。E2E fixture 資料由
+`prisma/seed.e2e.sql` 負責，而且只在 E2E 專用 database 重建後載入。
 
 在測試 Google OAuth 前，請先確認 `.env.local` 或 `.env` 的 `SEED_GOOGLE_ACCOUNT_EMAIL` 是你實際會登入的 Google email，然後重跑：
 

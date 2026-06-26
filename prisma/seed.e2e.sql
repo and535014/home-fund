@@ -217,6 +217,11 @@ ON CONFLICT ("memberId", "capability") DO NOTHING;
 
 INSERT INTO "Category" ("id", "householdId", "type", "name", "color", "icon", "sortOrder", "status", "updatedAt")
 VALUES
+  ('income-rent', 'household-demo', 'income', '房租', 'blue', 'home', 10, 'active', CURRENT_TIMESTAMP),
+  ('income-living', 'household-demo', 'income', '生活費', 'teal', 'piggy-bank', 20, 'active', CURRENT_TIMESTAMP),
+  ('expense-grocery', 'household-demo', 'expense', '日用品', 'gold', 'shopping-cart', 10, 'active', CURRENT_TIMESTAMP),
+  ('expense-internet', 'household-demo', 'expense', '網路費', 'violet', 'wifi', 20, 'active', CURRENT_TIMESTAMP),
+  ('expense-dining', 'household-demo', 'expense', '餐飲', 'rose', 'utensils', 30, 'active', CURRENT_TIMESTAMP),
   ('income-old', 'household-demo', 'income', '舊收入', 'lime', 'badge-dollar-sign', 30, 'archived', CURRENT_TIMESTAMP),
   ('expense-old-dining', 'household-demo', 'expense', '舊餐飲', 'rose', 'utensils', 40, 'archived', CURRENT_TIMESTAMP)
 ON CONFLICT ("id") DO UPDATE
