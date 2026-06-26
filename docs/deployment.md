@@ -15,6 +15,8 @@
 - Vercel 負責 Next.js production 部署。
 - Neon PostgreSQL 負責 production 資料庫。
 - Prisma migration 由 GitHub Actions production workflow 執行。
+- Bootstrap seed 是 production database 第一次初始化時的手動一次性步驟，
+  用來建立第一個 admin 和預設基準資料；不會在每次 production deploy 自動執行。
 - Google OAuth 只針對 production origin 設定 callback。
 
 ## 為什麼沒有 Preview
@@ -63,7 +65,6 @@ BETTER_AUTH_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-SEED_GOOGLE_ACCOUNT_EMAIL
 ```
 
 `DATABASE_URL` 使用 Neon pooled connection string。`DATABASE_URL_UNPOOLED` 只給 GitHub Actions migration 用，預設不需要放到 Vercel runtime。
@@ -118,7 +119,6 @@ BETTER_AUTH_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-SEED_GOOGLE_ACCOUNT_EMAIL
 ```
 
 `DATABASE_URL` 使用 pooled connection string。`DATABASE_URL_UNPOOLED` 使用 unpooled/direct connection string。
@@ -187,6 +187,31 @@ Destructive migration 前必須先確認 Neon backup/restore 或 point-in-time r
 2. 部署相容的新 app。
 3. 必要時 backfill。
 4. 下一個版本再移除舊欄位。
+
+## Bootstrap seed 政策
+
+Production bootstrap seed 是一次性初始化步驟，不屬於每次 production deploy。
+在 production database 第一次 migration 完成後，手動執行
+`corepack pnpm db:seed`，由當次命令提供的 `SEED_GOOGLE_ACCOUNT_EMAIL`
+指定第一個 admin Google email。它不是 Vercel runtime 變數，也不是每次
+production deploy 所需的 GitHub secret。
+
+範例：
+
+```sh
+DATABASE_URL="postgresql://..." \
+SEED_GOOGLE_ACCOUNT_EMAIL="admin@example.com" \
+corepack pnpm db:seed
+```
+
+`prisma/seed.sql` 必須保持 production-safe：
+
+- 可以建立或更新 household、第一個 admin、admin role 和預設分類。
+- 不可以刪除 user、member、ledger、invitation、reimbursement、recurring 或 Better Auth data。
+- 不可以塞入 E2E 或 demo-only fixture。
+
+E2E fixture 只允許放在 `prisma/seed.e2e.sql`，並只在 E2E 專用 database
+重建後由 `e2e/setup-db.sh` 載入。
 
 ## Rollback 和備份
 
