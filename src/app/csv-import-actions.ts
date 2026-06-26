@@ -1,8 +1,10 @@
 "use server";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { revalidatePath } from "next/cache";
-import { requireServerActionAccess } from "@/auth/app-access";
+import {
+  requireMutationAccess,
+  revalidateActionPaths,
+} from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   confirmLedgerImportInDatabase,
@@ -15,7 +17,7 @@ const maxCsvBytes = 1024 * 1024;
 const previewTokenMaxAgeMs = 30 * 60 * 1000;
 
 export async function previewCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
@@ -48,6 +50,7 @@ export async function previewCsvImportAction(formData: FormData) {
     { csv },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -66,7 +69,7 @@ export async function previewCsvImportAction(formData: FormData) {
 }
 
 export async function confirmCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const previewToken = String(formData.get("previewToken") ?? "");
   const tokenResult = verifyPreviewToken(previewToken);
   const fileName = String(formData.get("fileName") ?? "ledger-import.csv");
@@ -82,7 +85,7 @@ export async function confirmCsvImportAction(formData: FormData) {
     };
   }
 
-  const result = await confirmLedgerImportInDatabase(
+  const result = await tryConfirmLedgerImport(
     session.access.member,
     {
       csv: tokenResult.csv,
@@ -92,20 +95,19 @@ export async function confirmCsvImportAction(formData: FormData) {
     },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
   if (result.ok) {
-    revalidatePath("/");
-    revalidatePath("/search");
-    revalidatePath("/settings/import");
+    revalidateActionPaths(["/", "/search", "/settings/import"]);
   }
 
   return result;
 }
 
 export async function repreviewCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const previewToken = String(formData.get("previewToken") ?? "");
   const tokenResult = verifyPreviewToken(previewToken);
   const overrides = parseOverrides(String(formData.get("overrides") ?? "[]"));
@@ -126,6 +128,7 @@ export async function repreviewCsvImportAction(formData: FormData) {
     },
     {
       prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 }
@@ -197,7 +200,37 @@ function signPreviewPayload(payload: string): string {
 }
 
 function previewTokenSecret(): string {
-  return process.env.CSV_IMPORT_PREVIEW_SECRET ?? "local-dev-preview-secret";
+  if (process.env.CSV_IMPORT_PREVIEW_SECRET) {
+    return process.env.CSV_IMPORT_PREVIEW_SECRET;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("CSV_IMPORT_PREVIEW_SECRET is required in production");
+  }
+
+  return "local-dev-preview-secret";
+}
+
+async function tryConfirmLedgerImport(
+  ...args: Parameters<typeof confirmLedgerImportInDatabase>
+): Promise<
+  Awaited<ReturnType<typeof confirmLedgerImportInDatabase>> | {
+    ok: false;
+    reason: "unexpected_error";
+    message: string;
+  }
+> {
+  try {
+    return await confirmLedgerImportInDatabase(...args);
+  } catch (error) {
+    console.error("CSV import confirmation failed", error);
+
+    return {
+      ok: false,
+      reason: "unexpected_error",
+      message: "CSV 匯入失敗，請稍後再試；若問題持續，請檢查 production 資料庫 migration 是否已套用。",
+    };
+  }
 }
 
 function parseOverrides(value: string): LedgerImportRowOverride[] {

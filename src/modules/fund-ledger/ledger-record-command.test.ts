@@ -32,6 +32,7 @@ describe("createLedgerRecordInDatabase", () => {
       sourceMemberId: "member-mei",
       note: "六月房租",
     }, {
+      householdId: "household-demo",
       prisma: {
         category: { findMany: categoryFindMany },
         ledgerRecord: { create: ledgerCreate },
@@ -75,6 +76,7 @@ describe("createLedgerRecordInDatabase", () => {
       categoryId: "income-rent",
       paymentSource: "fund",
     }, {
+      householdId: "household-demo",
       prisma: {
         category: {
           findMany: async () => [
@@ -133,7 +135,7 @@ describe("updateLedgerRecordInDatabase", () => {
       amountCents: 3_500,
       categoryId: "expense-internet",
       note: "補正",
-    }, { prisma })).resolves.toMatchObject({
+    }, { householdId: "household-demo", prisma })).resolves.toMatchObject({
       ok: true,
       record: {
         id: "expense-1",
@@ -168,7 +170,7 @@ describe("updateLedgerRecordInDatabase", () => {
     await expect(updateLedgerRecordInDatabase(actor, {
       recordId: "missing",
       amountCents: 3_500,
-    }, { prisma })).resolves.toEqual({
+    }, { householdId: "household-demo", prisma })).resolves.toEqual({
       ok: false,
       reason: "record_not_found",
     });
@@ -205,7 +207,7 @@ describe("voidLedgerRecordInDatabase", () => {
 
     await expect(voidLedgerRecordInDatabase(actor, {
       recordId: "expense-1",
-    }, { prisma })).resolves.toMatchObject({
+    }, { householdId: "household-demo", prisma })).resolves.toMatchObject({
       ok: true,
       record: {
         id: "expense-1",

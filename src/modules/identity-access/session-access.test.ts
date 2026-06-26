@@ -5,6 +5,7 @@ import type { HouseholdMemberAccount } from "./member-management";
 const members: HouseholdMemberAccount[] = [
   {
     id: "member-admin",
+    householdId: "household-demo",
     displayName: "Ana",
     googleAccountEmail: "ana@example.com",
     googleSubject: "google-ana",
@@ -14,6 +15,7 @@ const members: HouseholdMemberAccount[] = [
   },
   {
     id: "member-invited",
+    householdId: "household-demo",
     displayName: "Invited",
     googleAccountEmail: "invited@example.com",
     roles: ["general_member"],
@@ -22,6 +24,7 @@ const members: HouseholdMemberAccount[] = [
   },
   {
     id: "member-disabled",
+    householdId: "household-demo",
     displayName: "Disabled",
     googleAccountEmail: "disabled@example.com",
     roles: ["general_member"],
@@ -42,12 +45,14 @@ describe("resolveHouseholdAccess", () => {
       ok: true,
       member: {
         id: "member-admin",
+        householdId: "household-demo",
         googleAccountLinked: true,
         roles: ["admin"],
         capabilities: ["manage_categories"],
       },
       profile: {
         id: "member-admin",
+        householdId: "household-demo",
         displayName: "Ana",
         roles: ["admin"],
         capabilities: ["manage_categories"],

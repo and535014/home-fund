@@ -14,8 +14,11 @@ import {
   type UpdateLedgerRecordCommand,
   type UpdateLedgerRecordResult,
 } from "./ledger-record-corrections";
-
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+  type PrismaLedgerRecordRow,
+} from "./ledger-record-prisma-adapter";
 
 export type LedgerRecordCommandPrismaClient = {
   category: {
@@ -50,22 +53,6 @@ export type LedgerRecordCommandPrismaClient = {
       };
     }): Promise<unknown>;
   };
-};
-
-type PrismaLedgerRecordRow = {
-  id: string;
-  type: LedgerRecord["type"];
-  name: string;
-  amountCents: number;
-  occurredOn: Date;
-  categoryId: string;
-  createdByMemberId: string;
-  sourceMemberId: string | null;
-  paymentSource: "fund" | "member" | null;
-  payerMemberId: string | null;
-  reimbursementStatus: LedgerRecord["reimbursementStatus"];
-  status: LedgerRecord["status"];
-  note: string | null;
 };
 
 export type LedgerRecordMutationPrismaClient = {
@@ -107,7 +94,7 @@ type LedgerRecordMutationTransaction = {
 
 export type CreateLedgerRecordInDatabaseContext = {
   prisma: LedgerRecordCommandPrismaClient;
-  householdId?: string;
+  householdId: string;
   generateId?: () => string;
 };
 
@@ -116,7 +103,7 @@ export async function createLedgerRecordInDatabase(
   command: CreateLedgerRecordCommand,
   context: CreateLedgerRecordInDatabaseContext,
 ): Promise<CreateLedgerRecordResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const categories = await context.prisma.category.findMany({
     where: { householdId },
     select: {
@@ -162,10 +149,10 @@ export async function updateLedgerRecordInDatabase(
   command: UpdateLedgerRecordInDatabaseCommand,
   context: {
     prisma: LedgerRecordMutationPrismaClient;
-    householdId?: string;
+    householdId: string;
   },
 ): Promise<UpdateLedgerRecordResult | LedgerRecordPersistenceFailure> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
 
   return context.prisma.$transaction(async (tx) => {
     const [record, categories] = await Promise.all([
@@ -193,7 +180,7 @@ export async function updateLedgerRecordInDatabase(
 
     const result = updateLedgerRecord(
       actor,
-      mapPrismaRecordToLedgerRecord(record),
+      mapPrismaLedgerRecordToLedgerRecord(record),
       command,
       { categories },
     );
@@ -216,10 +203,10 @@ export async function voidLedgerRecordInDatabase(
   command: VoidLedgerRecordInDatabaseCommand,
   context: {
     prisma: LedgerRecordMutationPrismaClient;
-    householdId?: string;
+    householdId: string;
   },
 ): Promise<DeleteLedgerRecordResult | LedgerRecordPersistenceFailure> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
 
   return context.prisma.$transaction(async (tx) => {
     const record = await tx.ledgerRecord.findFirst({
@@ -235,7 +222,10 @@ export async function voidLedgerRecordInDatabase(
       return { ok: false, reason: "record_not_found" };
     }
 
-    const result = deleteLedgerRecord(actor, mapPrismaRecordToLedgerRecord(record));
+    const result = deleteLedgerRecord(
+      actor,
+      mapPrismaLedgerRecordToLedgerRecord(record),
+    );
 
     if (!result.ok) {
       return result;
@@ -285,53 +275,6 @@ function toLedgerRecordUpdateData(record: LedgerRecord) {
   };
 }
 
-function mapPrismaRecordToLedgerRecord(record: PrismaLedgerRecordRow): LedgerRecord {
-  const base = {
-    id: record.id,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: record.occurredOn.toISOString().slice(0, 10),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-  };
-}
-
 function ledgerRecordSelect(): Record<string, true> {
-  return {
-    id: true,
-    type: true,
-    name: true,
-    amountCents: true,
-    occurredOn: true,
-    categoryId: true,
-    createdByMemberId: true,
-    sourceMemberId: true,
-    paymentSource: true,
-    payerMemberId: true,
-    reimbursementStatus: true,
-    status: true,
-    note: true,
-  };
+  return prismaLedgerRecordSelect;
 }

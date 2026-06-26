@@ -8,6 +8,7 @@ import type { HouseholdMemberAccount } from "../modules/identity-access/member-m
 const members: HouseholdMemberAccount[] = [
   {
     id: "member-mei",
+    householdId: "household-demo",
     displayName: "Mei",
     avatarUrl: "https://example.com/mei.png",
     googleAccountEmail: "mei@example.com",
@@ -120,6 +121,7 @@ describe("getCurrentMemberFromHeaders", () => {
     ]);
     const memberFindMany = vi.fn(async () => members.map((member) => ({
       id: member.id,
+      householdId: member.householdId,
       displayName: member.displayName,
       avatarUrl: member.avatarUrl ?? null,
       googleAccountEmail: member.googleAccountEmail ?? null,

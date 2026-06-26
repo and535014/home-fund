@@ -60,6 +60,7 @@ describe("createMemberInDatabase", () => {
       displayName: " Kai ",
       role: "finance_manager",
     }, {
+      householdId: "household-demo",
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
@@ -100,6 +101,7 @@ describe("createMemberInDatabase", () => {
       displayName: " ",
       role: "general_member",
     }, {
+      householdId: "household-demo",
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
@@ -123,6 +125,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       memberId: "member-mei",
       displayName: "Mei Chen",
     }, {
+      householdId: "household-demo",
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
@@ -155,6 +158,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       memberId: "member-mei",
       displayName: " ",
     }, {
+      householdId: "household-demo",
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),
@@ -176,6 +180,7 @@ describe("updateMemberDisplayNameInDatabase", () => {
       memberId: "member-mei",
       displayName: "Mei Chen",
     }, {
+      householdId: "household-demo",
       prisma: {
         member: {
           findMany: vi.fn(async () => memberRows),

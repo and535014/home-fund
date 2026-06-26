@@ -1,4 +1,8 @@
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
 export const REIMBURSEMENT_PAYMENT_PAGE_SIZE = 100;
@@ -44,24 +48,15 @@ export type ReimbursementPaymentSearchResult = {
   linkedRecords: LedgerRecord[];
 };
 
+export type ReimbursementPaymentSearchPageResult = {
+  records: ReimbursementPaymentSearchResult[];
+  nextCursor: ReimbursementPaymentSearchCursor | null;
+  totalCount: number;
+  totalAmountCents: number;
+};
+
 type SortDirection = "asc" | "desc";
 type ReimbursementPaymentMethod = "bank_transfer" | "cash" | "other";
-
-const reimbursementPaymentLedgerRecordSelect = {
-  id: true,
-  type: true,
-  name: true,
-  amountCents: true,
-  occurredOn: true,
-  categoryId: true,
-  createdByMemberId: true,
-  sourceMemberId: true,
-  paymentSource: true,
-  payerMemberId: true,
-  reimbursementStatus: true,
-  status: true,
-  note: true,
-} satisfies Prisma.LedgerRecordSelect;
 
 export const reimbursementPaymentSelect = {
   id: true,
@@ -81,7 +76,7 @@ export const reimbursementPaymentSelect = {
       items: {
         select: {
           ledgerRecord: {
-            select: reimbursementPaymentLedgerRecordSelect,
+            select: prismaLedgerRecordSelect,
           },
         },
         orderBy: [
@@ -96,6 +91,55 @@ export const reimbursementPaymentSelect = {
 export type ReimbursementPaymentPrismaRow = Prisma.ReimbursementPaymentGetPayload<{
   select: typeof reimbursementPaymentSelect;
 }>;
+
+export async function loadReimbursementPaymentSearchPageInDatabase({
+  cursor,
+  householdId,
+  prisma,
+  query,
+}: ReimbursementPaymentSearchPageQueryInput & {
+  prisma: PrismaClient;
+}): Promise<ReimbursementPaymentSearchPageResult> {
+  const pageQuery = buildReimbursementPaymentSearchPageQuery({
+    householdId,
+    query,
+    cursor,
+  });
+  const aggregateWhere = buildReimbursementPaymentSearchWhere(
+    householdId,
+    query,
+  );
+  const [rows, totalCount, aggregate] = await Promise.all([
+    prisma.reimbursementPayment.findMany({
+      ...pageQuery,
+      where: pageQuery.where as Prisma.ReimbursementPaymentWhereInput,
+      orderBy:
+        pageQuery.orderBy as Prisma.ReimbursementPaymentOrderByWithRelationInput[],
+      select: reimbursementPaymentSelect,
+    }),
+    prisma.reimbursementPayment.count({
+      where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+    }),
+    prisma.reimbursementPayment.aggregate({
+      where: aggregateWhere as Prisma.ReimbursementPaymentWhereInput,
+      _sum: {
+        amountCents: true,
+      },
+    }),
+  ]);
+  const pageRows = rows.slice(0, REIMBURSEMENT_PAYMENT_PAGE_SIZE);
+  const records = pageRows.map(mapReimbursementPaymentSearchResult);
+  const lastRecord = records.at(-1);
+
+  return {
+    records,
+    nextCursor: rows.length > REIMBURSEMENT_PAYMENT_PAGE_SIZE && lastRecord
+      ? cursorFromReimbursementPayment(lastRecord)
+      : null,
+    totalCount,
+    totalAmountCents: aggregate._sum.amountCents ?? 0,
+  };
+}
 
 export const initialReimbursementPaymentQueryState: ReimbursementPaymentQueryState = {
   dateFrom: "",
@@ -148,7 +192,7 @@ export function mapReimbursementPaymentSearchResult(
   row: ReimbursementPaymentPrismaRow,
 ): ReimbursementPaymentSearchResult {
   const linkedRecords = row.reimbursementBatch.items.map((item) =>
-    mapLinkedLedgerRecord(item.ledgerRecord),
+    mapPrismaLedgerRecordToLedgerRecord(item.ledgerRecord),
   );
   const linkedRecordNames = linkedRecords.map((record) => record.name);
 
@@ -221,42 +265,6 @@ export function reimbursementPaymentOrderByForSort(sort: ReimbursementPaymentSor
   }
 
   return [{ paidOn: "desc" }, { id: "desc" }];
-}
-
-function mapLinkedLedgerRecord(
-  record: ReimbursementPaymentPrismaRow["reimbursementBatch"]["items"][number]["ledgerRecord"],
-): LedgerRecord {
-  const base = {
-    id: record.id,
-    type: record.type,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: formatDateOnly(record.occurredOn),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-  };
 }
 
 function methodLabel(method: ReimbursementPaymentMethod) {

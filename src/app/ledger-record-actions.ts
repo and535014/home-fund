@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   actionError,
-  actionSuccess,
   type ActionState,
 } from "@/app/action-state";
-import { requireAuthenticatedMember } from "@/auth/app-access";
+import {
+  actionSuccessWithRevalidation,
+  requireMutationAccess,
+} from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   createLedgerRecordInDatabase,
@@ -119,13 +120,14 @@ export async function createLedgerRecordAction(
     return createLedgerRecordError(parsed.reason);
   }
 
-  const session = await requireAuthenticatedMember();
+  const session = await requireMutationAccess();
 
   const result = await createLedgerRecordInDatabase(
     session.access.member,
     parsed.command,
     {
       prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -133,9 +135,7 @@ export async function createLedgerRecordAction(
     return createLedgerRecordError(result.reason);
   }
 
-  revalidatePath("/");
-  revalidatePath("/search");
-  return actionSuccess("紀錄已新增。", {
+  return ledgerMutationSuccess("紀錄已新增。", {
     recordId: result.record.id,
   });
 }
@@ -150,12 +150,13 @@ export async function updateLedgerRecordAction(
     return updateLedgerRecordError(parsed.reason);
   }
 
-  const session = await requireAuthenticatedMember();
+  const session = await requireMutationAccess();
   const result = await updateLedgerRecordInDatabase(
     session.access.member,
     parsed.command,
     {
       prisma: getPrismaClient() as unknown as LedgerRecordMutationPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -163,9 +164,7 @@ export async function updateLedgerRecordAction(
     return updateLedgerRecordError(result.reason);
   }
 
-  revalidatePath("/");
-  revalidatePath("/search");
-  return actionSuccess("紀錄已更新。", {
+  return ledgerMutationSuccess("紀錄已更新。", {
     recordId: result.record.id,
   });
 }
@@ -180,12 +179,13 @@ export async function voidLedgerRecordAction(
     return voidLedgerRecordError(parsed.reason);
   }
 
-  const session = await requireAuthenticatedMember();
+  const session = await requireMutationAccess();
   const result = await voidLedgerRecordInDatabase(
     session.access.member,
     parsed.command,
     {
       prisma: getPrismaClient() as unknown as LedgerRecordMutationPrismaClient,
+      householdId: session.access.member.householdId,
     },
   );
 
@@ -193,9 +193,7 @@ export async function voidLedgerRecordAction(
     return voidLedgerRecordError(result.reason as VoidLedgerRecordActionCode);
   }
 
-  revalidatePath("/");
-  revalidatePath("/search");
-  return actionSuccess("紀錄已刪除。", {
+  return ledgerMutationSuccess("紀錄已刪除。", {
     recordId: result.record.id,
   });
 }
@@ -210,12 +208,13 @@ export async function reimburseLedgerRecordAction(
     return reimburseLedgerRecordError(parsed.reason);
   }
 
-  const session = await requireAuthenticatedMember();
+  const session = await requireMutationAccess();
   const result = await markExpensesReimbursedInDatabase(
     session.access.member,
     parsed.command,
     {
       prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
       payment: parsed.command.payment,
     },
   );
@@ -226,11 +225,21 @@ export async function reimburseLedgerRecordAction(
     );
   }
 
-  revalidatePath("/");
-  revalidatePath("/search");
-  return actionSuccess("已完成退款。", {
+  return ledgerMutationSuccess("已完成退款。", {
     recordId: parsed.command.selectedExpenseIds[0],
   });
+}
+
+function ledgerMutationSuccess<
+  TResult,
+  TField extends string,
+  TCode extends string,
+>(message: string, data: TResult): ActionState<TResult, TField, TCode> {
+  return actionSuccessWithRevalidation<TResult, TField, TCode>(
+    message,
+    data,
+    ["/", "/search"],
+  );
 }
 
 function createLedgerRecordError(

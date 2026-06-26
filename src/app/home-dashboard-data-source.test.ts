@@ -1,14 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  createHomeDashboardDataSource,
-  mapPrismaLedgerRecordToLedgerRecord,
-} from "./home-dashboard-data-source";
+import { createHomeDashboardDataSource } from "./home-dashboard-data-source";
 
 describe("createHomeDashboardDataSource", () => {
   it("loads dashboard data for the selected month", async () => {
     const memberFindMany = vi.fn(async () => [
       {
         id: "member-fin",
+        householdId: "household-demo",
         displayName: "Lin",
         avatarUrl: "https://example.com/lin.png",
         googleAccountEmail: "lin@example.com",
@@ -52,10 +50,13 @@ describe("createHomeDashboardDataSource", () => {
       ledgerRecord: { findMany: ledgerRecordFindMany },
     });
 
-    await expect(dataSource.getMonthlyDashboardData("2026-06")).resolves.toEqual({
+    await expect(
+      dataSource.getMonthlyDashboardData("household-demo", "2026-06"),
+    ).resolves.toEqual({
       householdMembers: [
         {
           id: "member-fin",
+          householdId: "household-demo",
           displayName: "Lin",
           avatarUrl: "https://example.com/lin.png",
           googleAccountEmail: "lin@example.com",
@@ -95,6 +96,7 @@ describe("createHomeDashboardDataSource", () => {
     });
     expect(ledgerRecordFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
+        householdId: "household-demo",
         occurredOn: {
           gte: new Date("2026-06-01T00:00:00.000Z"),
           lt: new Date("2026-07-01T00:00:00.000Z"),
@@ -103,6 +105,9 @@ describe("createHomeDashboardDataSource", () => {
       },
     }));
     expect(categoryFindMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+      },
       select: {
         id: true,
         type: true,
@@ -120,6 +125,7 @@ describe("createHomeDashboardDataSource", () => {
     const memberFindMany = vi.fn(async () => [
       {
         id: "member-fin",
+        householdId: "household-demo",
         displayName: "Lin",
         avatarUrl: null,
         googleAccountEmail: "lin@example.com",
@@ -147,40 +153,9 @@ describe("createHomeDashboardDataSource", () => {
       ledgerRecord: { findMany: ledgerRecordFindMany },
     });
 
-    const data = await dataSource.getSearchPageData();
+    const data = await dataSource.getSearchPageData("household-demo");
 
     expect(data.records).toEqual([]);
     expect(ledgerRecordFindMany).not.toHaveBeenCalled();
-  });
-});
-
-describe("mapPrismaLedgerRecordToLedgerRecord", () => {
-  it("maps income records with source member ids", () => {
-    expect(mapPrismaLedgerRecordToLedgerRecord({
-      id: "income-rent-june",
-      type: "income",
-      name: "六月房租",
-      amountCents: 120_000_00,
-      occurredOn: new Date("2026-06-05T00:00:00.000Z"),
-      categoryId: "income-rent",
-      createdByMemberId: "member-mei",
-      sourceMemberId: "member-mei",
-      paymentSource: null,
-      payerMemberId: null,
-      reimbursementStatus: "not_applicable",
-      status: "active",
-      note: null,
-    })).toEqual({
-      id: "income-rent-june",
-      type: "income",
-      name: "六月房租",
-      amountCents: 120_000_00,
-      occurredOn: "2026-06-05",
-      categoryId: "income-rent",
-      createdByMemberId: "member-mei",
-      sourceMemberId: "member-mei",
-      reimbursementStatus: "not_applicable",
-      status: "active",
-    });
   });
 });

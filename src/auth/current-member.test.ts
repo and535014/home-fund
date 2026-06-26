@@ -5,6 +5,7 @@ import type { HouseholdMemberAccount } from "../modules/identity-access/member-m
 const members: HouseholdMemberAccount[] = [
   {
     id: "member-mei",
+    householdId: "household-demo",
     displayName: "Mei",
     avatarUrl: "https://example.com/old.png",
     googleAccountEmail: "mei@example.com",
@@ -110,6 +111,7 @@ describe("resolveCurrentMember", () => {
         listHouseholdMembers: async () => [
           {
             id: "member-admin",
+            householdId: "household-demo",
             displayName: "Admin",
             googleAccountEmail: "admin@example.com",
             roles: ["admin"],

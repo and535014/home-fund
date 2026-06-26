@@ -52,8 +52,11 @@ type MemberManagementMemberRow = {
 };
 
 export async function loadMemberManagementMembers(): Promise<MemberManagementMember[]> {
-  await requireAppRouteAccess("members");
+  const session = await requireAppRouteAccess("members");
   const members = await getPrismaClient().member.findMany({
+    where: {
+      householdId: session.access.member.householdId,
+    },
     select: {
       id: true,
       displayName: true,

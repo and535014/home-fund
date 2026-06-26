@@ -6,6 +6,11 @@ import {
   isCategoryIconKey,
 } from "../modules/categorization/category-visual-options";
 import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+  type PrismaLedgerRecordRow,
+} from "../modules/fund-ledger/ledger-record-prisma-adapter";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
 import { mapPrismaMemberToHouseholdMember } from "../auth/current-member-data-source";
 
@@ -27,43 +32,15 @@ type PrismaCategoryRow = {
   status: Category["status"];
 };
 
-type PrismaLedgerRecordRow = {
-  id: string;
-  type: LedgerRecord["type"];
-  name: string;
-  amountCents: number;
-  occurredOn: Date;
-  categoryId: string;
-  createdByMemberId: string;
-  sourceMemberId: string | null;
-  paymentSource: "fund" | "member" | null;
-  payerMemberId: string | null;
-  reimbursementStatus: LedgerRecord["reimbursementStatus"];
-  status: LedgerRecord["status"];
-  note: string | null;
-};
-
-const ledgerRecordSelect = {
-  id: true,
-  type: true,
-  name: true,
-  amountCents: true,
-  occurredOn: true,
-  categoryId: true,
-  createdByMemberId: true,
-  sourceMemberId: true,
-  paymentSource: true,
-  payerMemberId: true,
-  reimbursementStatus: true,
-  status: true,
-  note: true,
-} as const;
-
 export type HomeDashboardPrismaClient = {
   member: {
     findMany(args: {
+      where: {
+        householdId: string;
+      };
       select: {
         id: true;
+        householdId: true;
         displayName: true;
         avatarUrl: true;
         googleAccountEmail: true;
@@ -87,6 +64,9 @@ export type HomeDashboardPrismaClient = {
   };
   category: {
     findMany(args: {
+      where: {
+        householdId: string;
+      };
       select: {
         id: true;
         type: true;
@@ -101,8 +81,12 @@ export type HomeDashboardPrismaClient = {
   };
   ledgerRecord: {
     findMany(args: {
-      where: { occurredOn?: { gte: Date; lt: Date }; status: "active" };
-      select: typeof ledgerRecordSelect;
+      where: {
+        householdId: string;
+        occurredOn?: { gte: Date; lt: Date };
+        status: "active";
+      };
+      select: typeof prismaLedgerRecordSelect;
       orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }];
     }): Promise<PrismaLedgerRecordRow[]>;
   };
@@ -112,16 +96,23 @@ export function createHomeDashboardDataSource(
   prisma: HomeDashboardPrismaClient,
 ) {
   return {
-    async getMonthlyDashboardData(month: string): Promise<HomeDashboardData> {
+    async getMonthlyDashboardData(
+      householdId: string,
+      month: string,
+    ): Promise<HomeDashboardData> {
       const [householdMembers, categories, records] =
         await Promise.all([
           prisma.member.findMany({
+            where: {
+              householdId,
+            },
             select: {
-        id: true,
-        displayName: true,
-        avatarUrl: true,
-        googleAccountEmail: true,
-        googleSubject: true,
+              id: true,
+              householdId: true,
+              displayName: true,
+              avatarUrl: true,
+              googleAccountEmail: true,
+              googleSubject: true,
               status: true,
               roles: {
                 select: {
@@ -139,6 +130,9 @@ export function createHomeDashboardDataSource(
             },
           }),
           prisma.category.findMany({
+            where: {
+              householdId,
+            },
             select: {
               id: true,
               type: true,
@@ -152,10 +146,11 @@ export function createHomeDashboardDataSource(
           }),
           prisma.ledgerRecord.findMany({
             where: {
+              householdId,
               occurredOn: monthDateRange(month),
               status: "active",
             },
-            select: ledgerRecordSelect,
+            select: prismaLedgerRecordSelect,
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
           }),
         ]);
@@ -166,11 +161,15 @@ export function createHomeDashboardDataSource(
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
       };
     },
-    async getSearchPageData(): Promise<HomeDashboardData> {
+    async getSearchPageData(householdId: string): Promise<HomeDashboardData> {
       const [householdMembers, categories] = await Promise.all([
         prisma.member.findMany({
+          where: {
+            householdId,
+          },
           select: {
             id: true,
+            householdId: true,
             displayName: true,
             avatarUrl: true,
             googleAccountEmail: true,
@@ -192,6 +191,9 @@ export function createHomeDashboardDataSource(
           },
         }),
         prisma.category.findMany({
+          where: {
+            householdId,
+          },
           select: {
             id: true,
             type: true,
@@ -211,41 +213,6 @@ export function createHomeDashboardDataSource(
         records: [],
       };
     },
-  };
-}
-
-export function mapPrismaLedgerRecordToLedgerRecord(
-  record: PrismaLedgerRecordRow,
-): LedgerRecord {
-  const base = {
-    id: record.id,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: formatDateOnly(record.occurredOn),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
-
-  if (record.type === "income") {
-    return {
-      ...base,
-      type: "income",
-      sourceMemberId: record.sourceMemberId ?? "",
-      reimbursementStatus: "not_applicable",
-    };
-  }
-
-  return {
-    ...base,
-    type: "expense",
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
   };
 }
 
@@ -270,8 +237,4 @@ function monthDateRange(month: string): { gte: Date; lt: Date } {
     gte: new Date(Date.UTC(year, monthNumber - 1, 1)),
     lt: new Date(Date.UTC(year, monthNumber, 1)),
   };
-}
-
-function formatDateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
 }

@@ -13,8 +13,6 @@ import {
 } from "./ledger-import";
 import type { CreateLedgerRecordCommand, LedgerRecord } from "./ledger-records";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 export type LedgerImportCommandPrismaClient = {
   member: {
     findMany(args: {
@@ -135,7 +133,7 @@ export type ConfirmLedgerImportInDatabaseInput = {
 
 export type LedgerImportCommandContext = {
   prisma: LedgerImportCommandPrismaClient;
-  householdId?: string;
+  householdId: string;
   generateBatchId?: () => string;
   generateRecordId?: (index: number) => string;
   generateImportRowId?: (index: number) => string;
@@ -170,7 +168,7 @@ export async function previewLedgerImportInDatabase(
     return { ok: false, reason: "permission_denied" };
   }
 
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const { members, categories, existingRecords } = await loadPreviewContext(
     context.prisma,
     householdId,
@@ -195,7 +193,7 @@ export async function confirmLedgerImportInDatabase(
     return { ok: false, reason: "permission_denied" };
   }
 
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const run = async (tx: LedgerImportCommandPrismaClient) => {
     const { members, categories, existingRecords } = await loadPreviewContext(
       tx,

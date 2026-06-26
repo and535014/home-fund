@@ -82,11 +82,12 @@ export function BatchSearchFooter({
             </Button>
             {selectedCount > 0 ? (
               <Button
-                aria-label="清除選取"
-                className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
-                onClick={onClearSelection}
-                size="icon-sm"
-                type="button"
+              aria-label="清除選取"
+              className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
+              disabled={isPending}
+              onClick={onClearSelection}
+              size="icon-sm"
+              type="button"
                 variant="ghost"
               >
                 <Eraser aria-hidden="true" className="sm:hidden" />
@@ -100,7 +101,7 @@ export function BatchSearchFooter({
                 selectedCount > 0 ? `批次刪除 ${deletableCount} 筆` : "批次刪除"
               }
               className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
-              disabled={selectedCount === 0 || deletableCount === 0}
+              disabled={isPending || selectedCount === 0 || deletableCount === 0}
               onClick={onDelete}
               size="icon-sm"
               type="button"
@@ -117,7 +118,7 @@ export function BatchSearchFooter({
                 selectedCount > 0 ? `批次退款 ${refundableCount} 筆` : "批次退款"
               }
               className="sm:h-9 sm:w-auto sm:px-3 sm:has-[>svg]:px-2.5"
-              disabled={selectedCount === 0 || refundableCount === 0}
+              disabled={isPending || selectedCount === 0 || refundableCount === 0}
               onClick={onRefund}
               size="icon-sm"
               type="button"

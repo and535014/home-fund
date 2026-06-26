@@ -10,6 +10,7 @@ type PrismaAccountRow = BetterAuthAccountIdentity;
 
 type PrismaMemberRow = {
   id: string;
+  householdId: string;
   displayName: string;
   avatarUrl: string | null;
   googleAccountEmail: string | null;
@@ -37,6 +38,7 @@ export type CurrentMemberPrismaClient = {
     findMany(args: {
       select: {
         id: true;
+        householdId: true;
         displayName: true;
         avatarUrl: true;
         googleAccountEmail: true;
@@ -89,6 +91,7 @@ export function createCurrentMemberDataSource(
       const members = await prisma.member.findMany({
         select: {
           id: true,
+          householdId: true,
           displayName: true,
           avatarUrl: true,
           googleAccountEmail: true,
@@ -132,6 +135,7 @@ export function mapPrismaMemberToHouseholdMember(
 ): HouseholdMemberAccount {
   return {
     id: member.id,
+    householdId: member.householdId,
     displayName: member.displayName,
     ...(member.avatarUrl ? { avatarUrl: member.avatarUrl } : {}),
     ...(member.googleAccountEmail

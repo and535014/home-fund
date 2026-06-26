@@ -31,10 +31,13 @@ export function RecordCreateScope({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<RecordCreateMode | null>(null);
+  const [isCreatePending, setCreatePending] = useState(false);
 
   const close = useCallback(() => {
-    setMode(null);
-  }, []);
+    if (!isCreatePending) {
+      setMode(null);
+    }
+  }, [isCreatePending]);
   const openIncome = useCallback(() => {
     setMode("income");
   }, []);
@@ -42,6 +45,7 @@ export function RecordCreateScope({
     setMode("expense");
   }, []);
   const handleRecordCreated = useCallback(() => {
+    setCreatePending(false);
     setMode(null);
     router.refresh();
     toast.success("紀錄已新增", {
@@ -54,12 +58,22 @@ export function RecordCreateScope({
     () => ({
       ...createRecord,
       close,
+      isCreatePending,
       mode,
       openExpense,
       openIncome,
       onRecordCreated: handleRecordCreated,
+      setCreatePending,
     }),
-    [close, createRecord, mode, openExpense, openIncome, handleRecordCreated],
+    [
+      close,
+      createRecord,
+      handleRecordCreated,
+      isCreatePending,
+      mode,
+      openExpense,
+      openIncome,
+    ],
   );
 
   return (
@@ -69,7 +83,7 @@ export function RecordCreateScope({
         <CreateRecordDialog
           mode={mode}
           onOpenChange={(nextOpen) => {
-            if (!nextOpen) {
+            if (!nextOpen && !isCreatePending) {
               close();
             }
           }}

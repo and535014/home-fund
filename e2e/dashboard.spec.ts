@@ -68,7 +68,7 @@ test("reimburses a refundable expense from the record detail", async ({ page }) 
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("待退款");
-  await dialog.getByRole("button", { name: "退款" }).click();
+  await dialog.getByRole("button", { exact: true, name: "退款" }).click();
 
   await expect(dialog.getByRole("heading", { name: "確認退款" })).toBeVisible();
   await expect(dialog).toContainText("補充用品代墊");
@@ -84,7 +84,9 @@ test("reimburses a refundable expense from the record detail", async ({ page }) 
   })).toBeVisible();
   await expect(dialog).toContainText("已退款");
   await expect(dialog).toContainText("這筆代墊支出已退款，無法編輯或刪除。");
-  await expect(dialog.getByRole("button", { name: "退款" })).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { exact: true, name: "退款" }),
+  ).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "編輯" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "刪除" })).toHaveCount(0);
 

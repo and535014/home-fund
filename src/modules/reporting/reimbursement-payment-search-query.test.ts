@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildReimbursementPaymentSearchPageQuery,
   cursorFromReimbursementPayment,
   initialReimbursementPaymentQueryState,
   isInitialReimbursementPaymentQuery,
+  loadReimbursementPaymentSearchPageInDatabase,
   REIMBURSEMENT_PAYMENT_PAGE_SIZE,
 } from "./reimbursement-payment-search-query";
 
@@ -186,4 +187,93 @@ describe("reimbursement payment search query", () => {
       amountCents: 3_200,
     });
   });
+
+  it("loads payment search page metadata and mapped payment evidence", async () => {
+    const prisma = {
+      reimbursementPayment: {
+        findMany: vi.fn(async () => [
+          reimbursementPaymentRow({
+            id: "payment-1",
+            ledgerRecordId: "expense-1",
+            ledgerRecordName: "網路費代墊",
+          }),
+        ]),
+        count: vi.fn(async () => 1),
+        aggregate: vi.fn(async () => ({
+          _sum: {
+            amountCents: 4_500,
+          },
+        })),
+      },
+    };
+
+    await expect(loadReimbursementPaymentSearchPageInDatabase({
+      householdId: "household-demo",
+      prisma: prisma as never,
+      query: initialReimbursementPaymentQueryState,
+    })).resolves.toMatchObject({
+      records: [
+        {
+          id: "payment-1",
+          primaryLinkedRecordName: "網路費代墊",
+          paidToMemberName: "小美",
+          methodLabel: "銀行轉帳",
+        },
+      ],
+      nextCursor: null,
+      totalCount: 1,
+      totalAmountCents: 4_500,
+    });
+    expect(prisma.reimbursementPayment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: REIMBURSEMENT_PAYMENT_PAGE_SIZE + 1,
+        where: { householdId: "household-demo" },
+        orderBy: [{ paidOn: "desc" }, { id: "desc" }],
+      }),
+    );
+  });
 });
+
+function reimbursementPaymentRow({
+  id,
+  ledgerRecordId,
+  ledgerRecordName,
+}: {
+  id: string;
+  ledgerRecordId: string;
+  ledgerRecordName: string;
+}) {
+  return {
+    id,
+    reimbursementBatchId: `batch-${id}`,
+    amountCents: 128_000,
+    paidOn: new Date("2026-06-18T00:00:00.000Z"),
+    paidToMemberId: "member-mei",
+    method: "bank_transfer" as const,
+    note: "末五碼 5521",
+    paidToMember: {
+      displayName: "小美",
+    },
+    reimbursementBatch: {
+      items: [
+        {
+          ledgerRecord: {
+            id: ledgerRecordId,
+            type: "expense" as const,
+            name: ledgerRecordName,
+            amountCents: 128_000,
+            occurredOn: new Date("2026-06-15T00:00:00.000Z"),
+            categoryId: "expense-utilities",
+            createdByMemberId: "member-mei",
+            sourceMemberId: null,
+            paymentSource: "member" as const,
+            payerMemberId: "member-mei",
+            reimbursementStatus: "reimbursed" as const,
+            status: "active" as const,
+            note: "退款紀錄關聯紀錄",
+          },
+        },
+      ],
+    },
+  };
+}

@@ -84,7 +84,14 @@ export function MemberBindingDialog({
   }
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={Boolean(member)}>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!isPending) {
+          onOpenChange(open);
+        }
+      }}
+      open={Boolean(member)}
+    >
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>綁定 Google 帳號</DialogTitle>
@@ -101,6 +108,7 @@ export function MemberBindingDialog({
                 />
                 <Button
                   aria-label={`複製 ${member.displayName} 的綁定帳號連結`}
+                  disabled={isPending}
                   onClick={() => copyBindingLink(link)}
                   size="icon"
                   type="button"
@@ -117,6 +125,7 @@ export function MemberBindingDialog({
             </Field>
             <DialogFooter>
               <Button
+                disabled={isPending}
                 onClick={() => onOpenChange(false)}
                 type="button"
                 variant="secondary"
@@ -138,6 +147,7 @@ export function MemberBindingDialog({
             ) : null}
             <DialogFooter>
               <Button
+                disabled={isPending}
                 onClick={() => onOpenChange(false)}
                 type="button"
                 variant="secondary"
@@ -150,7 +160,7 @@ export function MemberBindingDialog({
                 type="button"
               >
                 <Link aria-hidden="true" size={18} />
-                重新產生連結
+                {isPending ? "產生中..." : "重新產生連結"}
               </Button>
             </DialogFooter>
           </div>
@@ -162,6 +172,7 @@ export function MemberBindingDialog({
             </p>
             <DialogFooter>
               <Button
+                disabled={isPending}
                 onClick={() => onOpenChange(false)}
                 type="button"
                 variant="secondary"
@@ -174,7 +185,7 @@ export function MemberBindingDialog({
                 type="button"
               >
                 <Link aria-hidden="true" size={18} />
-                產生綁定連結
+                {isPending ? "產生中..." : "產生綁定連結"}
               </Button>
             </DialogFooter>
           </div>

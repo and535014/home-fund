@@ -1,18 +1,33 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
-import type { ExpenseLedgerRecord } from "@/modules/fund-ledger/ledger-records";
+import {
+  mapPrismaExpenseLedgerRecordToExpenseLedgerRecord,
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaExpenseLedgerRecordSelect,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
+import type {
+  ExpenseLedgerRecord,
+} from "@/modules/fund-ledger/ledger-records";
 import type { AuthenticatedMember } from "@/modules/identity-access/authorization";
+import {
+  batchMarkLedgerRecordsReimbursed,
+  type BatchMarkLedgerRecordsReimbursedCommand,
+  type BatchMarkLedgerRecordsReimbursedResult,
+} from "./reimbursement-batch-actions";
 import {
   markExpensesReimbursed,
   type MarkExpensesReimbursedCommand,
   type MarkExpensesReimbursedResult,
 } from "./reimbursements";
-import type { ReimbursementPaymentEvidenceInput } from "./reimbursement-payment";
-
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
+import {
+  validateReimbursementPaymentEvidence,
+  type ReimbursementPaymentEvidenceInput,
+  type ReimbursementPaymentEvidenceRejectionReason,
+} from "./reimbursement-payment";
 
 export type MarkExpensesReimbursedInDatabaseContext = {
   prisma: PrismaClient;
-  householdId?: string;
+  householdId: string;
   generateBatchId?: () => string;
   generatePaymentId?: () => string;
   reimbursedAt?: Date;
@@ -30,12 +45,32 @@ export type WriteReimbursementPaymentSettlementContext = {
   reimbursedAt?: Date;
 };
 
+export type BatchMarkLedgerRecordsReimbursedInDatabaseContext = {
+  prisma: PrismaClient;
+  householdId: string;
+  generateBatchId?: () => string;
+  generatePaymentId?: () => string;
+  reimbursedAt?: Date;
+  payment: {
+    method?: string | null;
+    paidOn?: string | null;
+    note?: string | null;
+  };
+};
+
+export type BatchMarkLedgerRecordsReimbursedInDatabaseResult =
+  | BatchMarkLedgerRecordsReimbursedResult
+  | {
+      ok: false;
+      reason: ReimbursementPaymentEvidenceRejectionReason;
+    };
+
 export async function markExpensesReimbursedInDatabase(
   actor: AuthenticatedMember,
   command: MarkExpensesReimbursedCommand,
   context: MarkExpensesReimbursedInDatabaseContext,
 ): Promise<MarkExpensesReimbursedResult> {
-  const householdId = context.householdId ?? DEFAULT_HOUSEHOLD_ID;
+  const householdId = context.householdId;
   const selectedExpenseIds = [...new Set(command.selectedExpenseIds)];
 
   return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -48,24 +83,11 @@ export async function markExpensesReimbursedInDatabase(
         type: "expense",
         status: "active",
       },
-      select: {
-        id: true,
-        type: true,
-        name: true,
-        amountCents: true,
-        occurredOn: true,
-        categoryId: true,
-        createdByMemberId: true,
-        paymentSource: true,
-        payerMemberId: true,
-        reimbursementStatus: true,
-        status: true,
-        note: true,
-      },
+      select: prismaExpenseLedgerRecordSelect,
     });
     const result = markExpensesReimbursed(
       actor,
-      records.map(mapPrismaRecordToExpense),
+      records.map(mapPrismaExpenseLedgerRecordToExpenseLedgerRecord),
       { selectedExpenseIds },
     );
 
@@ -86,6 +108,63 @@ export async function markExpensesReimbursedInDatabase(
 
     if (!settlement.ok) {
       return { ok: false as const, reason: "not_refundable" as const };
+    }
+
+    return result;
+  });
+}
+
+export async function batchMarkLedgerRecordsReimbursedInDatabase(
+  actor: AuthenticatedMember,
+  command: BatchMarkLedgerRecordsReimbursedCommand,
+  context: BatchMarkLedgerRecordsReimbursedInDatabaseContext,
+): Promise<BatchMarkLedgerRecordsReimbursedInDatabaseResult> {
+  const payment = validateReimbursementPaymentEvidence(context.payment);
+
+  if (!payment.ok) {
+    return { ok: false, reason: payment.reason };
+  }
+
+  const householdId = context.householdId;
+  const selectedRecordIds = [...new Set(command.selectedRecordIds)];
+
+  return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const rows = await tx.ledgerRecord.findMany({
+      where: {
+        householdId,
+        id: {
+          in: selectedRecordIds,
+        },
+      },
+      select: prismaLedgerRecordSelect,
+    });
+    const result = batchMarkLedgerRecordsReimbursed(
+      actor,
+      rows.map(mapPrismaLedgerRecordToLedgerRecord),
+      command,
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    const settlement = await writeReimbursementPaymentSettlement({
+      tx,
+      householdId,
+      actorId: actor.id,
+      reimbursedRecords: result.reimbursedRecords,
+      payment: payment.payment,
+      generateBatchId: context.generateBatchId,
+      generatePaymentId: context.generatePaymentId,
+      reimbursedAt: context.reimbursedAt,
+    });
+
+    if (!settlement.ok) {
+      return {
+        ok: false as const,
+        reason: "cross_member_batch" as const,
+        skippedRecords: result.skippedRecords,
+      };
     }
 
     return result;
@@ -157,37 +236,4 @@ export async function writeReimbursementPaymentSettlement(
 
 function dateOnlyToDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-function mapPrismaRecordToExpense(record: {
-  id: string;
-  type: "expense" | "income";
-  name: string;
-  amountCents: number;
-  occurredOn: Date;
-  categoryId: string;
-  createdByMemberId: string;
-  paymentSource: "fund" | "member" | null;
-  payerMemberId: string | null;
-  reimbursementStatus: "not_applicable" | "not_refundable" | "refundable" | "reimbursed";
-  status: "active" | "voided";
-  note: string | null;
-}): ExpenseLedgerRecord {
-  return {
-    id: record.id,
-    type: "expense",
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: record.occurredOn.toISOString().slice(0, 10),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    paymentSource: record.paymentSource ?? "fund",
-    ...(record.payerMemberId ? { payerMemberId: record.payerMemberId } : {}),
-    reimbursementStatus:
-      record.reimbursementStatus === "not_applicable"
-        ? "not_refundable"
-        : record.reimbursementStatus,
-    status: record.status,
-    ...(record.note ? { note: record.note } : {}),
-  };
 }

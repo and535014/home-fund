@@ -9,8 +9,6 @@ import {
   type ReimbursementPaymentSearchResult,
 } from "@/modules/reporting/reimbursement-payment-search-query";
 
-const DEFAULT_HOUSEHOLD_ID = "household-demo";
-
 export type LoadReimbursementPaymentByLedgerRecordResult =
   | {
       ok: true;
@@ -51,16 +49,17 @@ export async function loadReimbursementPaymentByLedgerRecordAction(
 
   try {
     const prisma = getPrismaClient();
+    const householdId = session.access.member.householdId;
     const row = await prisma.reimbursementPayment.findFirst({
       where: {
-        householdId: DEFAULT_HOUSEHOLD_ID,
+        householdId,
         reimbursementBatch: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
+          householdId,
           items: {
             some: {
               ledgerRecordId: recordId,
               ledgerRecord: {
-                householdId: DEFAULT_HOUSEHOLD_ID,
+                householdId,
               },
             },
           },
@@ -110,18 +109,19 @@ export async function loadReimbursementPaymentsByLedgerRecordIdsAction(
 
   try {
     const prisma = getPrismaClient();
+    const householdId = session.access.member.householdId;
     const rows = await prisma.reimbursementPayment.findMany({
       where: {
-        householdId: DEFAULT_HOUSEHOLD_ID,
+        householdId,
         reimbursementBatch: {
-          householdId: DEFAULT_HOUSEHOLD_ID,
+          householdId,
           items: {
             some: {
               ledgerRecordId: {
                 in: selectedRecordIds,
               },
               ledgerRecord: {
-                householdId: DEFAULT_HOUSEHOLD_ID,
+                householdId,
               },
             },
           },

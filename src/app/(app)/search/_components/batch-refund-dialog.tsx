@@ -23,12 +23,14 @@ import { ReimbursementPaymentFields } from "@/app/_record-detail/reimbursement-p
 
 export function BatchRefundDialog({
   actor,
+  isPending = false,
   onCancel,
   onConfirm,
   open,
   records,
 }: {
   actor: HouseholdAccessProfile;
+  isPending?: boolean;
   onCancel: () => void;
   onConfirm: (eligibleRecords: LedgerRecord[], formData: FormData) => void;
   open: boolean;
@@ -51,7 +53,10 @@ export function BatchRefundDialog({
   const hasCrossMemberSelection = paidToMemberIds.length > 1;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => !isPending && !isOpen && onCancel()}
+    >
       <DialogContent aria-describedby={undefined} className="max-w-md">
         <DialogHeader>
           <DialogTitle>確認批次退款</DialogTitle>
@@ -78,7 +83,10 @@ export function BatchRefundDialog({
 
           {hasSinglePaidToMember && eligibleRecords.length > 0 ? (
             <form ref={reimbursementFormRef}>
-              <ReimbursementPaymentFields idPrefix="batch-reimbursement" />
+              <ReimbursementPaymentFields
+                disabled={isPending}
+                idPrefix="batch-reimbursement"
+              />
             </form>
           ) : null}
 
@@ -102,12 +110,19 @@ export function BatchRefundDialog({
         </DialogBody>
 
         <DialogFooter className="mt-4">
-          <Button onClick={onCancel} type="button" variant="outline">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
             <X />
             取消
           </Button>
           <Button
-            disabled={eligibleRecords.length === 0 || !hasSinglePaidToMember}
+            disabled={
+              isPending || eligibleRecords.length === 0 || !hasSinglePaidToMember
+            }
             onClick={() => {
               if (!reimbursementFormRef.current) {
                 return;
@@ -121,7 +136,7 @@ export function BatchRefundDialog({
             type="button"
           >
             <HandCoins />
-            確認退款
+            {isPending ? "退款中..." : "確認退款"}
           </Button>
         </DialogFooter>
       </DialogContent>

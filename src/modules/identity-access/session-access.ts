@@ -15,16 +15,21 @@ export type ResolveHouseholdAccessInput = {
 
 export type HouseholdAccessProfile = {
   id: string;
+  householdId: string;
   displayName: string;
   avatarUrl?: string;
   roles: AuthenticatedMember["roles"];
   capabilities: NonNullable<AuthenticatedMember["capabilities"]>;
 };
 
+export type HouseholdScopedAuthenticatedMember = AuthenticatedMember & {
+  householdId: string;
+};
+
 export type ResolveHouseholdAccessResult =
   | {
       ok: true;
-      member: AuthenticatedMember;
+      member: HouseholdScopedAuthenticatedMember;
       profile: HouseholdAccessProfile;
       events: ["Household member access resolved"];
     }
@@ -62,12 +67,14 @@ export function resolveHouseholdAccess(
     ok: true,
     member: {
       id: member.id,
+      householdId: member.householdId,
       googleAccountLinked: true,
       roles: member.roles,
       capabilities: member.capabilities,
     },
     profile: {
       id: member.id,
+      householdId: member.householdId,
       displayName: member.displayName,
       ...(member.avatarUrl ? { avatarUrl: member.avatarUrl } : {}),
       roles: member.roles,

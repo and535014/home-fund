@@ -373,6 +373,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
     <div className="grid h-full min-h-0 gap-5">
       <CategoryArchiveVisibilitySwitch
         checked={showArchivedCategories}
+        disabled={isPending}
         onCheckedChange={setShowArchivedCategories}
       />
       <section
@@ -423,7 +424,14 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
           目前沒有封存分類。
         </p>
       ) : null}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          if (!isPending) {
+            setIsCreateDialogOpen(open);
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>新增分類</DialogTitle>
@@ -437,6 +445,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
             onNameChange={setNewName}
             onSubmit={submitCreateCategory}
             onTypeChange={setNewType}
+            pending={isPending}
             submitLabel="新增分類"
             type={newType}
           />
@@ -445,7 +454,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
       <Dialog
         open={editingCategory !== null}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!isPending && !open) {
             setEditingId(null);
           }
         }}
@@ -465,6 +474,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onNameChange={setEditingName}
               onSubmit={(event) => submitRenameCategory(event, editingCategory)}
               onTypeChange={() => undefined}
+              pending={isPending}
               submitLabel="儲存修改"
               type={editingCategory.type}
               typeDisabled
@@ -475,7 +485,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
       <Dialog
         open={archivingCategory !== null}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!isPending && !open) {
             setArchivingId(null);
           }
         }}
@@ -506,7 +516,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
                     <input name="categoryId" type="hidden" value={archivingCategory.id} />
                     <Button disabled={isPending} onClick={confirmArchiveCategory} type="button" variant="destructive">
                       <Archive aria-hidden="true" />
-                      確認封存
+                      {isPending ? "封存中..." : "確認封存"}
                     </Button>
                   </div>
                 </form>

@@ -1,9 +1,11 @@
 -- Production-safe bootstrap seed for the real app flow.
 --
 -- This file creates or updates only the minimum baseline data required for a
--- real environment to accept the first admin login. It must remain safe to run
--- more than once against production: do not delete user, member, ledger,
--- invitation, reimbursement, recurring, or Better Auth data here.
+-- real environment to accept the first admin login. It intentionally leaves
+-- domain data such as categories empty so production starts from the user's
+-- real setup. It must remain safe to run more than once against production:
+-- do not delete user, member, ledger, category, invitation, reimbursement,
+-- recurring, or Better Auth data here.
 --
 -- E2E fixtures live in prisma/seed.e2e.sql and are loaded only by
 -- e2e/setup-db.sh after the E2E database has been recreated.
@@ -46,12 +48,3 @@ SET "googleAccountEmail" = EXCLUDED."googleAccountEmail",
 INSERT INTO "MemberRoleAssignment" ("memberId", "role")
 VALUES ('member-admin', 'admin')
 ON CONFLICT ("memberId", "role") DO NOTHING;
-
-INSERT INTO "Category" ("id", "householdId", "type", "name", "color", "icon", "sortOrder", "status", "updatedAt")
-VALUES
-  ('income-rent', 'household-demo', 'income', '房租', 'blue', 'home', 10, 'active', CURRENT_TIMESTAMP),
-  ('income-living', 'household-demo', 'income', '生活費', 'teal', 'piggy-bank', 20, 'active', CURRENT_TIMESTAMP),
-  ('expense-grocery', 'household-demo', 'expense', '日用品', 'gold', 'shopping-cart', 10, 'active', CURRENT_TIMESTAMP),
-  ('expense-internet', 'household-demo', 'expense', '網路費', 'violet', 'wifi', 20, 'active', CURRENT_TIMESTAMP),
-  ('expense-dining', 'household-demo', 'expense', '餐飲', 'rose', 'utensils', 30, 'active', CURRENT_TIMESTAMP)
-ON CONFLICT ("id") DO NOTHING;

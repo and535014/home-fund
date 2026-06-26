@@ -44,7 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Item, ItemGroup } from "@/components/ui/item";
@@ -88,12 +88,14 @@ export function RecordListDetail({
     useState<ReimbursementPaymentSearchResult | null>(null);
   const [selectedPaymentLinkedResult, setSelectedPaymentLinkedResult] =
     useState<ReimbursementPaymentSearchResult | null>(null);
+  const [isSelectedRecordPending, setIsSelectedRecordPending] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ??
     selectedRelatedRecord;
-  function closeSelectedRecord() {
+	function closeSelectedRecord() {
+    setIsSelectedRecordPending(false);
     setSelectedRecordId(null);
     setSelectedRelatedRecord(null);
     window.requestAnimationFrame(() => {
@@ -173,7 +175,7 @@ export function RecordListDetail({
       <Dialog
         open={Boolean(selectedRecord)}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !isSelectedRecordPending) {
             closeSelectedRecord();
           }
         }}
@@ -193,6 +195,7 @@ export function RecordListDetail({
               router.refresh();
             }}
             onOpenReimbursementPayment={openReimbursementPayment}
+            onPendingChange={setIsSelectedRecordPending}
             onRefresh={() => router.refresh()}
             record={selectedRecord}
           />
@@ -249,6 +252,7 @@ export function RecordDetailDialog({
   memberNames,
   onMutationSuccess,
   onOpenReimbursementPayment,
+  onPendingChange,
   onRefresh,
   record,
 }: {
@@ -259,6 +263,7 @@ export function RecordDetailDialog({
   memberNames: Record<string, string>;
   onMutationSuccess: () => void;
   onOpenReimbursementPayment?: (record: LedgerRecord) => void;
+  onPendingChange: (pending: boolean) => void;
   onRefresh: () => void;
   record: LedgerRecord;
 }) {
@@ -292,6 +297,7 @@ export function RecordDetailDialog({
         categories={categories}
         memberNames={memberNames}
         onCancel={() => setMode("detail")}
+        onPendingChange={onPendingChange}
         onSuccess={() => {
           toast.success("紀錄已更新", {
             description: "這筆紀錄已更新。",
@@ -308,6 +314,7 @@ export function RecordDetailDialog({
     return (
       <DeleteRecordDialog
         onCancel={() => setMode("detail")}
+        onPendingChange={onPendingChange}
         onSuccess={() => {
           toast.success("紀錄已刪除", {
             description: "這筆紀錄已移除。",
@@ -326,6 +333,7 @@ export function RecordDetailDialog({
         category={category}
         memberNames={memberNames}
         onCancel={() => setMode("detail")}
+        onPendingChange={onPendingChange}
         onSuccess={() => {
           setIsRefundedLocally(true);
           setMode("detail");
@@ -362,12 +370,14 @@ function RecordReimbursementDialog({
   category,
   memberNames,
   onCancel,
+  onPendingChange,
   onSuccess,
   record,
 }: {
   category?: Category;
   memberNames: Record<string, string>;
   onCancel: () => void;
+  onPendingChange: (pending: boolean) => void;
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
@@ -379,6 +389,12 @@ function RecordReimbursementDialog({
     >(),
   );
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    onPendingChange(isPending);
+
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -414,12 +430,18 @@ function RecordReimbursementDialog({
             />
           </Item>
           <ReimbursementPaymentFields
+            disabled={isPending}
             idPrefix={`record-${record.id}-reimbursement`}
           />
         </DialogBody>
 
         <DialogFooter className="mt-4">
-          <Button onClick={onCancel} type="button" variant="outline">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
             <X />
             取消
           </Button>
@@ -437,12 +459,14 @@ function EditRecordDialog({
   categories,
   memberNames,
   onCancel,
+  onPendingChange,
   onSuccess,
   record,
 }: {
   categories: Category[];
   memberNames: Record<string, string>;
   onCancel: () => void;
+  onPendingChange: (pending: boolean) => void;
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
@@ -457,6 +481,12 @@ function EditRecordDialog({
     >(),
   );
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    onPendingChange(isPending);
+
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
   const editableCategories = categories
     .filter(
       (category) =>
@@ -526,63 +556,73 @@ function EditRecordDialog({
         <input name="recordId" type="hidden" value={record.id} />
         <input name="recordType" type="hidden" value={record.type} />
         <DialogBody className="grid gap-4">
-          <EditCategoryField
-            categories={editableCategories}
-            defaultCategoryId={record.categoryId}
-          />
-
-          {record.type === "expense" ? (
-            <Field className="min-w-0">
-              <FieldLabel>支出類型</FieldLabel>
-              <NativeSelect
-                name="paymentSource"
-                onChange={(event) =>
-                  setPaymentSource(
-                    event.currentTarget.value as "fund" | "member",
-                  )
-                }
-                value={paymentSource}
-              >
-                <option value="member">成員代墊</option>
-                <option value="fund">基金支出</option>
-              </NativeSelect>
-            </Field>
-          ) : null}
-
-          <Field className="min-w-0">
-            <FieldLabel>金額</FieldLabel>
-            <Input
-              defaultValue={String(record.amountCents / 100)}
-              inputMode="decimal"
-              name="amountTwd"
+          <FieldSet
+            className="contents disabled:pointer-events-none disabled:opacity-70"
+            disabled={isPending}
+          >
+            <EditCategoryField
+              categories={editableCategories}
+              defaultCategoryId={record.categoryId}
             />
-          </Field>
 
-          <Field className="min-w-0">
-            <FieldLabel>名稱</FieldLabel>
-            <Input defaultValue={record.name} name="name" />
-          </Field>
+            {record.type === "expense" ? (
+              <Field className="min-w-0">
+                <FieldLabel>支出類型</FieldLabel>
+                <NativeSelect
+                  name="paymentSource"
+                  onChange={(event) =>
+                    setPaymentSource(
+                      event.currentTarget.value as "fund" | "member",
+                    )
+                  }
+                  value={paymentSource}
+                >
+                  <option value="member">成員代墊</option>
+                  <option value="fund">基金支出</option>
+                </NativeSelect>
+              </Field>
+            ) : null}
 
-          <div className={cn("grid min-w-0 gap-3", payerField && "grid-cols-2")}>
-            {payerField}
             <Field className="min-w-0">
-              <FieldLabel>日期</FieldLabel>
+              <FieldLabel>金額</FieldLabel>
               <Input
-                defaultValue={record.occurredOn}
-                name="occurredOn"
-                type="date"
+                defaultValue={String(record.amountCents / 100)}
+                inputMode="decimal"
+                name="amountTwd"
               />
             </Field>
-          </div>
 
-          <Field className="min-w-0">
-            <FieldLabel>備註</FieldLabel>
-            <Textarea defaultValue={record.note ?? ""} name="note" />
-          </Field>
+            <Field className="min-w-0">
+              <FieldLabel>名稱</FieldLabel>
+              <Input defaultValue={record.name} name="name" />
+            </Field>
+
+            <div className={cn("grid min-w-0 gap-3", payerField && "grid-cols-2")}>
+              {payerField}
+              <Field className="min-w-0">
+                <FieldLabel>日期</FieldLabel>
+                <Input
+                  defaultValue={record.occurredOn}
+                  name="occurredOn"
+                  type="date"
+                />
+              </Field>
+            </div>
+
+            <Field className="min-w-0">
+              <FieldLabel>備註</FieldLabel>
+              <Textarea defaultValue={record.note ?? ""} name="note" />
+            </Field>
+          </FieldSet>
         </DialogBody>
 
         <DialogFooter className="mt-4">
-          <Button onClick={onCancel} type="button" variant="outline">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
             <X />
             取消
           </Button>
@@ -598,10 +638,12 @@ function EditRecordDialog({
 
 function DeleteRecordDialog({
   onCancel,
+  onPendingChange,
   onSuccess,
   record,
 }: {
   onCancel: () => void;
+  onPendingChange: (pending: boolean) => void;
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
@@ -613,6 +655,12 @@ function DeleteRecordDialog({
     >(),
   );
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    onPendingChange(isPending);
+
+    return () => onPendingChange(false);
+  }, [isPending, onPendingChange]);
 
   function formAction(formData: FormData) {
     startTransition(async () => {
@@ -653,7 +701,12 @@ function DeleteRecordDialog({
         </DialogBody>
 
         <DialogFooter className="mt-4">
-          <Button onClick={onCancel} type="button" variant="outline">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
             <X />
             取消
           </Button>

@@ -15,10 +15,12 @@ export type RecordCreateData = {
 
 export type RecordCreateContextValue = RecordCreateData & {
   close: () => void;
+  isCreatePending: boolean;
   mode: RecordCreateMode | null;
   openExpense: () => void;
   openIncome: () => void;
   onRecordCreated: () => void;
+  setCreatePending: (pending: boolean) => void;
 };
 
 export const RecordCreateContext =

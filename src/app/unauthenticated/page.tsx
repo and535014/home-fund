@@ -1,6 +1,5 @@
 import { Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { readSearchParam, type AppSearchParams } from "../route-search-params";
 import { unauthenticatedViewFor } from "./unauthenticated-reasons";
 
@@ -42,10 +42,15 @@ export default async function UnauthenticatedPage({
           ) : null}
           {view.canStartGoogleSignIn ? (
             <form action="/auth/google" method="post">
-              <Button className="mt-5 w-full" size="lg" type="submit">
+              <FormSubmitButton
+                className="mt-5 w-full"
+                pendingLabel="登入中..."
+                size="lg"
+                type="submit"
+              >
                 <Users aria-hidden="true" size={18} />
                 <span>使用 Google 登入</span>
-              </Button>
+              </FormSubmitButton>
             </form>
           ) : null}
         </CardContent>

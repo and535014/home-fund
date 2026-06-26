@@ -3,6 +3,7 @@
 import {
   useActionState,
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -27,7 +28,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogBody, DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,6 +72,7 @@ export function RecordEntryPanel() {
     mode,
     profile,
     onRecordCreated,
+    setCreatePending,
   } = useRecordCreate();
 
   return (
@@ -82,6 +84,7 @@ export function RecordEntryPanel() {
       members={members}
       profile={profile}
       onRecordCreated={onRecordCreated}
+      setCreatePending={setCreatePending}
     />
   );
 }
@@ -94,6 +97,7 @@ function RecordEntryForm({
   members,
   profile,
   onRecordCreated,
+  setCreatePending,
 }: {
   canSelectOthers: boolean;
   categories: RecordCreateData["categories"];
@@ -102,6 +106,7 @@ function RecordEntryForm({
   members: RecordCreateData["members"];
   profile: Profile;
   onRecordCreated: () => void;
+  setCreatePending: (pending: boolean) => void;
 }) {
   const [entryKind, setEntryKind] = useState<RecordEntryKind>(
     initialMode === RECORD_ENTRY_MODE.income
@@ -133,6 +138,7 @@ function RecordEntryForm({
       onEntryKindChange={setEntryKind}
       paymentSource={paymentSource}
       recordType={recordType}
+      setCreatePending={setCreatePending}
       submitLabel="新增"
     >
       <CategoryField categories={activeCategories} />
@@ -169,6 +175,7 @@ function RecordEntryFormShell({
   onRecordCreated,
   paymentSource,
   recordType,
+  setCreatePending,
   submitLabel,
 }: {
   children: ReactNode;
@@ -179,6 +186,7 @@ function RecordEntryFormShell({
   onRecordCreated: () => void;
   paymentSource: PaymentSource;
   recordType: RecordEntryMode;
+  setCreatePending: (pending: boolean) => void;
   submitLabel: string;
 }) {
   const [actionState, formAction, isPending] = useActionState(
@@ -190,6 +198,12 @@ function RecordEntryFormShell({
     >(),
   );
   const feedbackMessage = createRecordFeedbackMessage(actionState);
+
+  useEffect(() => {
+    setCreatePending(isPending);
+
+    return () => setCreatePending(false);
+  }, [isPending, setCreatePending]);
 
   useActionStateEffect(
     actionState,
@@ -219,16 +233,23 @@ function RecordEntryFormShell({
         <input name="recordType" type="hidden" value={recordType} />
         <input name="paymentSource" type="hidden" value={paymentSource} />
         <DialogBody>
-          <FieldGroup>
-          <RecordKindTabs
-            entryKind={entryKind}
-            onEntryKindChange={onEntryKindChange}
-          />
-          {children}
-          </FieldGroup>
+          <FieldSet
+            className="contents disabled:pointer-events-none disabled:opacity-70"
+            disabled={isPending}
+          >
+            <FieldGroup>
+              <RecordKindTabs
+                disabled={isPending}
+                entryKind={entryKind}
+                onEntryKindChange={onEntryKindChange}
+              />
+              {children}
+            </FieldGroup>
+          </FieldSet>
         </DialogBody>
         <DialogFooter className="mt-4">
           <Button
+            disabled={isPending}
             onClick={close}
             type="button"
             variant="secondary"
@@ -248,9 +269,11 @@ function RecordEntryFormShell({
 }
 
 function RecordKindTabs({
+  disabled = false,
   entryKind,
   onEntryKindChange,
 }: {
+  disabled?: boolean;
   entryKind: RecordEntryKind;
   onEntryKindChange: (entryKind: RecordEntryKind) => void;
 }) {
@@ -265,13 +288,13 @@ function RecordKindTabs({
         className="w-full"
         variant="line"
       >
-        <TabsTrigger value={RECORD_ENTRY_KIND.memberExpense}>
+        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.memberExpense}>
           成員支出
         </TabsTrigger>
-        <TabsTrigger value={RECORD_ENTRY_KIND.income}>
+        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.income}>
           收入
         </TabsTrigger>
-        <TabsTrigger value={RECORD_ENTRY_KIND.fundExpense}>
+        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.fundExpense}>
           基金支出
         </TabsTrigger>
       </TabsList>

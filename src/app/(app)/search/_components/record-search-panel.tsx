@@ -89,6 +89,7 @@ export function RecordSearchPanel({
     useState<ReimbursementPaymentSearchResult | null>(null);
   const [selectedPaymentLinkedResult, setSelectedPaymentLinkedResult] =
     useState<ReimbursementPaymentSearchResult | null>(null);
+  const [isSelectedRecordPending, setIsSelectedRecordPending] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [totalNetAmountCents, setTotalNetAmountCents] = useState(0);
   const [totalPaymentCount, setTotalPaymentCount] = useState(0);
@@ -120,6 +121,7 @@ export function RecordSearchPanel({
   const hasMoreRecords = isRecordSurface && Boolean(nextCursor);
   const hasMorePaymentResults =
     isPaymentSurface && hasActivePaymentQuery && Boolean(nextPaymentCursor);
+  const isBatchActionPending = isPending && batchAction !== null;
   const emptyMessage = isRecordSurface && hasActiveQuery
       ? "沒有符合條件的紀錄。"
       : isPaymentSurface && hasActivePaymentQuery
@@ -534,6 +536,7 @@ export function RecordSearchPanel({
       ) : null}
       <BatchDeleteDialog
         actor={actor}
+        isPending={isBatchActionPending}
         onCancel={() => setBatchAction(null)}
         onConfirm={completeBatchDelete}
         open={batchAction === "delete"}
@@ -541,6 +544,7 @@ export function RecordSearchPanel({
       />
       <BatchRefundDialog
         actor={actor}
+        isPending={isBatchActionPending}
         onCancel={() => setBatchAction(null)}
         onConfirm={completeBatchRefund}
         open={batchAction === "refund"}
@@ -549,7 +553,8 @@ export function RecordSearchPanel({
       <Dialog
         open={Boolean(selectedDetailRecord)}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !isSelectedRecordPending) {
+            setIsSelectedRecordPending(false);
             setSelectedDetailRecordId(null);
             setSelectedRelatedDetailRecord(null);
           }
@@ -568,11 +573,13 @@ export function RecordSearchPanel({
             onMutationSuccess={() => {
               setSelectedDetailRecordId(null);
               setSelectedRelatedDetailRecord(null);
+              setIsSelectedRecordPending(false);
               reloadCurrentQuery();
             }}
             onOpenReimbursementPayment={
               openReimbursementPaymentDetailForLedgerRecord
             }
+            onPendingChange={setIsSelectedRecordPending}
             onRefresh={reloadCurrentQuery}
             record={selectedDetailRecord}
           />

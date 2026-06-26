@@ -62,6 +62,7 @@ https://home-fund.vercel.app
 DATABASE_URL
 BETTER_AUTH_URL
 BETTER_AUTH_SECRET
+CSV_IMPORT_PREVIEW_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
@@ -116,12 +117,14 @@ DATABASE_URL
 DATABASE_URL_UNPOOLED
 BETTER_AUTH_URL
 BETTER_AUTH_SECRET
+CSV_IMPORT_PREVIEW_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 ```
 
 `DATABASE_URL` 使用 pooled connection string。`DATABASE_URL_UNPOOLED` 使用 unpooled/direct connection string。
+`CSV_IMPORT_PREVIEW_SECRET` 用來簽署 CSV 匯入預覽 token，production 必須設定，不能共用 `BETTER_AUTH_SECRET`。
 
 ## PR CI 流程
 
@@ -206,8 +209,9 @@ corepack pnpm db:seed
 
 `prisma/seed.sql` 必須保持 production-safe：
 
-- 可以建立或更新 household、第一個 admin、admin role 和預設分類。
-- 不可以刪除 user、member、ledger、invitation、reimbursement、recurring 或 Better Auth data。
+- 可以建立或更新 household、第一個 admin 和 admin role。
+- 不可以建立分類；production 分類應由使用者在 UI 建立或透過明確匯入流程建立。
+- 不可以刪除 user、member、ledger、category、invitation、reimbursement、recurring 或 Better Auth data。
 - 不可以塞入 E2E 或 demo-only fixture。
 
 E2E fixture 只允許放在 `prisma/seed.e2e.sql`，並只在 E2E 專用 database

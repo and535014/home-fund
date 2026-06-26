@@ -22,6 +22,7 @@ const generalActor: AuthenticatedMember = {
 const members: HouseholdMemberAccount[] = [
   {
     id: "member-admin",
+    householdId: "household-demo",
     displayName: "Ana",
     googleAccountEmail: "ana@example.com",
     roles: ["admin"],
@@ -30,6 +31,7 @@ const members: HouseholdMemberAccount[] = [
   },
   {
     id: "member-bo",
+    householdId: "household-demo",
     displayName: "Bo",
     googleAccountEmail: "bo@example.com",
     roles: ["general_member"],
@@ -44,12 +46,14 @@ describe("member management", () => {
       displayName: "Kai",
       role: "finance_manager",
     }, {
+      householdId: "household-demo",
       members,
       generateId: () => "member-kai",
     })).toEqual({
       ok: true,
       member: {
         id: "member-kai",
+        householdId: "household-demo",
         displayName: "Kai",
         roles: ["finance_manager"],
         capabilities: [],
@@ -62,7 +66,7 @@ describe("member management", () => {
   it("rejects non-admin member management", () => {
     expect(createMember(generalActor, {
       displayName: "Kai",
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: false,
       reason: "permission_denied",
       authorizationReason: "admin_required",
@@ -73,7 +77,7 @@ describe("member management", () => {
     expect(updateMemberDisplayName(admin, {
       memberId: "member-bo",
       displayName: "柏",
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: true,
       member: {
         ...members[1],
@@ -88,7 +92,7 @@ describe("member management", () => {
       memberId: "member-bo",
       roles: ["general_member", "finance_manager"],
       capabilities: ["manage_categories"],
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: true,
       member: {
         ...members[1],
@@ -102,7 +106,7 @@ describe("member management", () => {
   it("rejects blank display names, duplicate emails, and unknown members", () => {
     expect(createMember(admin, {
       displayName: " ",
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: false,
       reason: "invalid_display_name",
     });
@@ -110,7 +114,7 @@ describe("member management", () => {
     expect(createMember(admin, {
       displayName: "Kai",
       googleAccountEmail: "BO@example.com",
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: false,
       reason: "duplicate_google_account_email",
     });
@@ -118,7 +122,7 @@ describe("member management", () => {
     expect(updateMemberDisplayName(admin, {
       memberId: "member-missing",
       displayName: "Missing",
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: false,
       reason: "member_not_found",
     });
@@ -129,7 +133,7 @@ describe("member management", () => {
       memberId: "member-admin",
       roles: ["general_member"],
       capabilities: [],
-    }, { members })).toEqual({
+    }, { householdId: "household-demo", members })).toEqual({
       ok: false,
       reason: "cannot_remove_last_admin",
     });

@@ -1,12 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   actionError,
-  actionSuccess,
   type ActionState,
 } from "@/app/action-state";
-import { requireServerActionAccess } from "@/auth/app-access";
+import {
+  actionSuccessWithRevalidation,
+  requireMutationAccess,
+  type ServerActionAccess,
+} from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   generateMemberBindingLinkInDatabase,
@@ -79,19 +81,21 @@ export async function createMemberAction(
     return createMemberError("invalid_role");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_members" });
+  const session = await requireMutationAccess({ type: "manage_members" });
   const result = await createMemberInDatabase(
     session.access.member,
     { displayName, role },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
     return createMemberError(result.reason);
   }
 
-  revalidateMemberPaths();
-  return actionSuccess("成員已建立。", {
+  return memberSuccess("成員已建立。", {
     memberId: result.member.id,
     displayName: result.member.displayName,
   });
@@ -107,15 +111,14 @@ export async function createMemberBindingLinkAction(
     return bindingLinkError("member_not_found");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_members" });
+  const session = await requireMutationAccess({ type: "manage_members" });
   const result = await tryGenerateMemberBindingLink(session.access.member, memberId);
 
   if (!result.ok) {
     return bindingLinkError(result.reason);
   }
 
-  revalidateMemberPaths();
-  return actionSuccess("綁定連結已建立", {
+  return memberSuccess("綁定連結已建立", {
     bindingLink: result.bindingLink,
     expiresAt: result.expiresAt.toISOString(),
   });
@@ -132,19 +135,21 @@ export async function updateMemberDisplayNameAction(
     return updateDisplayNameError("member_not_found");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_members" });
+  const session = await requireMutationAccess({ type: "manage_members" });
   const result = await updateMemberDisplayNameInDatabase(
     session.access.member,
     { memberId, displayName },
-    { prisma: getPrismaClient() },
+    {
+      prisma: getPrismaClient(),
+      householdId: session.access.member.householdId,
+    },
   );
 
   if (!result.ok) {
     return updateDisplayNameError(result.reason);
   }
 
-  revalidateMemberPaths();
-  return actionSuccess("顯示名稱已更新", {
+  return memberSuccess("顯示名稱已更新", {
     memberId: result.member.id,
     displayName: result.member.displayName,
   });
@@ -168,9 +173,15 @@ function isMemberRole(role: string | undefined): role is MemberRole {
     role === "general_member";
 }
 
-function revalidateMemberPaths() {
-  revalidatePath("/");
-  revalidatePath("/settings/members");
+function memberSuccess<TResult, TField extends string, TCode extends string>(
+  message: string,
+  data: TResult,
+): ActionState<TResult, TField, TCode> {
+  return actionSuccessWithRevalidation<TResult, TField, TCode>(
+    message,
+    data,
+    ["/", "/settings/members"],
+  );
 }
 
 function readBaseUrl(): string | undefined {
@@ -178,7 +189,7 @@ function readBaseUrl(): string | undefined {
 }
 
 async function tryGenerateMemberBindingLink(
-  member: Awaited<ReturnType<typeof requireServerActionAccess>>["access"]["member"],
+  member: ServerActionAccess["access"]["member"],
   memberId: string,
 ) {
   try {

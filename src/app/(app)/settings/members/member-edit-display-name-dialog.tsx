@@ -20,10 +20,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Field,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+  ActionField,
+  ActionFieldError,
+  ActionFieldLabel,
+  getActionFieldControlProps,
+} from "@/components/forms/action-field";
 import { Input } from "@/components/ui/input";
 import { useActionStateEffect } from "@/app/use-action-state-effect";
 
@@ -60,27 +61,47 @@ export function EditMemberDisplayNameDialog({
   );
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={Boolean(member)}>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!isPending) {
+          onOpenChange(open);
+        }
+      }}
+      open={Boolean(member)}
+    >
       <DialogContent aria-describedby={undefined}>
         <form action={formAction} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>修改顯示名稱</DialogTitle>
           </DialogHeader>
           <input name="memberId" type="hidden" value={member?.id ?? ""} />
-          <Field>
-            <FieldLabel htmlFor="display-name">顯示名稱</FieldLabel>
+          <ActionField
+            errors={actionState.fieldErrors}
+            field="displayName"
+            id="display-name"
+          >
+            <ActionFieldLabel id="display-name">顯示名稱</ActionFieldLabel>
             <Input
+              disabled={isPending}
               key={member?.id ?? "display-name"}
               defaultValue={member?.displayName ?? ""}
               id="display-name"
               name="displayName"
+              {...getActionFieldControlProps({
+                errors: actionState.fieldErrors,
+                field: "displayName",
+                id: "display-name",
+              })}
             />
-            {actionState.fieldErrors?.displayName?.map((error) => (
-              <FieldError key={error}>{error}</FieldError>
-            ))}
-          </Field>
+            <ActionFieldError
+              errors={actionState.fieldErrors}
+              field="displayName"
+              id="display-name"
+            />
+          </ActionField>
           <DialogFooter>
             <Button
+              disabled={isPending}
               onClick={() => onOpenChange(false)}
               type="button"
               variant="secondary"
@@ -88,7 +109,7 @@ export function EditMemberDisplayNameDialog({
               取消
             </Button>
             <Button disabled={isPending} type="submit">
-              儲存
+              {isPending ? "儲存中..." : "儲存"}
             </Button>
           </DialogFooter>
         </form>

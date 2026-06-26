@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDashboardMonthLabel } from "./month-selection";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   Dialog,
   DialogContent,
@@ -118,7 +119,9 @@ function MonthPickerDialogContent({
             </Field>
           </div>
           <DialogFooter>
-            <Button type="submit">套用月份</Button>
+            <FormSubmitButton pendingLabel="套用中..." type="submit">
+              套用月份
+            </FormSubmitButton>
           </DialogFooter>
         </FieldGroup>
       </form>

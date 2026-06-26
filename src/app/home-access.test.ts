@@ -10,6 +10,7 @@ import type { HouseholdMemberAccount } from "@/modules/identity-access/member-ma
 const householdMembers: HouseholdMemberAccount[] = [
   {
     id: "member-fin",
+    householdId: "household-demo",
     displayName: "Lin",
     googleAccountEmail: "lin@example.com",
     googleSubject: "google-lin",
@@ -19,6 +20,7 @@ const householdMembers: HouseholdMemberAccount[] = [
   },
   {
     id: "member-invited",
+    householdId: "household-demo",
     displayName: "Invited",
     googleAccountEmail: "invited@example.com",
     googleSubject: "google-invited",
@@ -28,6 +30,7 @@ const householdMembers: HouseholdMemberAccount[] = [
   },
   {
     id: "member-kai",
+    householdId: "household-demo",
     displayName: "Kai",
     googleAccountEmail: "kai@example.com",
     roles: ["general_member"],
@@ -186,12 +189,14 @@ describe("buildHomeAccessViewFromAccess", () => {
         ok: true,
         member: {
           id: "member-fin",
+          householdId: "household-demo",
           googleAccountLinked: true,
           roles: ["finance_manager"],
           capabilities: ["manage_categories"],
         },
         profile: {
           id: "member-fin",
+          householdId: "household-demo",
           displayName: "Lin",
           roles: ["finance_manager"],
           capabilities: ["manage_categories"],

@@ -1,3 +1,9 @@
+import type { PrismaClient, Prisma } from "@/generated/prisma/client";
+import {
+  mapPrismaLedgerRecordToLedgerRecord,
+  prismaLedgerRecordSelect,
+} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
+import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { RecordQueryState } from "@/modules/reporting/record-query";
 
 export const SEARCH_RECORD_PAGE_SIZE = 100;
@@ -22,6 +28,59 @@ export type RecordSearchGroupSum = {
     amountCents: number | null;
   };
 };
+
+export type RecordSearchPageResult = {
+  records: LedgerRecord[];
+  nextCursor: SearchRecordCursor | null;
+  totalCount: number;
+  totalNetAmountCents: number;
+};
+
+export async function loadRecordSearchPageInDatabase({
+  cursor,
+  householdId,
+  prisma,
+  query,
+}: RecordSearchPageQueryInput & {
+  prisma: PrismaClient;
+}): Promise<RecordSearchPageResult> {
+  const pageQuery = buildRecordSearchPageQuery({
+    householdId,
+    query,
+    cursor,
+  });
+  const aggregateWhere = buildRecordSearchWhere(householdId, query);
+  const [rows, totalCount, groups] = await Promise.all([
+    prisma.ledgerRecord.findMany({
+      ...pageQuery,
+      where: pageQuery.where as Prisma.LedgerRecordWhereInput,
+      orderBy: pageQuery.orderBy as Prisma.LedgerRecordOrderByWithRelationInput[],
+      select: prismaLedgerRecordSelect,
+    }),
+    prisma.ledgerRecord.count({
+      where: aggregateWhere as Prisma.LedgerRecordWhereInput,
+    }),
+    prisma.ledgerRecord.groupBy({
+      by: ["type"],
+      where: aggregateWhere as Prisma.LedgerRecordWhereInput,
+      _sum: {
+        amountCents: true,
+      },
+    }),
+  ]);
+  const pageRows = rows.slice(0, SEARCH_RECORD_PAGE_SIZE);
+  const records = pageRows.map(mapPrismaLedgerRecordToLedgerRecord);
+  const lastRecord = records.at(-1);
+
+  return {
+    records,
+    nextCursor: rows.length > SEARCH_RECORD_PAGE_SIZE && lastRecord
+      ? cursorFromRecord(lastRecord)
+      : null,
+    totalCount,
+    totalNetAmountCents: calculateRecordSearchNetTotal(groups),
+  };
+}
 
 export function buildRecordSearchPageQuery({
   householdId,

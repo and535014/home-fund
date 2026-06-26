@@ -15,6 +15,9 @@ type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0] & 
 export type MemberManagementCommandPrismaClient = {
   member: {
     findMany(args: {
+      where: {
+        householdId: string;
+      };
       select: MemberSelect;
       orderBy: {
         displayName: "asc";
@@ -46,6 +49,7 @@ export type MemberManagementCommandPrismaClient = {
 
 export type UpdateMemberDisplayNameInDatabaseContext = {
   prisma: MemberManagementCommandPrismaClient;
+  householdId: string;
 };
 
 type MemberSelect = {
@@ -73,9 +77,10 @@ export async function createMemberInDatabase(
   command: CreateMemberCommand,
   context: UpdateMemberDisplayNameInDatabaseContext,
 ) {
-  const members = await listMemberRows(context.prisma);
+  const members = await listMemberRows(context.prisma, context.householdId);
   const actorRow = members.find((member) => member.id === actor.id);
   const result = createMember(actor, command, {
+    householdId: context.householdId,
     members: members.map(mapPrismaMemberToHouseholdMember),
   });
 
@@ -89,7 +94,7 @@ export async function createMemberInDatabase(
 
   const member = await context.prisma.member.create({
     data: {
-      householdId: actorRow.householdId,
+      householdId: context.householdId,
       displayName: result.member.displayName,
       status: "invited",
       roles: {
@@ -110,8 +115,11 @@ export async function updateMemberDisplayNameInDatabase(
   command: UpdateMemberDisplayNameCommand,
   context: UpdateMemberDisplayNameInDatabaseContext,
 ) {
-  const members = await listHouseholdMembers(context.prisma);
-  const result = updateMemberDisplayName(actor, command, { members });
+  const members = await listHouseholdMembers(context.prisma, context.householdId);
+  const result = updateMemberDisplayName(actor, command, {
+    householdId: context.householdId,
+    members,
+  });
 
   if (!result.ok) {
     return result;
@@ -131,16 +139,21 @@ export async function updateMemberDisplayNameInDatabase(
 
 async function listHouseholdMembers(
   prisma: MemberManagementCommandPrismaClient,
+  householdId: string,
 ): Promise<HouseholdMemberAccount[]> {
-  const members = await listMemberRows(prisma);
+  const members = await listMemberRows(prisma, householdId);
 
   return members.map(mapPrismaMemberToHouseholdMember);
 }
 
 async function listMemberRows(
   prisma: MemberManagementCommandPrismaClient,
+  householdId: string,
 ): Promise<PrismaMemberRow[]> {
   return prisma.member.findMany({
+    where: {
+      householdId,
+    },
     select: memberSelect,
     orderBy: {
       displayName: "asc",

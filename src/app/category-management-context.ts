@@ -34,7 +34,10 @@ export async function loadCategoryManagementContext({
 }): Promise<CategoryManagementContext> {
   await searchParams;
   const session = await requireAppRouteAccess("categories");
-  const categories = await listCategoriesWithReferenceCounts(getPrismaClient());
+  const categories = await listCategoriesWithReferenceCounts(
+    getPrismaClient(),
+    session.access.member.householdId,
+  );
 
   return {
     ...session,
@@ -45,10 +48,11 @@ export async function loadCategoryManagementContext({
 
 async function listCategoriesWithReferenceCounts(
   prisma: CategoryCommandPrismaClient,
+  householdId: string,
 ): Promise<CategoryWithReferenceCount[]> {
   const categories = await prisma.category.findMany({
     where: {
-      householdId: "household-demo",
+      householdId,
     },
     select: {
       id: true,
@@ -63,6 +67,7 @@ async function listCategoriesWithReferenceCounts(
   });
   const referenceCounts = await getCategoryReferenceCounts({
     categoryIds: categories.map((category) => category.id),
+    householdId,
     prisma,
   });
 
