@@ -1,0 +1,130 @@
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Production version tag to deploy, for example v1.2.3"
+        required: true
+        type: string
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Resolve tag version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="$TAG_NAME"
+          fi
+
+          if ! printf '%s' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid production version: $version" >&2
+            echo "Use a tag in vX.X.X format, for example v1.2.3." >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs:
+      - resolve-version
+    environment: production
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: ${{ secrets.MEMBER_BINDING_TOKEN_ENCRYPTION_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout version tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.resolve-version.outputs.version }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: corepack pnpm db:validate
+
+      - name: Type check
+        run: corepack pnpm type-check
+
+      - name: Lint
+        run: corepack pnpm lint
+
+      - name: Unit tests
+        run: corepack pnpm test
+
+      - name: Build
+        run: corepack pnpm build
+
+      - name: Apply production database migrations
+        run: corepack pnpm db:deploy
+
+      - name: Pull Vercel production environment
+        run: corepack pnpm dlx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel production artifact
+        run: corepack pnpm dlx vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy Vercel production artifact
+        id: deploy
+        run: |
+          deployment_url="$(corepack pnpm dlx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Production deployment"
+            echo
+            echo "- Version: ${{ needs.resolve-version.outputs.version }}"
+            echo "- URL: $deployment_url"
+            echo "- Database migration: \`corepack pnpm db:deploy\` completed before deploy"
+            echo
+            echo "### Smoke checklist"
+            echo
+            echo "- Open \`/login\`."
+            echo "- Start Google sign-in from the production origin."
+            echo "- Confirm an admin member reaches the dashboard."
+            echo "- Confirm non-admin access to admin routes is denied."
+            echo "- Confirm logout returns to login."
+          } >> "$GITHUB_STEP_SUMMARY"

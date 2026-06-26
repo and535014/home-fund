@@ -6,6 +6,24 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "家庭共用金管理",
   description: "管理家庭共用資金、收支與退款",
+  icons: {
+    icon: [
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "192x192",
+        url: "/favicon.png",
+      },
+    ],
+    apple: [
+      {
+        rel: "apple-touch-icon",
+        sizes: "192x192",
+        url: "/apple-touch-icon.png",
+      },
+    ],
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 const notoSansTc = Noto_Sans_TC({

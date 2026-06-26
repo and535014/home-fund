@@ -119,8 +119,8 @@ reviewed_at: 2026-06-20
 ## Next Step
 
 - latest_completed_slice: category archive visibility toggle, compressed in `.ai/archive/archive-category-archive-visibility-toggle-2026-06-26.md`.
-- active_change: none
-- recommended_resume_gate: Optional artifact-prune, production release intent, or next Intent Intake
-- recommended_next_skill: artifact-prune only if explicitly requested; otherwise intent-intake for the next product/release change
-- required input: `.ai/archive/archive-category-archive-visibility-toggle-2026-06-26.md`, `.ai/archive/archive-search-route-local-structure-2026-06-26.md`, `.ai/archive/archive-app-seam-refactor-2026-06-26.md`, `.ai/archive/archive-search-reimbursement-payment-records-2026-06-26.md`, `.ai/archive/archive-edit-delete-ledger-records-2026-06-21.md`, `.ai/archive/archive-category-visual-identity-2026-06-21.md`, `.ai/archive/archive-record-list-detail-modal-2026-06-20.md`, `.ai/archive/archive-desktop-product-structure-layout-redesign-2026-06-20.md`, `.ai/archive/archive-remove-standalone-create-record-entry-2026-06-20.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, and `.ai/workflow.md`.
-- reason: The category archive visibility toggle lifecycle is complete and compressed. Future category archive/restore work should start from the archive summary and maintained project/domain/workflow artifacts rather than restarting completed gates.
+- active_change: github-actions-vercel-neon-deployment
+- recommended_resume_gate: Target-Aware Release update after GitHub/Vercel/Neon/Google OAuth services are configured
+- recommended_next_skill: target-aware-release for live-service readiness; release-execution only after production approval
+- required input: `.ai/intent/github-actions-vercel-neon-deployment.md`, `.ai/release/github-actions-vercel-neon-deployment-readiness.md`, `.ai/technical-design/github-actions-vercel-neon-deployment.md`, `.ai/implementation/github-actions-vercel-neon-deployment.md`, `.ai/verification/github-actions-vercel-neon-deployment.md`, `.ai/archive/archive-category-archive-visibility-toggle-2026-06-26.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
+- reason: Local verification passed for the production-only GitHub Actions deployment pipeline, including CI, production tag/manual deploy workflow, Prisma `DATABASE_URL_UNPOOLED` support, and deployment documentation. Production execution remains blocked until external service setup and live smoke checks complete.

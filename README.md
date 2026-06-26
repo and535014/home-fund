@@ -2,6 +2,10 @@
 
 家庭共用金管理工具。主要語言為繁體中文，介面以 dark theme 為主。
 
+## 部署
+
+部署採 GitHub Actions、Vercel、Neon PostgreSQL。PR 只跑 CI；`vX.X.X` tag 或手動指定版本可以部署 production。完整設定步驟請看 [部署指南](docs/deployment.md)。
+
 ## 本機開發
 
 ### 前置需求
@@ -113,7 +117,7 @@ openssl rand -base64 32
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY="generated-base64-key"
 ```
 
-本機、preview、production 請各自使用不同 key。正式環境若更換 key，尚未失效的既有綁定連結將無法再由管理者重新複製，需要等連結失效後重新產生。
+本機、production 請各自使用不同 key。正式環境若更換 key，尚未失效的既有綁定連結將無法再由管理者重新複製，需要等連結失效後重新產生。
 
 #### `GOOGLE_CLIENT_ID` 和 `GOOGLE_CLIENT_SECRET`
 
