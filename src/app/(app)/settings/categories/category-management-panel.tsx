@@ -24,6 +24,7 @@ import {
   AddCategoryHeaderButton as AddCategoryHeaderButtonView,
   AddCategoryMobileFab as AddCategoryMobileFabView,
   CategoryArchivePreview,
+  CategoryArchiveVisibilitySwitch,
   CategoryEmptyState,
   CategoryForm,
   CategoryList,
@@ -91,18 +92,26 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   );
   const [editingIcon, setEditingIcon] = useState<CategoryIconKey>("tags");
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [showArchivedCategories, setShowArchivedCategories] = useState(false);
   const [displayedCategories, setDisplayedCategories] = useState(categories);
   const [isPending, startTransition] = useTransition();
 
   const activeCategories = displayedCategories
     .filter((category) => category.status === "active")
     .sort(compareCategoryVisualOrder);
-  const expenseCategories = activeCategories.filter(
+  const archivedCategories = displayedCategories
+    .filter((category) => category.status === "archived")
+    .sort(compareCategoryVisualOrder);
+  const visibleCategories = showArchivedCategories
+    ? [...activeCategories, ...archivedCategories]
+    : activeCategories;
+  const expenseCategories = visibleCategories.filter(
     (category) => category.type === "expense",
   );
-  const incomeCategories = activeCategories.filter(
+  const incomeCategories = visibleCategories.filter(
     (category) => category.type === "income",
   );
+  const archivedCount = archivedCategories.length;
   const editingCategory =
     displayedCategories.find((category) => category.id === editingId) ?? null;
   const archivingCategory =
@@ -265,6 +274,33 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
     }
   }
 
+  function unarchiveCategory(category: EditableCategory) {
+    const activeTypeCategories = displayedCategories.filter(
+      (candidate) =>
+        candidate.type === category.type && candidate.status === "active",
+    );
+
+    if (hasDuplicateActiveName(displayedCategories, category.type, category.name)) {
+      toast.error("同類型已有啟用中的相同分類名稱，請先調整分類名稱。");
+      return;
+    }
+
+    const nextSortOrder =
+      activeTypeCategories.reduce(
+        (max, candidate) => Math.max(max, candidate.sortOrder),
+        0,
+      ) + 10;
+
+    setDisplayedCategories((current) =>
+      current.map((candidate) =>
+        candidate.id === category.id
+          ? { ...candidate, sortOrder: nextSortOrder, status: "active" }
+          : candidate,
+      ),
+    );
+    toast.success("分類已取消封存");
+  }
+
   function persistCategoryOrder(type: CategoryType, orderedCategories: EditableCategory[]) {
     const formData = new FormData();
     formData.set("type", type);
@@ -330,10 +366,20 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
 
   return (
     <div className="grid h-full min-h-0 gap-5">
+      <CategoryArchiveVisibilitySwitch
+        checked={showArchivedCategories}
+        onCheckedChange={setShowArchivedCategories}
+      />
       <section
+        aria-describedby="category-archive-visibility-note"
         aria-label="分類列表"
         className="grid min-h-0 gap-4 lg:grid-cols-2"
       >
+        <p className="sr-only" id="category-archive-visibility-note">
+          {showArchivedCategories
+            ? "封存分類目前會顯示在各類型列表底部。"
+            : "封存分類目前已隱藏。"}
+        </p>
         <CategoryPanel count={expenseCategories.length} title="支出">
           {expenseCategories.length === 0 ? (
             <CategoryEmptyState />
@@ -344,6 +390,7 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onArchive={startArchive}
               onEdit={startRename}
               onReorder={reorderCategory}
+              onUnarchive={unarchiveCategory}
               pending={isPending}
               type="expense"
             />
@@ -359,12 +406,18 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onArchive={startArchive}
               onEdit={startRename}
               onReorder={reorderCategory}
+              onUnarchive={unarchiveCategory}
               pending={isPending}
               type="income"
             />
           )}
         </CategoryPanel>
       </section>
+      {showArchivedCategories && archivedCount === 0 ? (
+        <p className="text-caption text-muted-foreground">
+          目前沒有封存分類。
+        </p>
+      ) : null}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>

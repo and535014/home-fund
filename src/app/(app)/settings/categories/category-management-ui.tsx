@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Edit3,
   GripVertical,
+  RotateCcw,
   Tags,
 } from "lucide-react";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
@@ -34,13 +35,21 @@ import {
   Item,
   ItemActions,
   ItemContent,
+  ItemDescription,
+  ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
 import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import { Toggle } from "@/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getCategoryMoveState } from "./category-ordering";
 import type {
@@ -95,15 +104,18 @@ export function CategoryEmptyState() {
 export function CategoryPanel({
   children,
   count,
+  describedBy,
   title,
 }: {
   children: ReactNode;
   count: number;
+  describedBy?: string;
   title: string;
 }) {
   return (
     <section
       aria-label={`${title}分類`}
+      aria-describedby={describedBy}
       className="flex min-h-0 min-w-0 flex-col justify-start gap-3 overflow-hidden"
     >
       <h3 className="shrink-0 text-body-strong text-foreground">
@@ -113,6 +125,32 @@ export function CategoryPanel({
         {children}
       </div>
     </section>
+  );
+}
+
+export function CategoryArchiveVisibilitySwitch({
+  checked,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <Item size="sm" variant="outline">
+      <ItemContent className="min-w-0">
+        <ItemTitle>顯示封存分類</ItemTitle>
+        <ItemDescription>
+          開啟後，封存分類會排在各類型列表底部。
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions className="ml-auto">
+        <Switch
+          aria-label="顯示封存分類"
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+        />
+      </ItemActions>
+    </Item>
   );
 }
 
@@ -264,6 +302,7 @@ export function CategoryList({
   onArchive,
   onEdit,
   onReorder,
+  onUnarchive,
   pending,
   type,
 }: {
@@ -276,6 +315,7 @@ export function CategoryList({
     targetCategoryId: string;
     type: CategoryType;
   }) => void;
+  onUnarchive: (category: EditableCategory) => void;
   pending?: boolean;
   type: CategoryType;
 }) {
@@ -294,6 +334,7 @@ export function CategoryList({
           onEdit={onEdit}
           onReorder={onReorder}
           onSetDraggingId={setDraggingId}
+          onUnarchive={onUnarchive}
           pending={pending}
           type={type}
         />
@@ -311,6 +352,7 @@ function CategoryListItem({
   onEdit,
   onReorder,
   onSetDraggingId,
+  onUnarchive,
   pending,
   type,
 }: {
@@ -326,11 +368,40 @@ function CategoryListItem({
     type: CategoryType;
   }) => void;
   onSetDraggingId: (categoryId: string | null) => void;
+  onUnarchive: (category: EditableCategory) => void;
   pending?: boolean;
   type: CategoryType;
 }) {
+  if (category.status === "archived") {
+    return (
+      <CategoryItem
+        actions={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                aria-label={`取消封存 ${category.name}`}
+                onClick={() => onUnarchive(category)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <RotateCcw aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>取消封存</TooltipContent>
+          </Tooltip>
+        }
+        category={category}
+        pending={pending}
+      />
+    );
+  }
+
+  const activeCategories = categories.filter(
+    (candidate) => candidate.status === "active",
+  );
   const { canMoveDown, canMoveUp } = getCategoryMoveState({
-    categories,
+    categories: activeCategories,
     categoryId: category.id,
   });
 
@@ -379,10 +450,10 @@ function CategoryListItem({
         onSetDraggingId(draggedCategory.id);
       }}
       onMove={(direction) => {
-        const currentIndex = categories.findIndex(
+        const currentIndex = activeCategories.findIndex(
           (candidate) => candidate.id === category.id,
         );
-        const targetCategory = categories[
+        const targetCategory = activeCategories[
           direction === "up" ? currentIndex - 1 : currentIndex + 1
         ];
 
@@ -492,6 +563,16 @@ function CategoryItem({
             </Button>
           </div>
         </>
+      ) : null}
+      {category.status === "archived" ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <ItemMedia aria-label="已封存" variant="icon">
+              <Archive aria-hidden="true" />
+            </ItemMedia>
+          </TooltipTrigger>
+          <TooltipContent>已封存</TooltipContent>
+        </Tooltip>
       ) : null}
       <ItemContent className="min-w-0">
         <ItemTitle className="block">
