@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   actionError,
-  actionSuccess,
   type ActionState,
 } from "@/app/action-state";
-import { requireServerActionAccess } from "@/auth/app-access";
+import {
+  actionSuccessWithRevalidation,
+  requireMutationAccess,
+} from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   archiveCategoryInDatabase,
@@ -101,7 +102,7 @@ export async function createCategoryAction(
     return createCategoryError("invalid_name", "type");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await createCategoryInDatabase(
     session.access.member,
@@ -116,8 +117,7 @@ export async function createCategoryAction(
     return createCategoryError(result.reason, createCategoryFieldForReason(result.reason));
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類已新增", {
+  return categorySuccess("分類已新增", {
     categoryId: result.category.id,
     color: result.category.color,
     icon: result.category.icon,
@@ -138,7 +138,7 @@ export async function renameCategoryAction(
     return renameCategoryError("category_not_found", "categoryId");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await renameCategoryInDatabase(
     session.access.member,
@@ -153,8 +153,7 @@ export async function renameCategoryAction(
     return renameCategoryError(result.reason, "name");
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類已更新", {
+  return categorySuccess("分類已更新", {
     categoryId: result.category.id,
     name: result.category.name,
   });
@@ -173,7 +172,7 @@ export async function updateCategoryAction(
     return updateCategoryError("category_not_found", "categoryId");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await updateCategoryInDatabase(
     session.access.member,
@@ -188,8 +187,7 @@ export async function updateCategoryAction(
     return updateCategoryError(result.reason, updateCategoryFieldForReason(result.reason));
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類已更新", {
+  return categorySuccess("分類已更新", {
     categoryId: result.category.id,
     color: result.category.color,
     icon: result.category.icon,
@@ -207,7 +205,7 @@ export async function archiveCategoryAction(
     return archiveCategoryError("category_not_found");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await archiveCategoryInDatabase(
     session.access.member,
@@ -222,8 +220,7 @@ export async function archiveCategoryAction(
     return archiveCategoryError(result.reason);
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類已封存", {
+  return categorySuccess("分類已封存", {
     categoryId: result.category.id,
   });
 }
@@ -238,7 +235,7 @@ export async function unarchiveCategoryAction(
     return unarchiveCategoryError("category_not_found");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await unarchiveCategoryInDatabase(
     session.access.member,
@@ -253,8 +250,7 @@ export async function unarchiveCategoryAction(
     return unarchiveCategoryError(result.reason);
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類已取消封存", {
+  return categorySuccess("分類已取消封存", {
     categoryId: result.category.id,
     sortOrder: result.category.sortOrder,
   });
@@ -273,7 +269,7 @@ export async function reorderCategoriesAction(
     return reorderCategoryError("invalid_order", "type");
   }
 
-  const session = await requireServerActionAccess({ type: "manage_categories" });
+  const session = await requireMutationAccess({ type: "manage_categories" });
 
   const result = await reorderCategoriesInDatabase(
     session.access.member,
@@ -288,8 +284,7 @@ export async function reorderCategoriesAction(
     return reorderCategoryError(result.reason, "categoryIds");
   }
 
-  revalidateCategoryPaths();
-  return actionSuccess("分類排序已更新", {
+  return categorySuccess("分類排序已更新", {
     categoryIds,
     type,
   });
@@ -307,9 +302,15 @@ function readFormValue(formData: FormData, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function revalidateCategoryPaths() {
-  revalidatePath("/");
-  revalidatePath("/settings/categories");
+function categorySuccess<
+  TResult,
+  TField extends string,
+>(message: string, data: TResult): ActionState<TResult, TField, CategoryActionCode> {
+  return actionSuccessWithRevalidation<TResult, TField, CategoryActionCode>(
+    message,
+    data,
+    ["/", "/settings/categories"],
+  );
 }
 
 function createCategoryError(

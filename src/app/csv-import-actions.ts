@@ -1,8 +1,10 @@
 "use server";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { revalidatePath } from "next/cache";
-import { requireServerActionAccess } from "@/auth/app-access";
+import {
+  requireMutationAccess,
+  revalidateActionPaths,
+} from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   confirmLedgerImportInDatabase,
@@ -15,7 +17,7 @@ const maxCsvBytes = 1024 * 1024;
 const previewTokenMaxAgeMs = 30 * 60 * 1000;
 
 export async function previewCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
@@ -67,7 +69,7 @@ export async function previewCsvImportAction(formData: FormData) {
 }
 
 export async function confirmCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const previewToken = String(formData.get("previewToken") ?? "");
   const tokenResult = verifyPreviewToken(previewToken);
   const fileName = String(formData.get("fileName") ?? "ledger-import.csv");
@@ -98,16 +100,14 @@ export async function confirmCsvImportAction(formData: FormData) {
   );
 
   if (result.ok) {
-    revalidatePath("/");
-    revalidatePath("/search");
-    revalidatePath("/settings/import");
+    revalidateActionPaths(["/", "/search", "/settings/import"]);
   }
 
   return result;
 }
 
 export async function repreviewCsvImportAction(formData: FormData) {
-  const session = await requireServerActionAccess({ type: "import_ledger_records" });
+  const session = await requireMutationAccess({ type: "import_ledger_records" });
   const previewToken = String(formData.get("previewToken") ?? "");
   const tokenResult = verifyPreviewToken(previewToken);
   const overrides = parseOverrides(String(formData.get("overrides") ?? "[]"));
