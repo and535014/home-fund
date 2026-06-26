@@ -61,4 +61,4 @@ trap cleanup EXIT
 sed \
   -e "s/__SEED_GOOGLE_ACCOUNT_EMAIL__/$seed_email/g" \
   "$seed_sql_file" > "$tmp_file"
-prisma db execute --file "$tmp_file"
+prisma db execute --stdin < "$tmp_file"

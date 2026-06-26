@@ -42,10 +42,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 			member.displayName,
 		]),
 	);
-	const monthRecords = dashboardData.records.filter((record) =>
-		record.status === "active" && record.occurredOn.startsWith(`${month}-`),
-	);
-	const visibleMonthRecords = monthRecords.toReversed();
+	const visibleMonthRecords = dashboardData.records.toReversed();
 	const trendPoints = buildYearlyTrendPoints(month, dashboardData.yearlyRecords);
 	const reimbursementFeedback = readSearchParam(
 		context.rawSearchParams,
