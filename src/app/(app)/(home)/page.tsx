@@ -10,7 +10,7 @@ import {
 	getCategoryColorCssColor,
 } from "@/app/category-visuals";
 import { MonthSwitcher } from "@/app/month-switcher";
-import { RecordListDetail } from "@/app/_record-detail/record-list-detail";
+import { HomeRecordTabs } from "@/app/home-record-tabs";
 import {
 	MonthlyTrendChart,
 	type MonthlyTrendPoint,
@@ -46,7 +46,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 		record.status === "active" && record.occurredOn.startsWith(`${month}-`),
 	);
 	const visibleMonthRecords = monthRecords.toReversed();
-	const trendPoints = buildMonthlyTrendPoints(month, monthRecords);
+	const trendPoints = buildYearlyTrendPoints(month, dashboardData.yearlyRecords);
 	const reimbursementFeedback = readSearchParam(
 		context.rawSearchParams,
 		"reimbursement",
@@ -105,9 +105,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
 				<DashboardPanel
 					className="min-h-88 lg:min-h-0 lg:border-l lg:border-border lg:pl-4"
+					showTitle={false}
 					title="紀錄"
 				>
-					<RecordListDetail
+					<HomeRecordTabs
 						actor={homeView.profile}
 						categories={dashboardData.categories}
 						categoriesById={categoriesById}
@@ -124,11 +125,13 @@ function DashboardPanel({
 	children,
 	className,
 	contentClassName,
+	showTitle = true,
 	title,
 }: {
 	children: ReactNode;
 	className?: string;
 	contentClassName?: string;
+	showTitle?: boolean;
 	title: string;
 }) {
 	return (
@@ -139,7 +142,9 @@ function DashboardPanel({
 				className,
 			)}
 		>
-			<h3 className="shrink-0 text-body-strong text-foreground">{title}</h3>
+			{showTitle ? (
+				<h3 className="shrink-0 text-body-strong text-foreground">{title}</h3>
+			) : null}
 			<div
 				className={cn(
 					"min-w-0 md:min-h-0 md:flex-1 md:overflow-hidden",
@@ -288,27 +293,26 @@ function CategoryStatRow({
 	);
 }
 
-function buildMonthlyTrendPoints(
+function buildYearlyTrendPoints(
 	month: string,
 	records: LedgerRecord[],
 ): MonthlyTrendPoint[] {
 	const byDate = new Map<string, MonthlyTrendPoint>();
-	const [year, monthNumber] = month.split("-").map(Number);
-	const daysInMonth = new Date(year, monthNumber, 0).getDate();
+	const [year] = month.split("-").map(Number);
 
-	for (let day = 1; day <= daysInMonth; day += 1) {
-		const date = `${month}-${String(day).padStart(2, "0")}`;
+	for (let monthIndex = 1; monthIndex <= 12; monthIndex += 1) {
+		const date = `${year}-${String(monthIndex).padStart(2, "0")}`;
 
 		byDate.set(date, {
 			balance: 0,
-			date: `${monthNumber}/${day}`,
+			date: `${monthIndex}月`,
 			expense: 0,
 			income: 0,
 		});
 	}
 
 	for (const record of records) {
-		const point = byDate.get(record.occurredOn);
+		const point = byDate.get(record.occurredOn.slice(0, 7));
 
 		if (!point) {
 			continue;

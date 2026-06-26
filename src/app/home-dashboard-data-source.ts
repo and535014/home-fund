@@ -18,6 +18,7 @@ export type HomeDashboardData = {
   householdMembers: HouseholdMemberAccount[];
   categories: Category[];
   records: LedgerRecord[];
+  yearlyRecords: LedgerRecord[];
 };
 
 type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0];
@@ -100,7 +101,7 @@ export function createHomeDashboardDataSource(
       householdId: string,
       month: string,
     ): Promise<HomeDashboardData> {
-      const [householdMembers, categories, records] =
+      const [householdMembers, categories, records, yearlyRecords] =
         await Promise.all([
           prisma.member.findMany({
             where: {
@@ -153,12 +154,22 @@ export function createHomeDashboardDataSource(
             select: prismaLedgerRecordSelect,
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
           }),
+          prisma.ledgerRecord.findMany({
+            where: {
+              householdId,
+              occurredOn: yearDateRange(month),
+              status: "active",
+            },
+            select: prismaLedgerRecordSelect,
+            orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
+          }),
         ]);
 
       return {
         householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
         categories: categories.map(mapPrismaCategoryToCategory),
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
+        yearlyRecords: yearlyRecords.map(mapPrismaLedgerRecordToLedgerRecord),
       };
     },
     async getSearchPageData(householdId: string): Promise<HomeDashboardData> {
@@ -211,6 +222,7 @@ export function createHomeDashboardDataSource(
         householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
         categories: categories.map(mapPrismaCategoryToCategory),
         records: [],
+        yearlyRecords: [],
       };
     },
   };
@@ -236,5 +248,14 @@ function monthDateRange(month: string): { gte: Date; lt: Date } {
   return {
     gte: new Date(Date.UTC(year, monthNumber - 1, 1)),
     lt: new Date(Date.UTC(year, monthNumber, 1)),
+  };
+}
+
+function yearDateRange(month: string): { gte: Date; lt: Date } {
+  const [year] = month.split("-").map(Number);
+
+  return {
+    gte: new Date(Date.UTC(year, 0, 1)),
+    lt: new Date(Date.UTC(year + 1, 0, 1)),
   };
 }
