@@ -132,6 +132,7 @@ model Member {
   reimbursementBatches          ReimbursementBatch[]         @relation("ReimbursementBatchActor")
   reimbursementPaymentsPaidTo   ReimbursementPayment[]       @relation("ReimbursementPaymentPaidTo")
   reimbursementPaymentsRecorded ReimbursementPayment[]       @relation("ReimbursementPaymentRecorder")
+  reimbursementPaymentsEdited   ReimbursementPayment[]       @relation("ReimbursementPaymentEditor")
   createdLedgerImportBatches    LedgerImportBatch[]          @relation("LedgerImportBatchCreator")
   createdInvitations            MemberInvitation[]           @relation("MemberInvitationCreator")
   invitations                   MemberInvitation[]           @relation("MemberInvitationTarget")
@@ -351,17 +352,21 @@ model ReimbursementPayment {
   note                 String?
   recordedByMemberId   String
   createdAt            DateTime                   @default(now())
+  editedAt             DateTime?
+  editedByMemberId     String?
 
   household          Household          @relation(fields: [householdId], references: [id], onDelete: Restrict)
   reimbursementBatch ReimbursementBatch @relation(fields: [reimbursementBatchId], references: [id], onDelete: Restrict)
   paidToMember       Member             @relation("ReimbursementPaymentPaidTo", fields: [paidToMemberId], references: [id], onDelete: Restrict)
   recordedByMember   Member             @relation("ReimbursementPaymentRecorder", fields: [recordedByMemberId], references: [id], onDelete: Restrict)
+  editedByMember     Member?            @relation("ReimbursementPaymentEditor", fields: [editedByMemberId], references: [id], onDelete: Restrict)
 
   @@index([householdId, paidOn])
   @@index([paidToMemberId, paidOn])
   @@index([householdId, paidOn, id], map: "ReimbursementPayment_search_paid_on_cursor_idx")
   @@index([householdId, paidToMemberId, paidOn, id], map: "ReimbursementPayment_search_member_paid_on_cursor_idx")
   @@index([householdId, amountCents, paidOn, id], map: "ReimbursementPayment_search_amount_cursor_idx")
+  @@index([editedByMemberId])
 }
 
 model ReimbursementBatchItem {

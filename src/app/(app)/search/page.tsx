@@ -3,6 +3,7 @@ import { getPrismaClient } from "@/db/prisma";
 import { createHomeDashboardDataSource } from "@/app/home-dashboard-data-source";
 import { RecordSearchPanel } from "./_components/record-search-panel";
 import { PageLayout } from "@/components/layout/page-layout";
+import { authorize } from "@/modules/identity-access/authorization";
 
 export default async function SearchPage() {
   const session = await requireAuthenticatedMember();
@@ -27,6 +28,11 @@ export default async function SearchPage() {
       >
         <RecordSearchPanel
           actor={session.profile}
+          canEditReimbursementPayments={
+            authorize(session.access.member, {
+              type: "edit_reimbursement_payment",
+            }).allowed
+          }
           categories={dashboardData.categories}
           categoriesById={categoriesById}
           memberNames={memberNames}

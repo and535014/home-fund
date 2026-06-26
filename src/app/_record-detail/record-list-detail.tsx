@@ -113,6 +113,13 @@ export function RecordListDetail({
     });
   }
 
+  function handleReimbursementPaymentUpdated(
+    record: ReimbursementPaymentSearchResult,
+  ) {
+    setSelectedReimbursementPayment(record);
+    router.refresh();
+  }
+
   useEffect(() => {
     if (!hasMoreRecords || !onLoadMoreRecords) {
       return;
@@ -213,10 +220,12 @@ export function RecordListDetail({
       >
         {selectedReimbursementPayment ? (
           <ReimbursementPaymentDetailDialog
+            canEdit={canEditReimbursementPayments(actor)}
             onOpenLinkedRecords={() => {
               setSelectedPaymentLinkedResult(selectedReimbursementPayment);
               setSelectedReimbursementPayment(null);
             }}
+            onUpdated={handleReimbursementPaymentUpdated}
             result={selectedReimbursementPayment}
           />
         ) : null}
@@ -244,6 +253,10 @@ export function RecordListDetail({
       </Dialog>
     </>
   );
+}
+
+function canEditReimbursementPayments(actor: HouseholdAccessProfile): boolean {
+  return actor.roles.includes("admin") || actor.roles.includes("finance_manager");
 }
 
 export function RecordDetailDialog({

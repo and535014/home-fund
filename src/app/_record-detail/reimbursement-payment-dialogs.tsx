@@ -1,7 +1,7 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -21,6 +21,13 @@ import {
 } from "./reimbursement-payment-ui";
 import { Button } from "@/components/ui/button";
 import {
+  ActionField,
+  ActionFieldError,
+  ActionFieldLabel,
+  getActionFieldControlProps,
+} from "@/components/forms/action-field";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import {
   Dialog,
   DialogBody,
   DialogContent,
@@ -28,7 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ItemGroup } from "@/components/ui/item";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -37,38 +43,61 @@ import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
   REIMBURSEMENT_PAYMENT_METHOD_OPTIONS,
-  reimbursementPaymentMethodLabel,
 } from "@/modules/reimbursement/reimbursement-payment";
+import type {
+  EditReimbursementPaymentActionCode,
+  EditReimbursementPaymentField,
+  EditReimbursementPaymentActionState,
+} from "./reimbursement-payment-edit-actions";
+import {
+  editReimbursementPaymentFormAction,
+} from "./reimbursement-payment-edit-actions";
+import { initialActionState } from "@/app/action-state";
+import { useActionStateEffect } from "@/app/use-action-state-effect";
 
 export function ReimbursementPaymentDetailDialog({
+  canEdit,
   onOpenLinkedRecords,
+  onUpdated,
   result,
 }: {
+  canEdit: boolean;
   onOpenLinkedRecords: () => void;
+  onUpdated?: (record: ReimbursementPaymentSearchResult) => void;
   result: ReimbursementPaymentSearchResult;
 }) {
   const [displayResult, setDisplayResult] = useState(result);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [actionState, formAction, isPending] = useActionState(
+    editReimbursementPaymentFormAction,
+    initialActionState<
+      ReimbursementPaymentSearchResult,
+      EditReimbursementPaymentField,
+      EditReimbursementPaymentActionCode
+    >(),
+  );
   const [draft, setDraft] = useState(() => draftFromResult(result));
+
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success" && handledState.data) {
+        setDisplayResult(handledState.data);
+        setDraft(draftFromResult(handledState.data));
+        setIsEditDialogOpen(false);
+        toast.success(handledState.message ?? "退款紀錄已更新");
+        onUpdated?.(handledState.data);
+      }
+
+      if (handledState.status === "error" && handledState.message) {
+        toast.error(handledState.message);
+      }
+    }, [onUpdated]),
+  );
 
   function handleCancel() {
     setDraft(draftFromResult(displayResult));
     setIsEditDialogOpen(false);
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const method = draft.method;
-
-    setDisplayResult({
-      ...displayResult,
-      method,
-      methodLabel: reimbursementPaymentMethodLabel(method),
-      note: draft.note.trim(),
-      paidOn: draft.paidOn,
-    });
-    setIsEditDialogOpen(false);
-    toast.success("退款紀錄已更新");
   }
 
   return (
@@ -118,24 +147,35 @@ export function ReimbursementPaymentDetailDialog({
           <ListTree />
           查看關聯紀錄
         </Button>
-        <Button
-          onClick={() => {
-            setDraft(draftFromResult(displayResult));
-            setIsEditDialogOpen(true);
-          }}
-          type="button"
-        >
-          <Pencil />
-          編輯
-        </Button>
+        {canEdit ? (
+          <Button
+            onClick={() => {
+              setDraft(draftFromResult(displayResult));
+              setIsEditDialogOpen(true);
+            }}
+            type="button"
+          >
+            <Pencil />
+            編輯
+          </Button>
+        ) : null}
       </DialogFooter>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          if (!isPending) {
+            setIsEditDialogOpen(open);
+          }
+        }}
+      >
         <ReimbursementPaymentEditDialog
+          actionState={actionState}
           draft={draft}
+          formAction={formAction}
+          isPending={isPending}
           onCancel={handleCancel}
           onDraftChange={setDraft}
-          onSubmit={handleSubmit}
           result={displayResult}
         />
       </Dialog>
@@ -144,16 +184,20 @@ export function ReimbursementPaymentDetailDialog({
 }
 
 function ReimbursementPaymentEditDialog({
+  actionState,
   draft,
+  formAction,
+  isPending,
   onCancel,
   onDraftChange,
-  onSubmit,
   result,
 }: {
+  actionState: EditReimbursementPaymentActionState;
   draft: ReimbursementPaymentDraft;
+  formAction: (formData: FormData) => void;
+  isPending: boolean;
   onCancel: () => void;
   onDraftChange: (draft: ReimbursementPaymentDraft) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   result: ReimbursementPaymentSearchResult;
 }) {
   return (
@@ -171,10 +215,11 @@ function ReimbursementPaymentEditDialog({
         </div>
 
         <form
+          action={formAction}
           className="grid gap-4"
           id="refund-record-edit-form"
-          onSubmit={onSubmit}
         >
+          <input name="paymentId" type="hidden" value={result.id} />
           <PaymentDetailField
             icon={<UserRound />}
             label="收款成員"
@@ -182,9 +227,14 @@ function ReimbursementPaymentEditDialog({
           />
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="refund-record-paid-on">付款日期</FieldLabel>
+            <ActionField
+              errors={actionState.fieldErrors}
+              field="paidOn"
+              id="refund-record-paid-on"
+            >
+              <ActionFieldLabel id="refund-record-paid-on">付款日期</ActionFieldLabel>
               <Input
+                disabled={isPending}
                 id="refund-record-paid-on"
                 name="paidOn"
                 onChange={(event) =>
@@ -193,12 +243,27 @@ function ReimbursementPaymentEditDialog({
                 required
                 type="date"
                 value={draft.paidOn}
+                {...getActionFieldControlProps({
+                  errors: actionState.fieldErrors,
+                  field: "paidOn",
+                  id: "refund-record-paid-on",
+                })}
               />
-            </Field>
+              <ActionFieldError
+                errors={actionState.fieldErrors}
+                field="paidOn"
+                id="refund-record-paid-on"
+              />
+            </ActionField>
 
-            <Field>
-              <FieldLabel htmlFor="refund-record-method">付款方式</FieldLabel>
+            <ActionField
+              errors={actionState.fieldErrors}
+              field="method"
+              id="refund-record-method"
+            >
+              <ActionFieldLabel id="refund-record-method">付款方式</ActionFieldLabel>
               <NativeSelect
+                disabled={isPending}
                 id="refund-record-method"
                 name="method"
                 onChange={(event) =>
@@ -209,19 +274,34 @@ function ReimbursementPaymentEditDialog({
                   })
                 }
                 value={draft.method}
+                {...getActionFieldControlProps({
+                  errors: actionState.fieldErrors,
+                  field: "method",
+                  id: "refund-record-method",
+                })}
               >
                 {REIMBURSEMENT_PAYMENT_METHOD_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                  {option.label}
                   </option>
                 ))}
               </NativeSelect>
-            </Field>
+              <ActionFieldError
+                errors={actionState.fieldErrors}
+                field="method"
+                id="refund-record-method"
+              />
+            </ActionField>
           </div>
 
-          <Field>
-            <FieldLabel htmlFor="refund-record-note">備註</FieldLabel>
+          <ActionField
+            errors={actionState.fieldErrors}
+            field="note"
+            id="refund-record-note"
+          >
+            <ActionFieldLabel id="refund-record-note">備註</ActionFieldLabel>
             <Input
+              disabled={isPending}
               id="refund-record-note"
               name="note"
               onChange={(event) =>
@@ -229,20 +309,40 @@ function ReimbursementPaymentEditDialog({
               }
               placeholder="可填轉帳末五碼、收據資訊或付款備註"
               value={draft.note}
+              {...getActionFieldControlProps({
+                errors: actionState.fieldErrors,
+                field: "note",
+                id: "refund-record-note",
+              })}
             />
-          </Field>
+            <ActionFieldError
+              errors={actionState.fieldErrors}
+              field="note"
+              id="refund-record-note"
+            />
+          </ActionField>
         </form>
       </DialogBody>
 
       <DialogFooter className="mt-4 gap-2">
-        <Button onClick={onCancel} type="button" variant="outline">
+        <Button
+          disabled={isPending}
+          onClick={onCancel}
+          type="button"
+          variant="outline"
+        >
           <X />
           取消
         </Button>
-        <Button form="refund-record-edit-form" type="submit">
+        <FormSubmitButton
+          disabled={isPending}
+          form="refund-record-edit-form"
+          pendingLabel="儲存中..."
+          type="submit"
+        >
           <Check />
           儲存變更
-        </Button>
+        </FormSubmitButton>
       </DialogFooter>
     </DialogContent>
   );
