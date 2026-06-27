@@ -9,7 +9,7 @@ import {
   nextDraftQueryForParticipant,
   nextDraftQueryForReimbursementStatus,
   recordFilterCount,
-} from "./record-query";
+} from "./record-search-state";
 
 const categories: Category[] = [
   {

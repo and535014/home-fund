@@ -4,7 +4,7 @@ import {
   prismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-import type { RecordQueryState } from "@/modules/reporting/record-query";
+import type { RecordQueryState } from "@/modules/fund-ledger/search/record-search-state";
 
 export const SEARCH_RECORD_PAGE_SIZE = 100;
 

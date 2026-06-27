@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDashboardMonthLabel } from "./month-selection";
+import { formatMonthLabel } from "./month-selection";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
@@ -24,17 +24,19 @@ import {
 
 type MonthPickerDialogProps = {
   currentMonth: string;
+  hrefPath?: string;
 };
 
 export function MonthPickerDialog({
   currentMonth,
+  hrefPath = "/",
 }: MonthPickerDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
         <MonthPickerButton currentMonth={currentMonth} />
       </DialogTrigger>
-      <MonthPickerDialogContent currentMonth={currentMonth} />
+      <MonthPickerDialogContent currentMonth={currentMonth} hrefPath={hrefPath} />
     </Dialog>
   );
 }
@@ -61,10 +63,12 @@ function MonthPickerButton({
 
 type MonthPickerDialogContentProps = {
   currentMonth: string;
+  hrefPath: string;
 };
 
 function MonthPickerDialogContent({
   currentMonth,
+  hrefPath,
 }: MonthPickerDialogContentProps) {
   const [currentYear, currentMonthNumber] = currentMonth.split("-");
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -76,10 +80,10 @@ function MonthPickerDialogContent({
       <DialogHeader>
         <DialogTitle>自訂月份</DialogTitle>
         <DialogDescription className="sr-only">
-          目前查看 {formatDashboardMonthLabel(currentMonth)} 的月報。
+          目前查看 {formatMonthLabel(currentMonth)}。
         </DialogDescription>
       </DialogHeader>
-      <form action="/" method="get">
+      <form action={hrefPath} method="get">
         <FieldGroup>
           <input
             name="month"

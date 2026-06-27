@@ -3,8 +3,7 @@
 import { CheckSquare, Eraser, HandCoins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageFooter } from "@/components/layout/page-layout";
-import { formatAmount } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { SummaryAmountContent } from "@/app/summary-amount-content";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
@@ -57,7 +56,7 @@ export function BatchSearchFooter({
 
   return (
     <PageFooter className="-mx-4 gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:-mx-5 sm:pb-3 lg:-mx-6">
-      <SearchSummaryContent
+      <SummaryAmountContent
         amountToneClassName={netAmountTone(displayedNetCents)}
         label={isSelectionMode ? `已選取 ${selectedCount} 筆` : undefined}
         totalAmountCents={displayedNetCents}
@@ -148,42 +147,11 @@ export function SearchSummaryFooter({
 }) {
   return (
     <PageFooter className="-mx-4 gap-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:-mx-5 sm:pb-3 lg:-mx-6">
-      <SearchSummaryContent
+      <SummaryAmountContent
         amountToneClassName={amountToneClassName}
         totalAmountCents={totalAmountCents}
         totalCount={totalCount}
       />
     </PageFooter>
-  );
-}
-
-export function SearchSummaryContent({
-  amountToneClassName,
-  className,
-  label,
-  totalAmountCents,
-  totalCount,
-}: {
-  amountToneClassName: string;
-  className?: string;
-  label?: string;
-  totalAmountCents: number;
-  totalCount: number;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 items-center justify-between gap-3",
-        className,
-      )}
-    >
-      <span className="text-label">{label ?? `搜尋結果 ${totalCount} 筆`}</span>
-      <div className="flex min-w-0 items-center gap-2 text-right">
-        <span className="text-caption text-muted-foreground">總額</span>
-        <span className={cn("text-label", amountToneClassName)}>
-          {formatAmount(Math.abs(totalAmountCents))}
-        </span>
-      </div>
-    </div>
   );
 }

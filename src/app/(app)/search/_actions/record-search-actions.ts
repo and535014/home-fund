@@ -1,7 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { requireAuthenticatedMember } from "@/auth/app-access";
+import {
+  actionError,
+  type ActionState,
+} from "@/app/action-state";
+import { actionSuccessWithRevalidation } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
@@ -19,18 +23,23 @@ import { batchMarkLedgerRecordsReimbursedInDatabase } from "@/modules/reimbursem
 import {
   type ReimbursementPaymentEvidenceRejectionReason,
 } from "@/modules/reimbursement/reimbursement-payment";
+import {
+  isPaymentErrorReason,
+  messageForBatchRefundError,
+  messageForPaymentError,
+} from "@/app/_reimbursement/batch-refund-action-result";
 import { authorize } from "@/modules/identity-access/authorization";
 import {
   loadRecordSearchPageInDatabase,
   type SearchRecordCursor,
-} from "@/modules/reporting/record-search-query";
+} from "@/modules/fund-ledger/search/record-search-query";
 import {
   loadReimbursementPaymentSearchPageInDatabase,
   type ReimbursementPaymentQueryState,
   type ReimbursementPaymentSearchCursor,
   type ReimbursementPaymentSearchResult,
-} from "@/modules/reporting/reimbursement-payment-search-query";
-import type { RecordQueryState } from "@/modules/reporting/record-query";
+} from "@/modules/reimbursement/reimbursement-payment-search-query";
+import type { RecordQueryState } from "@/modules/fund-ledger/search/record-search-state";
 
 export type SearchRecordPageRequest = {
   query: RecordQueryState;
@@ -70,28 +79,32 @@ export type ReimbursementPaymentPageResult =
       message: string;
     };
 
-export type BatchSearchRecordActionResult =
-  | {
-      ok: true;
-      processedRecordIds: string[];
-      skippedRecords: (BatchDeleteSkippedRecord | BatchReimbursementSkippedRecord)[];
-      processedCount: number;
-      skippedCount: number;
-      refundTotalCents?: number;
-      message: string;
-    }
-  | {
-      ok: false;
-      reason:
-        | ReimbursementPaymentEvidenceRejectionReason
-        | "cross_member_batch"
-        | "empty_selection"
-        | "no_eligible_records"
-        | "permission_denied"
-        | "mutation_failed";
-      skippedRecords?: (BatchDeleteSkippedRecord | BatchReimbursementSkippedRecord)[];
-      message: string;
-    };
+export type BatchSearchRecordActionData = {
+  processedRecordIds: string[];
+  skippedRecords: (BatchDeleteSkippedRecord | BatchReimbursementSkippedRecord)[];
+  processedCount: number;
+  skippedCount: number;
+  refundTotalCents?: number;
+};
+
+export type BatchSearchRecordActionCode =
+  | ReimbursementPaymentEvidenceRejectionReason
+  | "cross_member_batch"
+  | "empty_selection"
+  | "mutation_failed"
+  | "no_eligible_records"
+  | "permission_denied";
+
+export type BatchSearchRecordActionField =
+  | "recordIds"
+  | "reimbursementMethod"
+  | "reimbursementPaidOn";
+
+export type BatchSearchRecordActionState = ActionState<
+  BatchSearchRecordActionData,
+  BatchSearchRecordActionField,
+  BatchSearchRecordActionCode
+>;
 
 export async function loadRecordSearchPageAction(
   request: SearchRecordPageRequest,
@@ -158,16 +171,15 @@ export async function loadReimbursementPaymentSearchPageAction(
 
 export async function batchDeleteSearchRecordsAction(
   recordIds: string[],
-): Promise<BatchSearchRecordActionResult> {
+): Promise<BatchSearchRecordActionState> {
   const session = await requireAuthenticatedMember();
   const selectedRecordIds = [...new Set(recordIds)];
 
   if (selectedRecordIds.length === 0) {
-    return {
-      ok: false,
-      reason: "empty_selection",
-      message: "請先選取要刪除的紀錄。",
-    };
+    return batchSearchRecordActionError(
+      "empty_selection",
+      "請先選取要刪除的紀錄。",
+    );
   }
 
   try {
@@ -209,32 +221,33 @@ export async function batchDeleteSearchRecordsAction(
     });
 
     if (!result.ok) {
-      return {
-        ok: false,
-        reason: result.reason,
-        message: "請先選取要刪除的紀錄。",
-      };
+      return batchSearchRecordActionError(
+        result.reason,
+        "請先選取要刪除的紀錄。",
+      );
     }
 
-    revalidatePath("/");
-    revalidatePath("/search");
-
-    return {
-      ok: true,
-      processedRecordIds: result.processedRecords.map((record) => record.id),
-      skippedRecords: result.skippedRecords,
-      processedCount: result.processedRecords.length,
-      skippedCount: result.skippedRecords.length,
-      message: `已刪除 ${result.processedRecords.length} 筆紀錄。`,
-    };
+    return actionSuccessWithRevalidation<
+      BatchSearchRecordActionData,
+      BatchSearchRecordActionField,
+      BatchSearchRecordActionCode
+    >(
+      `已刪除 ${result.processedRecords.length} 筆紀錄。`,
+      {
+        processedRecordIds: result.processedRecords.map((record) => record.id),
+        skippedRecords: result.skippedRecords,
+        processedCount: result.processedRecords.length,
+        skippedCount: result.skippedRecords.length,
+      },
+      ["/", "/search"],
+    );
   } catch (error) {
     console.error("Batch refund failed", error);
 
-    return {
-      ok: false,
-      reason: "mutation_failed",
-      message: "批次刪除失敗，請稍後再試。",
-    };
+    return batchSearchRecordActionError(
+      "mutation_failed",
+      "批次刪除失敗，請稍後再試。",
+    );
   }
 }
 
@@ -245,16 +258,15 @@ export async function batchRefundSearchRecordsAction(input: {
     paidOn?: string | null;
     note?: string | null;
   };
-}): Promise<BatchSearchRecordActionResult> {
+}): Promise<BatchSearchRecordActionState> {
   const session = await requireAuthenticatedMember();
   const selectedRecordIds = [...new Set(input.recordIds)];
 
   if (selectedRecordIds.length === 0) {
-    return {
-      ok: false,
-      reason: "empty_selection",
-      message: "請先選取要退款的紀錄。",
-    };
+    return batchSearchRecordActionError(
+      "empty_selection",
+      "請先選取要退款的紀錄。",
+    );
   }
 
   try {
@@ -269,71 +281,66 @@ export async function batchRefundSearchRecordsAction(input: {
     );
 
     if (!result.ok) {
-      return {
-        ok: false,
-        reason: result.reason,
-        skippedRecords: "skippedRecords" in result
-          ? result.skippedRecords
-          : undefined,
-        message: isPaymentErrorReason(result.reason)
+      return batchSearchRecordActionError(
+        result.reason,
+        isPaymentErrorReason(result.reason)
           ? messageForPaymentError(result.reason)
           : messageForBatchRefundError(result.reason),
-      };
+      );
     }
 
-    revalidatePath("/");
-    revalidatePath("/search");
-
-    return {
-      ok: true,
-      processedRecordIds: result.reimbursedRecords.map((record) => record.id),
-      skippedRecords: result.skippedRecords,
-      processedCount: result.reimbursedRecords.length,
-      skippedCount: result.skippedRecords.length,
-      refundTotalCents: result.refundTotalCents,
-      message: `已退款 ${result.reimbursedRecords.length} 筆紀錄。`,
-    };
+    return actionSuccessWithRevalidation<
+      BatchSearchRecordActionData,
+      BatchSearchRecordActionField,
+      BatchSearchRecordActionCode
+    >(
+      `已退款 ${result.reimbursedRecords.length} 筆紀錄。`,
+      {
+        processedRecordIds: result.reimbursedRecords.map((record) => record.id),
+        skippedRecords: result.skippedRecords,
+        processedCount: result.reimbursedRecords.length,
+        skippedCount: result.skippedRecords.length,
+        refundTotalCents: result.refundTotalCents,
+      },
+      ["/", "/search", "/refunds"],
+    );
   } catch {
-    return {
-      ok: false,
-      reason: "mutation_failed",
-      message: "批次退款失敗，請稍後再試。",
-    };
+    return batchSearchRecordActionError(
+      "mutation_failed",
+      "批次退款失敗，請稍後再試。",
+    );
   }
 }
 
-function isPaymentErrorReason(
-  reason: Extract<BatchSearchRecordActionResult, { ok: false }>["reason"],
-): reason is ReimbursementPaymentEvidenceRejectionReason {
-  return [
-    "invalid_payment_date",
-    "invalid_payment_method",
-    "missing_payment_date",
-    "missing_payment_method",
-  ].includes(String(reason));
+function batchSearchRecordActionError(
+  code: BatchSearchRecordActionCode,
+  message: string,
+): BatchSearchRecordActionState {
+  return actionError<
+    BatchSearchRecordActionData,
+    BatchSearchRecordActionField,
+    BatchSearchRecordActionCode
+  >(message, {
+    code,
+    fieldErrors: {
+      [batchSearchRecordActionFieldForError(code)]: [message],
+    },
+  });
 }
 
-function messageForPaymentError(
-  reason: ReimbursementPaymentEvidenceRejectionReason,
-): string {
-  const messages: Record<ReimbursementPaymentEvidenceRejectionReason, string> = {
-    invalid_payment_date: "付款日期格式不正確。",
-    invalid_payment_method: "付款方式不支援。",
-    missing_payment_date: "請填寫付款日期。",
-    missing_payment_method: "請選擇付款方式。",
-  };
-
-  return messages[reason];
-}
-
-function messageForBatchRefundError(reason: string): string {
-  if (reason === "permission_denied") {
-    return "目前帳號沒有批次退款權限。";
+function batchSearchRecordActionFieldForError(
+  code: BatchSearchRecordActionCode,
+): BatchSearchRecordActionField {
+  if (
+    code === "invalid_payment_method" ||
+    code === "missing_payment_method"
+  ) {
+    return "reimbursementMethod";
   }
 
-  if (reason === "cross_member_batch") {
-    return "請一次退款同一位代墊成員的紀錄。";
+  if (code === "invalid_payment_date" || code === "missing_payment_date") {
+    return "reimbursementPaidOn";
   }
 
-  return "沒有符合退款條件的紀錄。";
+  return "recordIds";
 }

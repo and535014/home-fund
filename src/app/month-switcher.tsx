@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MonthPickerDialog } from "./month-picker-dialog";
-import { addDashboardMonths } from "./month-selection";
+import { addMonths } from "./month-selection";
 import { Button } from "@/components/ui/button";
 
 type MonthSwitcherProps = {
@@ -18,8 +18,8 @@ export function MonthSwitcher({
   currentMonth,
   hrefPath = "/",
 }: MonthSwitcherProps) {
-  const previousMonth = addDashboardMonths(currentMonth, -1);
-  const nextMonth = addDashboardMonths(currentMonth, 1);
+  const previousMonth = addMonths(currentMonth, -1);
+  const nextMonth = addMonths(currentMonth, 1);
 
   return (
     <div className="inline-flex h-10 w-full items-center overflow-hidden rounded-button border border-border bg-card md:w-auto">
@@ -34,7 +34,7 @@ export function MonthSwitcher({
           <ChevronLeft aria-hidden="true" size={18} />
         </Link>
       </Button>
-      <MonthPickerDialog currentMonth={currentMonth} />
+      <MonthPickerDialog currentMonth={currentMonth} hrefPath={hrefPath} />
       <Button
         asChild
         aria-label="下一月"
@@ -50,6 +50,6 @@ export function MonthSwitcher({
   );
 }
 
-function buildMonthHref(month: string, hrefPath: string): string {
+export function buildMonthHref(month: string, hrefPath = "/"): string {
   return `${hrefPath}?month=${encodeURIComponent(month)}`;
 }

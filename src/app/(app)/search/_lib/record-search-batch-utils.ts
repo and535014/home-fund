@@ -1,5 +1,9 @@
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
+export {
+  canBatchReimburseRecord,
+  sumRecordAmounts,
+} from "@/app/_reimbursement/batch-refund-client";
 
 export function canBatchDeleteRecord(
   actor: HouseholdAccessProfile,
@@ -15,22 +19,6 @@ export function canBatchDeleteRecord(
   );
 }
 
-export function canBatchReimburseRecord(
-  actor: HouseholdAccessProfile,
-  record: LedgerRecord,
-): boolean {
-  const canPerformReimbursement =
-    actor.roles.includes("admin") || actor.roles.includes("finance_manager");
-
-  return (
-    canPerformReimbursement &&
-    record.type === "expense" &&
-    record.status === "active" &&
-    record.paymentSource === "member" &&
-    record.reimbursementStatus === "refundable"
-  );
-}
-
 export function sumRecordNetAmount(records: LedgerRecord[]): number {
   return records.reduce(
     (total, record) =>
@@ -38,10 +26,6 @@ export function sumRecordNetAmount(records: LedgerRecord[]): number {
       (record.type === "income" ? record.amountCents : -record.amountCents),
     0,
   );
-}
-
-export function sumRecordAmounts(records: LedgerRecord[]): number {
-  return records.reduce((total, record) => total + record.amountCents, 0);
 }
 
 export function netAmountTone(amountCents: number): string {

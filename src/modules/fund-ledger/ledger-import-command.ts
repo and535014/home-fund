@@ -1,12 +1,18 @@
 import { createHash } from "node:crypto";
 import type { AuthenticatedMember } from "../identity-access/authorization";
+import {
+  loadHouseholdMemberOptions,
+  type HouseholdMemberOptionQueryPrismaClient,
+} from "../identity-access/household-member-query";
+import {
+  loadImportCategoryLookups,
+  type ImportCategoryLookupQueryPrismaClient,
+} from "../categorization/category-query";
 import { authorize } from "../identity-access/authorization";
 import { hasBlockingImportIssue } from "./ledger-import-issues";
 import {
   previewLedgerImportCsv,
-  type LedgerImportCategory,
   type LedgerImportExistingRecord,
-  type LedgerImportMember,
   type LedgerImportPreviewResult,
   type LedgerImportPreviewRow,
   type LedgerImportRowOverride,
@@ -14,30 +20,8 @@ import {
 import type { CreateLedgerRecordCommand, LedgerRecord } from "./ledger-records";
 
 export type LedgerImportCommandPrismaClient = {
-  member: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        displayName: true;
-      };
-    }): Promise<LedgerImportMember[]>;
-  };
-  category: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        type: true;
-        name: true;
-        status: true;
-      };
-    }): Promise<LedgerImportCategory[]>;
-  };
+  member: HouseholdMemberOptionQueryPrismaClient["member"];
+  category: ImportCategoryLookupQueryPrismaClient["category"];
   ledgerRecord: {
     findMany(args: {
       where: {
@@ -310,26 +294,8 @@ async function loadPreviewContext(
   householdId: string,
 ) {
   const [members, categories, records] = await Promise.all([
-    prisma.member.findMany({
-      where: {
-        householdId,
-      },
-      select: {
-        id: true,
-        displayName: true,
-      },
-    }),
-    prisma.category.findMany({
-      where: {
-        householdId,
-      },
-      select: {
-        id: true,
-        type: true,
-        name: true,
-        status: true,
-      },
-    }),
+    loadHouseholdMemberOptions({ householdId, prisma }),
+    loadImportCategoryLookups({ householdId, prisma }),
     prisma.ledgerRecord.findMany({
       where: {
         householdId,

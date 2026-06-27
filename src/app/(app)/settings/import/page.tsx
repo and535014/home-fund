@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { getPrismaClient } from "@/db/prisma";
+import { loadActiveCategoryOptions } from "@/modules/categorization/category-query";
+import { loadHouseholdMemberOptions } from "@/modules/identity-access/household-member-query";
 import { CsvImportPanel } from "./csv-import-panel";
 
 export default async function ImportSettingsPage() {
@@ -14,34 +16,8 @@ export default async function ImportSettingsPage() {
   const prisma = getPrismaClient();
   const householdId = session.access.member.householdId;
   const [members, categories] = await Promise.all([
-    prisma.member.findMany({
-      where: {
-        householdId,
-      },
-      orderBy: {
-        displayName: "asc",
-      },
-      select: {
-        id: true,
-        displayName: true,
-      },
-    }),
-    prisma.category.findMany({
-      where: {
-        householdId,
-        status: "active",
-      },
-      orderBy: [
-        { type: "asc" },
-        { sortOrder: "asc" },
-        { name: "asc" },
-      ],
-      select: {
-        id: true,
-        name: true,
-        type: true,
-      },
-    }),
+    loadHouseholdMemberOptions({ householdId, prisma }),
+    loadActiveCategoryOptions({ householdId, prisma }),
   ]);
 
   return (

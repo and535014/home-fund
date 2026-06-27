@@ -20,7 +20,7 @@ import { formatAmount } from "@/lib/format";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 
-export function RecordSearchResults({
+export function RecordResultsList({
   categoriesById,
   emptyMessage,
   hasMoreRecords,

@@ -16,9 +16,8 @@ import { formatAmount } from "@/lib/format";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
 import {
-  canBatchReimburseRecord,
-  sumRecordAmounts,
-} from "../_lib/record-search-batch-utils";
+  getBatchRefundDialogState,
+} from "@/app/_reimbursement/batch-refund-client";
 import { ReimbursementPaymentFields } from "@/app/_record-detail/reimbursement-payment-fields";
 
 export function BatchRefundDialog({
@@ -37,20 +36,13 @@ export function BatchRefundDialog({
   records: LedgerRecord[];
 }) {
   const reimbursementFormRef = useRef<HTMLFormElement>(null);
-  const eligibleRecords = records.filter((record) =>
-    canBatchReimburseRecord(actor, record),
-  );
-  const skippedCount = records.length - eligibleRecords.length;
-  const eligibleTotalCents = sumRecordAmounts(eligibleRecords);
-  const paidToMemberIds = [
-    ...new Set(
-      eligibleRecords
-        .map((record) => (record.type === "expense" ? record.payerMemberId : null))
-        .filter((memberId): memberId is string => Boolean(memberId)),
-    ),
-  ];
-  const hasSinglePaidToMember = paidToMemberIds.length === 1;
-  const hasCrossMemberSelection = paidToMemberIds.length > 1;
+  const {
+    eligibleRecords,
+    eligibleTotalCents,
+    hasCrossMemberSelection,
+    hasSinglePaidToMember,
+    skippedCount,
+  } = getBatchRefundDialogState(actor, records);
 
   return (
     <Dialog

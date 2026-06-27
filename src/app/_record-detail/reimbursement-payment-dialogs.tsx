@@ -206,19 +206,15 @@ function ReimbursementPaymentEditDialog({
         <DialogTitle>編輯退款紀錄</DialogTitle>
       </DialogHeader>
 
-      <DialogBody className="grid gap-4">
-        <div className="rounded-card border border-border bg-secondary/30 p-4">
-          <p className="text-caption text-muted-foreground">金額</p>
-          <p className="mt-1 text-heading text-primary">
-            {formatAmount(result.amountCents)}
-          </p>
-        </div>
+      <form action={formAction}>
+        <DialogBody className="grid gap-4">
+          <div className="rounded-card border border-border bg-secondary/30 p-4">
+            <p className="text-caption text-muted-foreground">金額</p>
+            <p className="mt-1 text-heading text-primary">
+              {formatAmount(result.amountCents)}
+            </p>
+          </div>
 
-        <form
-          action={formAction}
-          className="grid gap-4"
-          id="refund-record-edit-form"
-        >
           <input name="paymentId" type="hidden" value={result.id} />
           <PaymentDetailField
             icon={<UserRound />}
@@ -321,29 +317,28 @@ function ReimbursementPaymentEditDialog({
               id="refund-record-note"
             />
           </ActionField>
-        </form>
-      </DialogBody>
+        </DialogBody>
 
-      <DialogFooter className="mt-4 gap-2">
-        <Button
-          disabled={isPending}
-          onClick={onCancel}
-          type="button"
-          variant="outline"
-        >
-          <X />
-          取消
-        </Button>
-        <FormSubmitButton
-          disabled={isPending}
-          form="refund-record-edit-form"
-          pendingLabel="儲存中..."
-          type="submit"
-        >
-          <Check />
-          儲存變更
-        </FormSubmitButton>
-      </DialogFooter>
+        <DialogFooter className="mt-4 gap-2">
+          <Button
+            disabled={isPending}
+            onClick={onCancel}
+            type="button"
+            variant="outline"
+          >
+            <X />
+            取消
+          </Button>
+          <FormSubmitButton
+            disabled={isPending}
+            pendingLabel="儲存中..."
+            type="submit"
+          >
+            <Check />
+            儲存變更
+          </FormSubmitButton>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }

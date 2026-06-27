@@ -6,11 +6,8 @@ import {
 } from "@/modules/categorization/category-command";
 import type { Category } from "@/modules/categorization/category-catalog";
 import {
-  DEFAULT_CATEGORY_COLOR,
-  DEFAULT_CATEGORY_ICON,
-  isCategoryColorKey,
-  isCategoryIconKey,
-} from "@/modules/categorization/category-visual-options";
+  loadHouseholdCategories,
+} from "@/modules/categorization/category-query";
 import type { AppSearchParams } from "./route-search-params";
 
 export type CategoryWithReferenceCount = Category & {
@@ -50,21 +47,7 @@ async function listCategoriesWithReferenceCounts(
   prisma: CategoryCommandPrismaClient,
   householdId: string,
 ): Promise<CategoryWithReferenceCount[]> {
-  const categories = await prisma.category.findMany({
-    where: {
-      householdId,
-    },
-    select: {
-      id: true,
-      type: true,
-      name: true,
-      color: true,
-      icon: true,
-      sortOrder: true,
-      status: true,
-    },
-    orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-  });
+  const categories = await loadHouseholdCategories({ householdId, prisma });
   const referenceCounts = await getCategoryReferenceCounts({
     categoryIds: categories.map((category) => category.id),
     householdId,
@@ -73,10 +56,6 @@ async function listCategoriesWithReferenceCounts(
 
   return categories.map((category) => ({
     ...category,
-    color: isCategoryColorKey(category.color)
-      ? category.color
-      : DEFAULT_CATEGORY_COLOR,
-    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
     recordCount: referenceCounts.get(category.id) ?? 0,
   }));
 }

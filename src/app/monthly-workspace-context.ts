@@ -8,7 +8,7 @@ import {
   buildHomeAccessViewFromAccess,
   type HomeDashboardView,
 } from "./home-access";
-import { readDashboardMonth } from "./month-selection";
+import { readMonthParam } from "./month-selection";
 import type { AppAccessSession } from "@/auth/app-access";
 import { readSearchParam, type AppSearchParams } from "./route-search-params";
 
@@ -35,7 +35,7 @@ export async function loadMonthlyWorkspaceContext({
 }): Promise<MonthlyWorkspaceContext> {
   const session = await requireAuthenticatedMember();
   const rawSearchParams = await searchParams;
-  const month = readDashboardMonth(
+  const month = readMonthParam(
     readSearchParam(rawSearchParams, "month"),
   );
   const dashboardData = await createHomeDashboardDataSource(

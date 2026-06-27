@@ -1,10 +1,8 @@
 import type { Category } from "../modules/categorization/category-catalog";
 import {
-  DEFAULT_CATEGORY_COLOR,
-  DEFAULT_CATEGORY_ICON,
-  isCategoryColorKey,
-  isCategoryIconKey,
-} from "../modules/categorization/category-visual-options";
+  loadHouseholdCategories,
+  type CategoryQueryPrismaClient,
+} from "../modules/categorization/category-query";
 import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
@@ -12,7 +10,10 @@ import {
   type PrismaLedgerRecordRow,
 } from "../modules/fund-ledger/ledger-record-prisma-adapter";
 import type { HouseholdMemberAccount } from "../modules/identity-access/member-management";
-import { mapPrismaMemberToHouseholdMember } from "../auth/current-member-data-source";
+import {
+  loadHouseholdMembers,
+  type HouseholdMemberQueryPrismaClient,
+} from "../modules/identity-access/household-member-query";
 
 export type HomeDashboardData = {
   householdMembers: HouseholdMemberAccount[];
@@ -21,65 +22,9 @@ export type HomeDashboardData = {
   yearlyRecords: LedgerRecord[];
 };
 
-type PrismaMemberRow = Parameters<typeof mapPrismaMemberToHouseholdMember>[0];
-
-type PrismaCategoryRow = {
-  id: string;
-  type: Category["type"];
-  name: string;
-  color: string;
-  icon: string;
-  sortOrder: number;
-  status: Category["status"];
-};
-
-export type HomeDashboardPrismaClient = {
-  member: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        householdId: true;
-        displayName: true;
-        avatarUrl: true;
-        googleAccountEmail: true;
-        googleSubject: true;
-        status: true;
-        roles: {
-          select: {
-            role: true;
-          };
-        };
-        capabilities: {
-          select: {
-            capability: true;
-          };
-        };
-      };
-      orderBy: {
-        displayName: "asc";
-      };
-    }): Promise<PrismaMemberRow[]>;
-  };
-  category: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        type: true;
-        name: true;
-        color: true;
-        icon: true;
-        sortOrder: true;
-        status: true;
-      };
-      orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }];
-    }): Promise<PrismaCategoryRow[]>;
-  };
+export type HomeDashboardPrismaClient =
+  HouseholdMemberQueryPrismaClient &
+  CategoryQueryPrismaClient & {
   ledgerRecord: {
     findMany(args: {
       where: {
@@ -103,48 +48,8 @@ export function createHomeDashboardDataSource(
     ): Promise<HomeDashboardData> {
       const [householdMembers, categories, records, yearlyRecords] =
         await Promise.all([
-          prisma.member.findMany({
-            where: {
-              householdId,
-            },
-            select: {
-              id: true,
-              householdId: true,
-              displayName: true,
-              avatarUrl: true,
-              googleAccountEmail: true,
-              googleSubject: true,
-              status: true,
-              roles: {
-                select: {
-                  role: true,
-                },
-              },
-              capabilities: {
-                select: {
-                  capability: true,
-                },
-              },
-            },
-            orderBy: {
-              displayName: "asc",
-            },
-          }),
-          prisma.category.findMany({
-            where: {
-              householdId,
-            },
-            select: {
-              id: true,
-              type: true,
-              name: true,
-              color: true,
-              icon: true,
-              sortOrder: true,
-              status: true,
-            },
-            orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-          }),
+          loadHouseholdMembers({ householdId, prisma }),
+          loadHouseholdCategories({ householdId, prisma }),
           prisma.ledgerRecord.findMany({
             where: {
               householdId,
@@ -166,79 +71,25 @@ export function createHomeDashboardDataSource(
         ]);
 
       return {
-        householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
-        categories: categories.map(mapPrismaCategoryToCategory),
+        householdMembers,
+        categories,
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
         yearlyRecords: yearlyRecords.map(mapPrismaLedgerRecordToLedgerRecord),
       };
     },
     async getSearchPageData(householdId: string): Promise<HomeDashboardData> {
       const [householdMembers, categories] = await Promise.all([
-        prisma.member.findMany({
-          where: {
-            householdId,
-          },
-          select: {
-            id: true,
-            householdId: true,
-            displayName: true,
-            avatarUrl: true,
-            googleAccountEmail: true,
-            googleSubject: true,
-            status: true,
-            roles: {
-              select: {
-                role: true,
-              },
-            },
-            capabilities: {
-              select: {
-                capability: true,
-              },
-            },
-          },
-          orderBy: {
-            displayName: "asc",
-          },
-        }),
-        prisma.category.findMany({
-          where: {
-            householdId,
-          },
-          select: {
-            id: true,
-            type: true,
-            name: true,
-            color: true,
-            icon: true,
-            sortOrder: true,
-            status: true,
-          },
-          orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-        }),
+        loadHouseholdMembers({ householdId, prisma }),
+        loadHouseholdCategories({ householdId, prisma }),
       ]);
 
       return {
-        householdMembers: householdMembers.map(mapPrismaMemberToHouseholdMember),
-        categories: categories.map(mapPrismaCategoryToCategory),
+        householdMembers,
+        categories,
         records: [],
         yearlyRecords: [],
       };
     },
-  };
-}
-
-function mapPrismaCategoryToCategory(category: PrismaCategoryRow): Category {
-  return {
-    id: category.id,
-    type: category.type,
-    name: category.name,
-    color: isCategoryColorKey(category.color)
-      ? category.color
-      : DEFAULT_CATEGORY_COLOR,
-    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
-    sortOrder: category.sortOrder,
-    status: category.status,
   };
 }
 
