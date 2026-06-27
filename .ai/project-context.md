@@ -1,6 +1,6 @@
 ---
 id: project
-stage: learning-loop
+stage: artifact-compression
 status: active
 delivery_profile: mvp
 release_target: production
@@ -120,9 +120,9 @@ reviewed_at: 2026-06-27
 
 ## Next Step
 
-- latest_completed_slice: production learning loop for `v0.1.6` refund page release recorded in `.ai/learning/refund-page-production-v0.1.6.md`.
-- active_change: production release summary and optional compression
-- recommended_resume_gate: Artifact Compression after review approval, unless monitoring/backup/mobile/refund-correction follow-up is selected as active work.
-- recommended_next_skill: artifact-compression for compact release summary; learning-loop only if production learning signals need amendment.
-- required input: `.ai/learning/refund-page-production-v0.1.6.md`, `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/verification/refund-page.md`, `.ai/implementation/refund-page.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
-- reason: Production deployment and learning signals are recorded for tag `v0.1.6`; artifact compression can summarize the completed release while preserving monitoring, backup/PITR, and runtime-log gaps as open operational follow-ups.
+- latest_completed_slice: refund page production `v0.1.6` release summarized in `.ai/archive/archive-refund-page-production-v0.1.6-2026-06-27.md`.
+- active_change: no active implementation or release gate selected
+- recommended_resume_gate: Intent Intake for new follow-up work, or optional manual Artifact Prune only by explicit request.
+- recommended_next_skill: intent-intake if monitoring, backup/PITR, mobile refund navigation, refund correction/reversal, or split reimbursement becomes active; artifact-prune only if explicitly requested.
+- required input: `.ai/archive/archive-refund-page-production-v0.1.6-2026-06-27.md`, `.ai/learning/refund-page-production-v0.1.6.md`, `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/domain/home-family-fund.md`, `.ai/workflow.md`, and `.ai/project-context.md`.
+- reason: Production deployment, learning, and compression are recorded for tag `v0.1.6`; future work should start with a new intent or explicitly requested prune.
