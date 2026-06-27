@@ -54,10 +54,13 @@ export function RecordDetailDialog({
   categoryName,
   memberNames,
   onMutationSuccess,
+  onConfirmRecurringPosting,
   onOpenReimbursementPayment,
   onPendingChange,
   onRefresh,
   record,
+  recurringEventLabel,
+  recurringPostingPending = false,
 }: {
   actor: HouseholdAccessProfile;
   category?: Category;
@@ -65,10 +68,13 @@ export function RecordDetailDialog({
   categoryName: string;
   memberNames: Record<string, string>;
   onMutationSuccess: () => void;
+  onConfirmRecurringPosting?: () => void;
   onOpenReimbursementPayment?: (record: LedgerRecord) => void;
   onPendingChange: (pending: boolean) => void;
   onRefresh: () => void;
   record: LedgerRecord;
+  recurringEventLabel?: string;
+  recurringPostingPending?: boolean;
 }) {
   const [mode, setMode] = useState<"detail" | "edit" | "delete" | "refund">(
     "detail",
@@ -88,11 +94,12 @@ export function RecordDetailDialog({
     displayedRecord.paymentSource === "member" &&
     displayedRecord.reimbursementStatus === "reimbursed";
   const canShowFooterActions =
-    (access.canEdit ||
-      access.canDelete ||
-      access.canRefund ||
-      canOpenReimbursementPayment) &&
-    (!access.blockedReason || canOpenReimbursementPayment);
+    recurringPostingPending ||
+    ((access.canEdit ||
+        access.canDelete ||
+        access.canRefund ||
+        canOpenReimbursementPayment) &&
+      (!access.blockedReason || canOpenReimbursementPayment));
 
   if (mode === "edit") {
     return (
@@ -161,10 +168,13 @@ export function RecordDetailDialog({
       memberNames={memberNames}
       onDelete={() => setMode("delete")}
       onEdit={() => setMode("edit")}
+      onConfirmRecurringPosting={onConfirmRecurringPosting}
       onOpenReimbursementPayment={() =>
         onOpenReimbursementPayment?.(displayedRecord)}
       onRefund={() => setMode("refund")}
       record={record}
+      recurringEventLabel={recurringEventLabel}
+      recurringPostingPending={recurringPostingPending}
     />
   );
 }

@@ -111,11 +111,13 @@ export function CategoryPanel({
   children,
   count,
   describedBy,
+  showTitle = true,
   title,
 }: {
   children: ReactNode;
   count: number;
   describedBy?: string;
+  showTitle?: boolean;
   title: string;
 }) {
   return (
@@ -124,9 +126,11 @@ export function CategoryPanel({
       aria-describedby={describedBy}
       className="flex min-h-0 min-w-0 flex-col justify-start gap-3 overflow-hidden"
     >
-      <h3 className="shrink-0 text-body-strong text-foreground">
-        {title} ({count})
-      </h3>
+      {showTitle ? (
+        <h3 className="shrink-0 text-body-strong text-foreground">
+          {title} ({count})
+        </h3>
+      ) : null}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
         {children}
       </div>

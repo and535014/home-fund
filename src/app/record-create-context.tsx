@@ -20,6 +20,7 @@ export type RecordCreateContextValue = RecordCreateData & {
   openExpense: () => void;
   openIncome: () => void;
   onRecordCreated: () => void;
+  onRecurringEventCreated: () => void;
   setCreatePending: (pending: boolean) => void;
 };
 

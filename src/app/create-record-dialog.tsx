@@ -23,7 +23,7 @@ export function CreateRecordDialog({
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="max-w-xl"
+        className="max-h-[min(42rem,calc(100dvh-2rem))] overflow-hidden sm:max-w-2xl"
         disableOutsidePointerDown
         forceMount
       >

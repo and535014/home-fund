@@ -70,7 +70,7 @@ reviewed_at: 2026-06-20
 ## Responsive Baseline
 
 - Desktop: expense and income category panels sit side by side with fixed title spacing and internally scrollable lists.
-- Tablet/mobile: category panels stack while keeping each list independently scrollable.
+- Desktop: category panels use two columns with `支出` on the left and `收入` on the right, filling the available height and scrolling within each list. Mobile uses line tabs for `支出(數量)` and `收入(數量)` instead of stacking both panels, and the active panel omits a repeated panel title.
 - Fixed-size icon/swatch controls prevent layout shift when selections change.
 
 ## Keyboard And Focus Baseline

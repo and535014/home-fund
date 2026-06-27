@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
+import { recurringPrototypeEventLabel } from "@/app/recurring-prototype-data";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
@@ -17,6 +18,7 @@ export function useRecordDetailFlow({
   loadPaymentForRecord = loadReimbursementPaymentForLedgerRecord,
   onPaymentUpdated,
   onRefresh,
+  pendingRecurringRecordIds = [],
   records,
 }: {
   loadPaymentForRecord?: (
@@ -25,6 +27,7 @@ export function useRecordDetailFlow({
   ) => void;
   onPaymentUpdated?: (record: ReimbursementPaymentSearchResult) => void;
   onRefresh: () => void;
+  pendingRecurringRecordIds?: string[];
   records: LedgerRecord[];
 }) {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
@@ -35,10 +38,23 @@ export function useRecordDetailFlow({
   const [selectedPaymentLinkedResult, setSelectedPaymentLinkedResult] =
     useState<ReimbursementPaymentSearchResult | null>(null);
   const [isSelectedRecordPending, setIsSelectedRecordPending] = useState(false);
+  const [confirmedRecurringRecordIds, setConfirmedRecurringRecordIds] = useState<
+    Set<string>
+  >(() => new Set());
   const selectedRecordTriggerRef = useRef<HTMLButtonElement | null>(null);
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ??
     selectedRelatedRecord;
+  const pendingRecurringRecordIdSet = new Set(pendingRecurringRecordIds);
+
+  function isPendingRecurringRecord(record: LedgerRecord): boolean {
+    return pendingRecurringRecordIdSet.has(record.id) &&
+      !confirmedRecurringRecordIds.has(record.id);
+  }
+
+  function recurringEventLabel(record: LedgerRecord): string | undefined {
+    return recurringPrototypeEventLabel(record.id);
+  }
 
   function closeSelectedRecord() {
     setIsSelectedRecordPending(false);
@@ -90,6 +106,11 @@ export function useRecordDetailFlow({
     onRefresh();
   }
 
+  function confirmRecurringPosting(recordId: string) {
+    setConfirmedRecurringRecordIds((current) => new Set([...current, recordId]));
+    closeSelectedRecord();
+  }
+
   function closeAll() {
     setIsSelectedRecordPending(false);
     setSelectedRecordId(null);
@@ -103,7 +124,10 @@ export function useRecordDetailFlow({
     closeSelectedRecord,
     handlePaymentUpdated,
     handleRecordMutationSuccess,
+    confirmRecurringPosting,
     isSelectedRecordPending,
+    isPendingRecurringRecord,
+    recurringEventLabel,
     onRefresh,
     openPaymentResult,
     openRecord,
@@ -158,11 +182,18 @@ export function RecordDetailFlowDialogs({
               flow.selectedRecord.categoryId
             }
             memberNames={memberNames}
+            onConfirmRecurringPosting={() => {
+              if (flow.selectedRecord) {
+                flow.confirmRecurringPosting(flow.selectedRecord.id);
+              }
+            }}
             onMutationSuccess={flow.handleRecordMutationSuccess}
             onOpenReimbursementPayment={flow.openReimbursementPayment}
             onPendingChange={flow.setIsSelectedRecordPending}
             onRefresh={flow.onRefresh}
             record={flow.selectedRecord}
+            recurringEventLabel={flow.recurringEventLabel(flow.selectedRecord)}
+            recurringPostingPending={flow.isPendingRecurringRecord(flow.selectedRecord)}
           />
         ) : null}
       </Dialog>

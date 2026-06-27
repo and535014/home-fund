@@ -65,7 +65,7 @@ Observed fact: Graphify CLI is installed according to `.ai/project-context.md`, 
 | Identity and access | `src/modules/identity-access/`, `src/auth/` | Role/capability authorization, Google session identity mapping, current-member resolution, Better Auth config/adapter | `src/modules/identity-access/authorization.ts`, `src/auth/server-current-member.ts` |
 | Fund ledger | `src/modules/fund-ledger/` | Pure ledger record rules and DB-backed create command wrapper | `src/modules/fund-ledger/ledger-records.ts`, `src/modules/fund-ledger/ledger-record-command.ts` |
 | Categorization | `src/modules/categorization/` | Category catalog rules and active/archived category language | `src/modules/categorization/category-catalog.ts` |
-| Recurring schedule | `src/modules/recurring-schedule/` | Recurring rules, immediate posting, pending reminders, duplicate occurrence prevention | `src/modules/recurring-schedule/recurring-rules.ts` |
+| Recurring schedule | `src/modules/recurring-schedule/` | Recurring events, immediate posting, pending reminders, duplicate occurrence prevention | `src/modules/recurring-schedule/recurring-rules.ts` |
 | Reimbursement | `src/modules/reimbursement/` | Reimbursement read table and one-time mark-reimbursed rule | `src/modules/reimbursement/reimbursement-table.ts`, `src/modules/reimbursement/reimbursements.ts` |
 | Reporting | `src/modules/reporting/` | Derived monthly report totals, category summaries, pending items, reimbursement summary | `src/modules/reporting/monthly-report.ts` |
 | Persistence | `prisma/schema.prisma`, `src/db/prisma.ts` | Household domain tables and Better Auth tables using PostgreSQL | `prisma/schema.prisma`, `src/db/prisma.ts` |
@@ -77,7 +77,7 @@ Observed fact: Graphify CLI is installed according to `.ai/project-context.md`, 
 | Identity and Access | `Member`, roles, capabilities, current session-to-member mapping, authorization decisions | Auth adapter, every command module, app access gate | `src/modules/identity-access/authorization.ts`, `src/auth/current-member.ts`, `src/auth/server-current-member.ts` |
 | Fund Ledger | `LedgerRecord` command rules and Prisma create wrapper | Identity for authorization, Categorization for valid categories, Reporting/Reimbursement as downstream readers | `src/modules/fund-ledger/ledger-records.ts`, `src/modules/fund-ledger/ledger-record-command.ts` |
 | Categorization | Category type/status rules | Ledger validation, Reporting category names | `src/modules/categorization/category-catalog.ts`, `src/app/home-dashboard-data-source.ts` |
-| Recurring Schedule | `RecurringRule`, `RecurringOccurrence`, posting mode | Ledger command creation, Reporting pending items | `src/modules/recurring-schedule/recurring-rules.ts`, `prisma/schema.prisma` |
+| Recurring Schedule | `RecurringEvent`, `RecurringOccurrence`, posting mode | Ledger command creation, Reporting pending items | `src/modules/recurring-schedule/recurring-rules.ts`, `prisma/schema.prisma` |
 | Reimbursement | Refundable member-paid expense grouping and reimbursement state transition | Ledger expense records, Identity finance-manager authorization, Reporting summary | `src/modules/reimbursement/reimbursement-table.ts`, `src/modules/reimbursement/reimbursements.ts` |
 | Reporting | Derived monthly read model, not persisted report state | Ledger, Categories, Recurring, Reimbursement | `src/modules/reporting/monthly-report.ts`, `src/app/home-access.ts` |
 | App/UI | Routing, forms, dashboard layout, visual state, E2E fixture entry | Auth/current member, dashboard data source, domain read models, server actions | `src/app/page.tsx`, `src/app/home-dashboard-layout.tsx`, `src/app/record-entry-panel.tsx` |
@@ -99,7 +99,7 @@ Observed fact: Graphify CLI is installed according to `.ai/project-context.md`, 
 ## Test Landscape
 | Test Type | Location / Command | Coverage Notes |
 |---|---|---|
-| Unit/domain tests | `corepack pnpm test`, `src/modules/**/*.test.ts` | Covers authorization, member management, categories, ledger records/commands/corrections, recurring rules, reimbursement, reports. |
+| Unit/domain tests | `corepack pnpm test`, `src/modules/**/*.test.ts` | Covers authorization, member management, categories, ledger records/commands/corrections, recurring events, reimbursement, reports. |
 | App/auth/data-source tests | `corepack pnpm test`, `src/app/*.test.ts`, `src/auth/*.test.ts`, `src/db/prisma.test.ts` | Covers home access composition, dashboard data mapping, form parsing, month selection, Better Auth config, current member resolution, Prisma runtime setup. |
 | E2E smoke tests | `pnpm test:e2e`, `e2e/home.spec.ts` | Covers unauthenticated gate, auth error alert, dashboard fixture rendering, and mobile horizontal overflow. Uses a non-production header-based current-member fixture. |
 | Static checks | `corepack pnpm type-check`, `corepack pnpm lint` | Both run Prisma generation first according to `package.json`. |
@@ -123,7 +123,7 @@ Observed fact: E2E currently can bypass real Better Auth and database-backed das
 - DB-backed E2E for dashboard reads, record creation, and reimbursement mutation is not present; E2E dashboard coverage uses fixture data.
 - Production deployment target, environment variable management, connection pooling, migrations, observability, and rollback are not documented in `.ai/release/`.
 - Multi-household behavior is not implemented as a first-class runtime concern even though the schema includes `householdId`.
-- Category management, recurring rule management, member management, ledger corrections, and reimbursement settlement have domain coverage but limited or no complete UI mutation workflows observed in the inspected app routes.
+- Category management, recurring event management, member management, ledger corrections, and reimbursement settlement have domain coverage but limited or no complete UI mutation workflows observed in the inspected app routes.
 - Graphify output is absent; manual inspection is sufficient for this artifact, but Graphify could accelerate future repo-wide dependency queries.
 
 ## Review Gate

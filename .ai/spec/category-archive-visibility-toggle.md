@@ -154,7 +154,7 @@ And active categories remain available in persisted active order
 | Unarchive success | `/settings/categories` and `/?month=2026-06` | admin, archived expense category with no active-name conflict | desktop | click `取消封存 <name>`; toast `分類已取消封存`; row moves into active ordering; after refresh/revalidation, new expense record radiogroup `分類` includes restored category. |
 | Duplicate-name rejection | server action or integration test helper | active and archived same-name category in same type | n/a | unarchive returns duplicate-name error; category remains archived. |
 | Permission rejection | server action or integration test helper | finance manager/general member and archived category | n/a | unarchive returns permission-denied error; category remains archived. |
-| Mobile layout | `/settings/categories` | admin with active and archived categories | mobile | switch remains above panels; panels stack; archived row icon media and restore icon button do not overlap text or actions. |
+| Mobile layout | `/settings/categories` | admin with active and archived categories | mobile | switch remains above line tabs; `支出(數量)` and `收入(數量)` tabs switch panels; archived row icon media and restore icon button do not overlap text or actions. |
 
 ## Fixture And Data Strategy
 

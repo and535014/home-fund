@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CalendarDays,
   HandCoins,
+  CheckCircle2,
   Pencil,
   ReceiptText,
   StickyNote,
@@ -39,9 +40,12 @@ export function RecordDetailView({
   memberNames,
   onDelete,
   onEdit,
+  onConfirmRecurringPosting,
   onOpenReimbursementPayment,
   onRefund,
   record,
+  recurringEventLabel,
+  recurringPostingPending = false,
 }: {
   access: RecordDetailActionAccess;
   canOpenReimbursementPayment: boolean;
@@ -51,9 +55,12 @@ export function RecordDetailView({
   memberNames: Record<string, string>;
   onDelete: () => void;
   onEdit: () => void;
+  onConfirmRecurringPosting?: () => void;
   onOpenReimbursementPayment: () => void;
   onRefund: () => void;
   record: LedgerRecord;
+  recurringEventLabel?: string;
+  recurringPostingPending?: boolean;
 }) {
   const isIncome = record.type === "income";
 
@@ -82,6 +89,15 @@ export function RecordDetailView({
           </Alert>
         ) : null}
 
+        {recurringEventLabel ? (
+          <Alert variant="info">
+            <CalendarDays />
+            <AlertDescription>
+              週期事件：「{recurringEventLabel}」
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <DetailField
@@ -90,21 +106,21 @@ export function RecordDetailView({
               value={recordActorLabel(displayedRecord, memberNames)}
             />
             <DetailField
-              icon={<CalendarDays />}
-              label="日期"
-              value={formatRecordDate(record.occurredOn)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <DetailField
               icon={<ReceiptText />}
               label="分類"
               value={categoryName}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <DetailField
+              icon={<CalendarDays />}
+              label="日期"
+              value={formatRecordDate(record.occurredOn)}
+            />
             <DetailField
               icon={<WalletCards />}
               label="狀態"
-              value={ledgerRecordStatusLabel(displayedRecord)}
+              value={recurringPostingPending ? "待入帳" : ledgerRecordStatusLabel(displayedRecord)}
             />
           </div>
         </div>
@@ -122,19 +138,25 @@ export function RecordDetailView({
 
       {canShowFooterActions ? (
         <DialogFooter className="mt-4">
-          {access.canDelete ? (
+          {recurringPostingPending ? (
+            <Button onClick={onConfirmRecurringPosting} type="button">
+              <CheckCircle2 />
+              確認入帳
+            </Button>
+          ) : null}
+          {!recurringPostingPending && access.canDelete ? (
             <Button onClick={onDelete} type="button" variant="destructive">
               <Trash2 />
               刪除
             </Button>
           ) : null}
-          {access.canRefund ? (
+          {!recurringPostingPending && access.canRefund ? (
             <Button onClick={onRefund} type="button">
               <HandCoins />
               退款
             </Button>
           ) : null}
-          {canOpenReimbursementPayment ? (
+          {!recurringPostingPending && canOpenReimbursementPayment ? (
             <Button
               onClick={onOpenReimbursementPayment}
               type="button"
@@ -144,7 +166,7 @@ export function RecordDetailView({
               查看退款紀錄
             </Button>
           ) : null}
-          {access.canEdit ? (
+          {!recurringPostingPending && access.canEdit ? (
             <Button onClick={onEdit} type="button">
               <Pencil />
               編輯

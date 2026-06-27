@@ -121,7 +121,6 @@ export function LedgerRecordCategoryField({
                       className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
                       color={visual.color}
                       icon={visual.icon}
-                      size="lg"
                     />
                     <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
                       {category.name}

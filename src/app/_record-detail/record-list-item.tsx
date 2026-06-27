@@ -27,6 +27,7 @@ export function RecordListItem({
   amountClassName,
   ariaLabel,
   category,
+  className,
   dateLabel,
   description,
   isSelected,
@@ -39,6 +40,7 @@ export function RecordListItem({
   amountClassName?: string;
   ariaLabel?: string;
   category?: Category;
+  className?: string;
   dateLabel?: string;
   description?: string;
   isSelected: boolean;
@@ -50,7 +52,7 @@ export function RecordListItem({
 }) {
   if (onToggleSelection) {
     return (
-      <Item size="sm">
+      <Item className={className} size="sm">
         <button
           aria-label={isSelected ? `取消選取${record.name}` : `選取${record.name}`}
           aria-pressed={isSelected}
@@ -86,7 +88,7 @@ export function RecordListItem({
   }
 
   return (
-    <Item asChild size="sm">
+    <Item asChild className={className} size="sm">
       <button
         aria-label={ariaLabel ?? `查看${record.name}詳情`}
         className="w-full text-left"
@@ -129,11 +131,13 @@ export function RecordSummaryContent({
 
   return (
     <>
-      <ItemMedia className="self-center! translate-y-0!">
-        {leadingVisual ?? (visual ? (
-          <CategoryVisualMark color={visual.color} icon={visual.icon} />
-        ) : null)}
-      </ItemMedia>
+      {leadingVisual || visual ? (
+        <ItemMedia className="self-center! translate-y-0!">
+          {leadingVisual ?? (visual ? (
+            <CategoryVisualMark color={visual.color} icon={visual.icon} />
+          ) : null)}
+        </ItemMedia>
+      ) : null}
 
       <ItemContent className="min-w-0">
         <ItemTitle className="max-w-full">
