@@ -14,7 +14,7 @@ trace_links:
   - playwright.config.ts
   - vitest.config.ts
   - docker-compose.yml
-reviewed_at: 2026-06-26
+reviewed_at: 2026-06-27
 ---
 
 # Project Context
@@ -27,7 +27,7 @@ reviewed_at: 2026-06-26
 - business outcome: provide a Traditional Chinese dark-theme household fund dashboard with role-aware access and traceable financial workflows.
 - repository state: Next.js app with Prisma/PostgreSQL schema, Better Auth Google sign-in integration, domain modules, UI components, unit tests, and Playwright E2E foundation.
 - selected stack: Next.js, React, TypeScript, Prisma, PostgreSQL, Better Auth, Vitest, Playwright, Tailwind CSS, shadcn-style UI components.
-- deployment signals: Production deployment is now recorded through `.ai/deployment/production-v0.1.2-2026-06-26.md`; the current assumed production source is tag `v0.1.2` at commit `9358ca8f6c44b292f9906f7d3c5602067075c66a`, pending production URL and smoke evidence confirmation.
+- deployment signals: Production deployment is now recorded through `.ai/deployment/production-v0.1.6-2026-06-27.md`; the current production source is tag `v0.1.6` at commit `b0a5d72f0474da4c3cc4efe23004bdd2fc0b7597`, with GitHub Actions, Vercel deployment, and maintainer-confirmed authenticated/manual smoke evidence attached. Runtime log review, backup/restore evidence, and monitoring setup remain open.
 
 ## Harness Defaults
 
@@ -109,7 +109,7 @@ reviewed_at: 2026-06-26
 - error_monitoring_provider: unknown
 - logging_provider: Vercel runtime logs expected, ownership/evidence pending
 - feedback_channels: unknown
-- notes: production deployment is recorded, but post-release learning signals, monitoring provider, production URL, GitHub Actions run URL, Vercel deployment URL, and manual smoke results still need to be attached.
+- notes: production deployment `v0.1.6` has GitHub Actions run, Vercel deployment URL, and maintainer-confirmed authenticated/manual smoke evidence in `.ai/deployment/production-v0.1.6-2026-06-27.md`; post-release learning signals, monitoring provider setup, Vercel runtime log review, and backup/restore evidence still need to be attached.
 
 ## Constraints
 
@@ -120,9 +120,9 @@ reviewed_at: 2026-06-26
 
 ## Next Step
 
-- latest_completed_slice: production deployment status recorded in `.ai/deployment/production-v0.1.2-2026-06-26.md`.
-- active_change: production deployment evidence completion
-- recommended_resume_gate: Learning Loop after production URL, GitHub Actions run, Vercel deployment URL, smoke results, backup/restore evidence, and monitoring/log review are attached.
+- latest_completed_slice: production deployment `v0.1.6` recorded in `.ai/deployment/production-v0.1.6-2026-06-27.md`.
+- active_change: production post-deploy learning and evidence completion
+- recommended_resume_gate: Learning Loop with runtime log review, backup/restore evidence, and monitoring setup tracked as open operational gaps unless completed first.
 - recommended_next_skill: learning-loop for production monitoring and feedback; release-execution only if deployment evidence needs to be amended or another production tag is deployed.
-- required input: `.ai/deployment/production-v0.1.2-2026-06-26.md`, `.ai/intent/github-actions-vercel-neon-deployment.md`, `.ai/release/github-actions-vercel-neon-deployment-readiness.md`, `.ai/technical-design/github-actions-vercel-neon-deployment.md`, `.ai/implementation/github-actions-vercel-neon-deployment.md`, `.ai/verification/github-actions-vercel-neon-deployment.md`, `.ai/release/home-family-fund-local-dev-readiness.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
-- reason: Production deployment has been reported complete and is recorded as tag `v0.1.2` on `main`, but live evidence is still incomplete. The next project-management work should close evidence gaps rather than assume OAuth, role permissions, monitoring, and backup posture are fully proven.
+- required input: `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/verification/refund-page.md`, `.ai/implementation/refund-page.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
+- reason: Production deployment succeeded for tag `v0.1.6`; the next project-management work should define learning signals and close remaining runtime log, monitoring, and backup evidence gaps rather than assume post-release outcomes are known.
