@@ -1,7 +1,7 @@
 ---
 id: deployment-production-v0.1.6-2026-06-27
 stage: release-execution
-status: complete_with_accepted_risks
+status: complete_with_open_operational_gaps
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
 release_target: production
@@ -189,4 +189,4 @@ Forward-fix path:
   - No preview/staging release target was used before production.
   - Same-member production refund mutation smoke was skipped unless safe production data exists.
   - Runtime log review, backup/restore evidence, and monitoring provider setup remain open operational gaps rather than completed checks.
-- recommended_next_gate: Learning Loop for production monitoring, feedback, and follow-up decision criteria.
+- recommended_next_gate: Artifact Compression after `.ai/learning/refund-page-production-v0.1.6.md` review, unless a follow-up is selected as active work.

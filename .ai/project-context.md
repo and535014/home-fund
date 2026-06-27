@@ -1,6 +1,6 @@
 ---
 id: project
-stage: release-execution
+stage: learning-loop
 status: active
 delivery_profile: mvp
 release_target: production
@@ -109,7 +109,7 @@ reviewed_at: 2026-06-27
 - error_monitoring_provider: unknown
 - logging_provider: Vercel runtime logs expected, ownership/evidence pending
 - feedback_channels: unknown
-- notes: production deployment `v0.1.6` has GitHub Actions run, Vercel deployment URL, and maintainer-confirmed authenticated/manual smoke evidence in `.ai/deployment/production-v0.1.6-2026-06-27.md`; post-release learning signals, monitoring provider setup, Vercel runtime log review, and backup/restore evidence still need to be attached.
+- notes: production deployment `v0.1.6` has GitHub Actions run, Vercel deployment URL, and maintainer-confirmed authenticated/manual smoke evidence in `.ai/deployment/production-v0.1.6-2026-06-27.md`; production learning signals are recorded in `.ai/learning/refund-page-production-v0.1.6.md`; monitoring provider setup, Vercel runtime log review, and backup/restore evidence remain open operational follow-ups.
 
 ## Constraints
 
@@ -120,9 +120,9 @@ reviewed_at: 2026-06-27
 
 ## Next Step
 
-- latest_completed_slice: production deployment `v0.1.6` recorded in `.ai/deployment/production-v0.1.6-2026-06-27.md`.
-- active_change: production post-deploy learning and evidence completion
-- recommended_resume_gate: Learning Loop with runtime log review, backup/restore evidence, and monitoring setup tracked as open operational gaps unless completed first.
-- recommended_next_skill: learning-loop for production monitoring and feedback; release-execution only if deployment evidence needs to be amended or another production tag is deployed.
-- required input: `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/verification/refund-page.md`, `.ai/implementation/refund-page.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
-- reason: Production deployment succeeded for tag `v0.1.6`; the next project-management work should define learning signals and close remaining runtime log, monitoring, and backup evidence gaps rather than assume post-release outcomes are known.
+- latest_completed_slice: production learning loop for `v0.1.6` refund page release recorded in `.ai/learning/refund-page-production-v0.1.6.md`.
+- active_change: production release summary and optional compression
+- recommended_resume_gate: Artifact Compression after review approval, unless monitoring/backup/mobile/refund-correction follow-up is selected as active work.
+- recommended_next_skill: artifact-compression for compact release summary; learning-loop only if production learning signals need amendment.
+- required input: `.ai/learning/refund-page-production-v0.1.6.md`, `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/verification/refund-page.md`, `.ai/implementation/refund-page.md`, `.ai/domain/home-family-fund.md`, `README.md`, `docs/deployment.md`, `.github/workflows/ci.yml`, `.github/workflows/deploy-production.yml`, `package.json`, `prisma.config.ts`, `prisma/schema.prisma`, and `.ai/workflow.md`.
+- reason: Production deployment and learning signals are recorded for tag `v0.1.6`; artifact compression can summarize the completed release while preserving monitoring, backup/PITR, and runtime-log gaps as open operational follow-ups.
