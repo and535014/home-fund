@@ -1,6 +1,6 @@
 ---
 id: project
-stage: artifact-compression
+stage: artifact-prune
 status: active
 delivery_profile: mvp
 release_target: production
@@ -122,7 +122,7 @@ reviewed_at: 2026-06-27
 
 - latest_completed_slice: refund page production `v0.1.6` release summarized in `.ai/archive/archive-refund-page-production-v0.1.6-2026-06-27.md`.
 - active_change: no active implementation or release gate selected
-- recommended_resume_gate: Intent Intake for new follow-up work, or optional manual Artifact Prune only by explicit request.
-- recommended_next_skill: intent-intake if monitoring, backup/PITR, mobile refund navigation, refund correction/reversal, or split reimbursement becomes active; artifact-prune only if explicitly requested.
+- recommended_resume_gate: Intent Intake for new follow-up work.
+- recommended_next_skill: intent-intake if monitoring, backup/PITR, mobile refund navigation, refund correction/reversal, or split reimbursement becomes active.
 - required input: `.ai/archive/archive-refund-page-production-v0.1.6-2026-06-27.md`, `.ai/learning/refund-page-production-v0.1.6.md`, `.ai/deployment/production-v0.1.6-2026-06-27.md`, `.ai/release/refund-page-production-readiness.md`, `.ai/domain/home-family-fund.md`, `.ai/workflow.md`, and `.ai/project-context.md`.
-- reason: Production deployment, learning, and compression are recorded for tag `v0.1.6`; future work should start with a new intent or explicitly requested prune.
+- reason: Production deployment, learning, compression, and manual prune are recorded for tag `v0.1.6`; future work should start with a new intent.
