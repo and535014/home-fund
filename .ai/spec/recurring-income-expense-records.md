@@ -4,7 +4,7 @@ stage: behavior-spec
 status: draft
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
-release_target: local_dev
+release_target: production
 inputs:
   - .ai/intent/recurring-income-expense-records.md
   - .ai/domain/home-family-fund.md
@@ -85,9 +85,10 @@ reviewed_at:
 29. Deleting a recurring event requires a confirmation dialog and shows a success toast after deletion.
 30. Duplicate occurrence prevention is based on recurring event plus target year/month.
 31. Missed-month catch-up must not silently create multiple past ledger records without an explicit downstream design decision.
-32. UI copy remains Traditional Chinese using Taiwan wording: `週期事件`, `重複`, `每月固定日`, `每月月底`, `指定日期`, `馬上入帳`, `提醒入帳`, `未入帳`, and `確認入帳`.
-33. Desktop `/settings/recurring` shows expense events on the left and income events on the right, each list filling available height and scrolling internally.
-34. Mobile `/settings/recurring` uses line tabs `支出(數量)` and `收入(數量)` and does not repeat a panel title inside the active tab.
+32. Production immediate posting must have a deterministic scheduled trigger; page-view generation may exist only as an idempotent fallback.
+33. UI copy remains Traditional Chinese using Taiwan wording: `週期事件`, `重複`, `每月固定日`, `每月月底`, `指定日期`, `馬上入帳`, `提醒入帳`, `未入帳`, and `確認入帳`.
+34. Desktop `/settings/recurring` shows expense events on the left and income events on the right, each list filling available height and scrolling internally.
+35. Mobile `/settings/recurring` uses line tabs `支出(數量)` and `收入(數量)` and does not repeat a panel title inside the active tab.
 
 ## BDD Scenarios
 
@@ -286,7 +287,7 @@ And changing or deleting the recurring event later does not rewrite the ledger r
 - Decide Prisma schema for recurring event, occurrence/completion identity, posting mode, schedule anchor, and ledger recurring trace.
 - Decide whether pending occurrences are persisted eagerly, derived on demand, or stored in a completion ledger.
 - Decide command/API boundaries for `createRecurringEvent`, `deleteRecurringEvent`, `postImmediateOccurrence`, and `confirmRecurringOccurrence`.
-- Decide when immediate posting is triggered for local_dev: on month view, explicit job, server action after create, or another deterministic boundary.
+- Decide the production scheduled trigger for immediate posting and the fallback on-demand behavior for missed or delayed scheduler runs.
 - Decide whether deleting an event also cancels already-created pending occurrences, or only stops future derived occurrences.
 - Decide cache invalidation paths for settings, home, search, reimbursement, and reports.
 - Decide how recurring traces appear in ledger detail/audit without making posted ledger records depend on mutable/deleted event data.
@@ -297,7 +298,7 @@ And changing or deleting the recurring event later does not rewrite the ledger r
 
 - Prototype currently uses local state and generated fixture records; implementation must replace this with persisted commands and real reporting reads.
 - Missed-month catch-up is intentionally unresolved; implementation must not silently create multiple past records without an approved design.
-- External notification delivery is out of scope; in-app pending visibility is sufficient for MVP local_dev.
+- External notification delivery is out of scope; production still needs scheduled immediate posting, while in-app pending visibility is sufficient for reminders.
 - In-place editing, pause, end date, duplication, and non-monthly schedules are out of scope for MVP.
 
 ## Review Gate

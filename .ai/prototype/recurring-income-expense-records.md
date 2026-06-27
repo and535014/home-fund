@@ -4,7 +4,7 @@ stage: experience-prototype
 status: review
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
-release_target: local_dev
+release_target: production
 inputs:
   - .ai/intent/recurring-income-expense-records.md
   - .ai/domain/home-family-fund.md
@@ -41,7 +41,7 @@ reviewed_at: 2026-06-27
 - frontend_stack: Next.js App Router, React client components, TypeScript, Tailwind CSS, local shadcn-style components, Lucide icons
 - component_library_usage: existing PageLayout, PageHeader, Dialog, Item, Badge, Button, Input, Field, NativeSelect, Tooltip, RecordListDetail, RecordListItem, RecordDetailView components
 - fixture_or_mock_strategy: Uses real active household members/categories from Prisma when available, with local fallback fixtures. Event deletion in settings is local client state. Event creation is integrated into the existing create-record dialog as a prototype-only branch when `重複` is not `不重複`; it shows success feedback but does not persist. Home and search receive prototype-only recurring income/expense records from `src/app/recurring-prototype-data.ts`; confirmation in the detail modal is local UI state only. No recurring schema, server action, scheduler, persistence, idempotency ledger, or reporting query is implemented in this gate.
-- release_target: `local_dev`
+- release_target: `production`
 
 ## UX Direction
 
@@ -190,7 +190,7 @@ reviewed_at: 2026-06-27
 - must_check:
   - Prototype remains frontend review work; persistence, scheduler, server actions, and idempotency are deferred.
   - Behavior Spec must define event management authorization, Home/Search pending-record visibility, general-member confirmation path, duplicate prevention, pending-total exclusion, and month-end scenarios.
-  - Technical Design must define storage, occurrence generation, transaction boundaries, recurring trace on LedgerRecord, and reporting joins.
+  - Technical Design must define storage, occurrence generation, production scheduled posting, transaction boundaries, recurring trace on LedgerRecord, and reporting joins.
 - acceptance_signals:
   - User accepts settings placement and the category-page-like event-management structure.
   - User accepts Home/Search/detail as the posting confirmation surfaces.

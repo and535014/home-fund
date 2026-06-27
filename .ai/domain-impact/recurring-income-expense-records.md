@@ -4,7 +4,7 @@ stage: domain-impact
 status: review
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
-release_target: local_dev
+release_target: production
 inputs:
   - .ai/intent/recurring-income-expense-records.md
   - .ai/domain/home-family-fund.md
@@ -53,7 +53,7 @@ reviewed_at: 2026-06-27
 - A member-paid recurring expense becomes reimbursement-eligible only after immediate posting or reminder confirmation creates the ledger record.
 - Recurring events are not edited in place in the MVP slice. To change amount, category, member attribution, payment source, schedule, or posting mode, the manager deletes the existing recurring event and creates a replacement.
 - Deleting a recurring event stops future occurrence generation. Already-posted ledger records remain ledger facts and require ordinary ledger correction/deletion workflows if wrong.
-- In-app pending reminders are enough for MVP. External notifications, background delivery channels, and production scheduler guarantees are out of scope until a later release gate selects them.
+- In-app pending reminders are enough for reminder visibility. Immediate posting for production requires a deterministic scheduled trigger; on-demand generation remains only an idempotent fallback.
 
 ## Downstream Impact
 
@@ -101,7 +101,7 @@ reviewed_at: 2026-06-27
   - Should the UI later support pausing, ending, duplicating, or in-place editing recurring events after the MVP delete-and-recreate rule?
   - Should reminder confirmation allow edits to amount, date, category, note, payment source, or payer before posting?
 - domain:
-  - Missed-month catch-up remains unresolved. The MVP domain allows on-demand month handling, but technical design must avoid silent multi-month backfill without review.
+  - Missed-month catch-up remains unresolved. The MVP domain allows scheduled and on-demand target-month handling, but technical design must avoid silent multi-month backfill without review.
   - Fixed day 29-31 support is deferred. This is intentionally separate from `每月底`; users who need the last day of every month should use month-end.
 - data_or_ownership:
   - Technical design must choose persisted occurrences versus derived occurrences with a completion ledger, but either design must enforce one completion per event/month.

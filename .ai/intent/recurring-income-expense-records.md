@@ -4,7 +4,7 @@ stage: intent-intake
 status: review
 workflow_version: ddd-website-lifecycle-v2
 delivery_profile: mvp
-release_target: local_dev
+release_target: production
 project_type: feature_change
 inputs:
   - .ai/workflow.md
@@ -39,7 +39,7 @@ User request: "新增週期性收支紀錄，週期性紀錄要分成 馬上入�
 ## Classification
 
 - project_type: feature_change
-- affected_surfaces: recurring event management, record creation data model, scheduled occurrence generation, ledger persistence, pending recurring reminders, monthly dashboard/reporting, member-paid expense reimbursement state, authorization, server actions/API boundary, tests, local_dev release readiness
+- affected_surfaces: recurring event management, record creation data model, scheduled occurrence generation, ledger persistence, pending recurring reminders, monthly dashboard/reporting, member-paid expense reimbursement state, authorization, server actions/API boundary, tests, production release readiness
 - target_users: household admins or finance-capable members who maintain predictable monthly income and expenses
 - business_outcome: reduce repeated manual entry for fixed monthly items while protecting ledger accuracy when real-world payment or receipt still needs confirmation.
 
@@ -68,7 +68,7 @@ Out of scope:
 - Partial recurring amounts, split bills, variable formulas, proration, or automatic category/member inference.
 - Reimbursement payment execution or automatic settlement for member-paid recurring expenses.
 - Retroactive generation of all past missed occurrences unless a later gate explicitly accepts that behavior.
-- Production-grade background job infrastructure, queue retries, distributed locks, or observability beyond what local_dev requires.
+- External notification delivery, queue retries, and distributed worker infrastructure beyond the app's production deploy platform. A deterministic production scheduled trigger for immediate posting is in scope.
 
 ## Current Context
 
@@ -95,10 +95,10 @@ Out of scope:
 
 - UI copy remains Traditional Chinese using Taiwan wording.
 - Existing Next.js App Router, React, TypeScript, Prisma/PostgreSQL, Better Auth, Tailwind, local shadcn-style components, Vitest, and Playwright foundation should be reused.
-- `local_dev` is the release target for this slice.
+- `production` is the release target for this slice.
 - Monthly schedule means a day-of-month rule for this intent unless Domain Discovery approves a broader schedule model.
 - For months without the selected day, downstream Domain Discovery must decide whether to use the last day of the month, skip the month, or block those day choices.
-- Occurrence generation can be synchronous/on-demand for local_dev unless technical design proves a scheduled job is necessary.
+- Immediate occurrence generation must have a deterministic production scheduled trigger. On-demand generation can remain as an idempotent fallback, but it cannot be the only production trigger.
 - The initial product wording should prefer explicit financial language over automation mystique: pending items are expected money movements, not ledger truth.
 
 ## Required Downstream Gates
@@ -111,8 +111,8 @@ Out of scope:
 - Feature Technical Design: required, because persistence model, occurrence generation timing, idempotency, authorization, transaction boundaries, server actions, and tests need explicit decisions.
 - TDD Implementation: required after approved spec and technical design.
 - Verification: required after implementation.
-- Target-Aware Release: required for `local_dev` readiness because the slice likely touches schema, financial writes, reporting, and reimbursement-adjacent behavior.
-- Learning Loop: recommended for local_dev review to learn whether users understand `馬上入帳` versus `提醒入帳`.
+- Target-Aware Release: required for production readiness because the slice touches schema, financial writes, scheduler/cron behavior, reporting, and reimbursement-adjacent behavior.
+- Learning Loop: required after production release to learn whether users understand `馬上入帳` versus `提醒入帳` and whether scheduled immediate posting behaves as expected.
 - Artifact Compression: required after the slice completes.
 
 ## Open Questions
@@ -143,7 +143,7 @@ Out of scope:
 - acceptance_signals:
   - The rent example can remain pending until a member confirms receipt.
   - The internet fee example can become a member-paid expense automatically and then follow reimbursement rules.
-  - Scope is narrow enough for local_dev while still protecting financial correctness.
+  - Scope is narrow enough for production while still protecting financial correctness.
 - unresolved_blockers:
   - Authority, schedule edge cases, occurrence generation timing, missed occurrence handling, and delete/recreate semantics require Domain Discovery.
 - next_step:
