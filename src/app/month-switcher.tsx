@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 
 type MonthSwitcherProps = {
   currentMonth: string;
+  hrefPath?: string;
 };
 
 export function MonthSwitcher({
   currentMonth,
+  hrefPath = "/",
 }: MonthSwitcherProps) {
   const previousMonth = addDashboardMonths(currentMonth, -1);
   const nextMonth = addDashboardMonths(currentMonth, 1);
@@ -28,7 +30,7 @@ export function MonthSwitcher({
         size="icon"
         variant="ghost"
       >
-        <Link href={buildMonthHref(previousMonth)}>
+        <Link href={buildMonthHref(previousMonth, hrefPath)}>
           <ChevronLeft aria-hidden="true" size={18} />
         </Link>
       </Button>
@@ -40,7 +42,7 @@ export function MonthSwitcher({
         size="icon"
         variant="ghost"
       >
-        <Link href={buildMonthHref(nextMonth)}>
+        <Link href={buildMonthHref(nextMonth, hrefPath)}>
           <ChevronRight aria-hidden="true" size={18} />
         </Link>
       </Button>
@@ -48,6 +50,6 @@ export function MonthSwitcher({
   );
 }
 
-function buildMonthHref(month: string): string {
-  return `/?month=${encodeURIComponent(month)}`;
+function buildMonthHref(month: string, hrefPath: string): string {
+  return `${hrefPath}?month=${encodeURIComponent(month)}`;
 }

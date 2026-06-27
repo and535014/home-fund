@@ -18,6 +18,12 @@ const navigationItems: AppNavigationItem[] = [
     label: "搜尋",
   },
   {
+    href: "/refunds",
+    icon: APP_NAVIGATION_ICONS.handCoins,
+    label: "退款",
+    mobileVisible: false,
+  },
+  {
     href: "/settings/account",
     icon: APP_NAVIGATION_ICONS.settings,
     label: "設定",
@@ -26,16 +32,16 @@ const navigationItems: AppNavigationItem[] = [
 
 describe("mobile navigation order", () => {
   it("orders settings, home, then search", () => {
-    expect(orderMobileNavigationItems(navigationItems).map((item) => item.href)).toEqual([
-      "/settings/account",
-      "/",
-      "/search",
-    ]);
+    expect(
+      orderMobileNavigationItems(
+        navigationItems.filter((item) => item.mobileVisible !== false),
+      ).map((item) => item.href),
+    ).toEqual(["/settings/account", "/", "/search"]);
   });
 
   it("renames the home item for mobile display", () => {
     expect(mobileNavigationLabel(navigationItems[0])).toBe("首頁");
     expect(mobileNavigationLabel(navigationItems[1])).toBe("搜尋");
-    expect(mobileNavigationLabel(navigationItems[2])).toBe("設定");
+    expect(mobileNavigationLabel(navigationItems[3])).toBe("設定");
   });
 });

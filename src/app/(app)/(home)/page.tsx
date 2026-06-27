@@ -15,8 +15,12 @@ import {
 	MonthlyTrendChart,
 	type MonthlyTrendPoint,
 } from "@/app/dashboard-charts";
+import { Button } from "@/components/ui/button";
+import { Item, ItemActions, ItemContent } from "@/components/ui/item";
 import { formatAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type {
 	CategoryColorKey,
 	CategoryIconKey,
@@ -88,6 +92,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 					<div className="grid gap-7 md:min-h-0 md:gap-4 lg:grid-cols-2">
 						<PendingReimbursementsPanel
 							feedback={reimbursementFeedback}
+							month={month}
 							pendingCount={reimbursementTable.groups.reduce(
 								(total, group) => total + group.expenseIds.length,
 								0,
@@ -169,24 +174,38 @@ function MonthlyTrendPanel({ data }: { data: MonthlyTrendPoint[] }) {
 
 function PendingReimbursementsPanel({
 	feedback,
+	month,
 	pendingCount,
 	totalAmount,
 }: {
 	feedback?: string;
+	month: string;
 	pendingCount: number;
 	totalAmount: string;
 }) {
 	return (
 		<DashboardPanel
-			contentClassName="flex flex-col items-start justify-start"
+			contentClassName="flex items-start justify-start"
 			title="待退款"
 		>
-			<p className="text-heading text-foreground">{totalAmount}</p>
-			<p className="text-caption text-muted-foreground">
-				{feedback === "success"
-					? "已完成退款，搜尋頁可繼續篩選待處理項目。"
-					: `${pendingCount} 筆成員代墊支出待處理。`}
-			</p>
+			<Item className="w-full justify-between p-0">
+				<ItemContent className="min-w-0">
+					<p className="text-heading text-foreground">{totalAmount}</p>
+					<p className="text-caption text-muted-foreground">
+						{feedback === "success"
+							? "已完成退款，可前往退款頁查看後續狀態。"
+							: `${pendingCount} 筆成員代墊支出待處理。`}
+					</p>
+				</ItemContent>
+				<ItemActions className="shrink-0">
+					<Button asChild size="sm" variant="ghost">
+						<Link href={`/refunds?month=${encodeURIComponent(month)}`}>
+							前往退款
+							<ArrowRight aria-hidden="true" />
+						</Link>
+					</Button>
+				</ItemActions>
+			</Item>
 		</DashboardPanel>
 	);
 }

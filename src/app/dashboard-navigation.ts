@@ -23,6 +23,13 @@ export function getVisibleDashboardNavigationItems(
       visible: accessHints.navigation.canOpenReports,
     },
     {
+      label: "退款",
+      href: "/refunds",
+      icon: APP_NAVIGATION_ICONS.handCoins,
+      mobileVisible: false,
+      visible: accessHints.navigation.canOpenReports,
+    },
+    {
       label: "設定",
       href: "/settings/account",
       icon: APP_NAVIGATION_ICONS.settings,
