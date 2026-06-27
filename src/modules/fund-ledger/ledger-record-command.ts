@@ -1,9 +1,12 @@
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
+  loadCategoryLookups,
+  type CategoryLookupQueryPrismaClient,
+} from "../categorization/category-query";
+import {
   createLedgerRecord,
   type CreateLedgerRecordCommand,
   type CreateLedgerRecordResult,
-  type LedgerCategory,
   type LedgerRecord,
 } from "./ledger-records";
 import {
@@ -21,18 +24,7 @@ import {
 } from "./ledger-record-prisma-adapter";
 
 export type LedgerRecordCommandPrismaClient = {
-  category: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        type: true;
-        status: true;
-      };
-    }): Promise<LedgerCategory[]>;
-  };
+  category: CategoryLookupQueryPrismaClient["category"];
   ledgerRecord: {
     create(args: {
       data: {
@@ -62,18 +54,7 @@ export type LedgerRecordMutationPrismaClient = {
 };
 
 type LedgerRecordMutationTransaction = {
-  category: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        type: true;
-        status: true;
-      };
-    }): Promise<LedgerCategory[]>;
-  };
+  category: CategoryLookupQueryPrismaClient["category"];
   ledgerRecord: {
     findFirst(args: {
       where: {
@@ -104,13 +85,9 @@ export async function createLedgerRecordInDatabase(
   context: CreateLedgerRecordInDatabaseContext,
 ): Promise<CreateLedgerRecordResult> {
   const householdId = context.householdId;
-  const categories = await context.prisma.category.findMany({
-    where: { householdId },
-    select: {
-      id: true,
-      type: true,
-      status: true,
-    },
+  const categories = await loadCategoryLookups({
+    householdId,
+    prisma: context.prisma,
   });
 
   const result = createLedgerRecord(actor, command, {
@@ -164,14 +141,7 @@ export async function updateLedgerRecordInDatabase(
         },
         select: ledgerRecordSelect(),
       }),
-      tx.category.findMany({
-        where: { householdId },
-        select: {
-          id: true,
-          type: true,
-          status: true,
-        },
-      }),
+      loadCategoryLookups({ householdId, prisma: tx }),
     ]);
 
     if (!record) {

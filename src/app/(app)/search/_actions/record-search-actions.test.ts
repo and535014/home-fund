@@ -102,10 +102,13 @@ describe("batchRefundSearchRecordsAction", () => {
     });
 
     expect(result).toMatchObject({
+      status: "success",
       ok: true,
-      processedRecordIds: ["expense-1", "expense-2"],
-      processedCount: 2,
-      refundTotalCents: 4_000,
+      data: {
+        processedRecordIds: ["expense-1", "expense-2"],
+        processedCount: 2,
+        refundTotalCents: 4_000,
+      },
     });
     const batchCreateArgs = tx.reimbursementBatch.create.mock.calls[0]?.[0];
     const batchId = batchCreateArgs?.data.id;
@@ -152,6 +155,7 @@ describe("batchRefundSearchRecordsAction", () => {
     });
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/search");
+    expect(revalidatePath).toHaveBeenCalledWith("/refunds");
   });
 });
 

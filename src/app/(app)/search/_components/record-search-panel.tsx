@@ -15,29 +15,28 @@ import {
   BatchSearchFooter,
   SearchSummaryFooter,
 } from "./batch-search-footer";
-import { RecordDetailDialog } from "@/app/_record-detail/record-list-detail";
+import {
+  RecordDetailFlowDialogs,
+  useRecordDetailFlow,
+} from "@/app/_record-detail/record-detail-flow";
 import {
   RecordSearchControls,
   type SearchSurface,
 } from "./record-search-controls";
-import { RecordSearchResults } from "./record-search-results";
-import {
-  LinkedRecordsDialog,
-  ReimbursementPaymentDetailDialog,
-} from "@/app/_record-detail/reimbursement-payment-dialogs";
+import { RecordResultsList } from "./record-results-list";
 import type { ReimbursementPaymentSearchResult } from "@/app/_record-detail/reimbursement-payment-ui";
 import {
   buildRecordQueryOptions,
   initialRecordQueryState,
   isInitialRecordQuery,
   type RecordQueryState,
-} from "@/modules/reporting/record-query";
+} from "@/modules/fund-ledger/search/record-search-state";
 import {
   batchDeleteSearchRecordsAction,
   batchRefundSearchRecordsAction,
   loadReimbursementPaymentSearchPageAction,
   loadRecordSearchPageAction,
-  type BatchSearchRecordActionResult,
+  type BatchSearchRecordActionState,
 } from "../_actions/record-search-actions";
 import { loadReimbursementPaymentsByLedgerRecordIdsAction } from "@/app/_record-detail/reimbursement-payment-readback-actions";
 import {
@@ -52,9 +51,9 @@ import {
   isInitialReimbursementPaymentQuery,
   type ReimbursementPaymentQueryState,
   type ReimbursementPaymentSearchCursor,
-} from "@/modules/reporting/reimbursement-payment-search-query";
-import type { SearchRecordCursor } from "@/modules/reporting/record-search-query";
-import { Dialog } from "@/components/ui/dialog";
+} from "@/modules/reimbursement/reimbursement-payment-search-query";
+import type { SearchRecordCursor } from "@/modules/fund-ledger/search/record-search-query";
+import { readBatchRefundPaymentFormData } from "@/app/_reimbursement/batch-refund-client";
 
 export function RecordSearchPanel({
   actor,
@@ -85,16 +84,6 @@ export function RecordSearchPanel({
   >({});
   const [nextPaymentCursor, setNextPaymentCursor] =
     useState<ReimbursementPaymentSearchCursor | null>(null);
-  const [selectedDetailRecordId, setSelectedDetailRecordId] = useState<string | null>(
-    null,
-  );
-  const [selectedRelatedDetailRecord, setSelectedRelatedDetailRecord] =
-    useState<LedgerRecord | null>(null);
-  const [selectedPaymentResult, setSelectedPaymentResult] =
-    useState<ReimbursementPaymentSearchResult | null>(null);
-  const [selectedPaymentLinkedResult, setSelectedPaymentLinkedResult] =
-    useState<ReimbursementPaymentSearchResult | null>(null);
-  const [isSelectedRecordPending, setIsSelectedRecordPending] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [totalNetAmountCents, setTotalNetAmountCents] = useState(0);
   const [totalPaymentCount, setTotalPaymentCount] = useState(0);
@@ -135,10 +124,12 @@ export function RecordSearchPanel({
   const selectedRecords = displayedRecords.filter((record) =>
     selectedRecordIds.has(record.id),
   );
-  const selectedDetailRecord =
-    displayedRecords.find((record) => record.id === selectedDetailRecordId) ??
-    selectedRelatedDetailRecord;
-  const selectedPaymentLinkedRecords = selectedPaymentLinkedResult?.linkedRecords ?? [];
+  const detailFlow = useRecordDetailFlow({
+    loadPaymentForRecord: loadReimbursementPaymentDetailForLedgerRecord,
+    onPaymentUpdated: syncReimbursementPaymentUpdate,
+    onRefresh: reloadCurrentQuery,
+    records: displayedRecords,
+  });
 
   useEffect(() => {
     let isCurrent = true;
@@ -256,8 +247,7 @@ export function RecordSearchPanel({
 
   function changePaymentQuery(nextQuery: ReimbursementPaymentQueryState) {
     setPaymentQuery(nextQuery);
-    setSelectedPaymentResult(null);
-    setSelectedPaymentLinkedResult(null);
+    detailFlow.closeAll();
     setNextPaymentCursor(null);
 
     if (isInitialReimbursementPaymentQuery(nextQuery)) {
@@ -271,10 +261,7 @@ export function RecordSearchPanel({
   function changeSurface(nextSurface: SearchSurface) {
     setActiveSurface(nextSurface);
     setSelectedRecordIds(new Set());
-    setSelectedDetailRecordId(null);
-    setSelectedRelatedDetailRecord(null);
-    setSelectedPaymentResult(null);
-    setSelectedPaymentLinkedResult(null);
+    detailFlow.closeAll();
     setLoadError(null);
     setIsSelectionMode(false);
   }
@@ -305,19 +292,14 @@ export function RecordSearchPanel({
     });
   }
 
-  function openReimbursementPaymentDetail(
-    reimbursementPayment: ReimbursementPaymentSearchResult,
+  function loadReimbursementPaymentDetailForLedgerRecord(
+    record: LedgerRecord,
+    onLoaded: (payment: ReimbursementPaymentSearchResult) => void,
   ) {
-    setSelectedDetailRecordId(null);
-    setSelectedRelatedDetailRecord(null);
-    setSelectedPaymentResult(reimbursementPayment);
-  }
-
-  function openReimbursementPaymentDetailForLedgerRecord(record: LedgerRecord) {
     const cachedReimbursementPayment = reimbursementPaymentByRecordId[record.id];
 
     if (cachedReimbursementPayment) {
-      openReimbursementPaymentDetail(cachedReimbursementPayment);
+      onLoaded(cachedReimbursementPayment);
       return;
     }
 
@@ -326,7 +308,7 @@ export function RecordSearchPanel({
         ...current,
         [record.id]: payment,
       }));
-      openReimbursementPaymentDetail(payment);
+      onLoaded(payment);
     });
   }
 
@@ -442,10 +424,9 @@ export function RecordSearchPanel({
     });
   }
 
-  function handleReimbursementPaymentUpdated(
+  function syncReimbursementPaymentUpdate(
     record: UpdatedReimbursementPaymentSearchResult,
   ) {
-    setSelectedPaymentResult(record);
     setLoadedPaymentResults((current) =>
       current.map((payment) =>
         payment.id === record.id ? record : payment,
@@ -482,32 +463,34 @@ export function RecordSearchPanel({
     startTransition(() => {
       batchRefundSearchRecordsAction({
         recordIds,
-        payment: {
-          method: String(formData?.get("reimbursementMethod") ?? ""),
-          paidOn: String(formData?.get("reimbursementPaidOn") ?? ""),
-          note: String(formData?.get("reimbursementReference") ?? ""),
-        },
+        payment: readBatchRefundPaymentFormData(formData),
       }).then((result) => {
         handleBatchActionResult(result);
       });
     });
   }
 
-  function handleBatchActionResult(result: BatchSearchRecordActionResult) {
-    if (!result.ok) {
-      toast.error(result.message);
+  function handleBatchActionResult(actionState: BatchSearchRecordActionState) {
+    if (actionState.status !== "success" || actionState.ok !== true) {
+      toast.error(actionState.message ?? "批次操作失敗，請稍後再試。");
+      return;
+    }
+
+    if (!actionState.data) {
+      toast.error("批次操作已完成，但回傳資料不完整，請重新整理確認狀態。");
+      reloadCurrentQuery();
       return;
     }
 
     if (batchAction === "delete") {
       toast.success("已完成批次刪除", {
-        description: `已處理 ${result.processedCount} 筆，略過 ${result.skippedCount} 筆。`,
+        description: `已處理 ${actionState.data.processedCount} 筆，略過 ${actionState.data.skippedCount} 筆。`,
       });
     }
 
     if (batchAction === "refund") {
       toast.success("已完成批次退款", {
-        description: `已處理 ${result.processedCount} 筆，略過 ${result.skippedCount} 筆。`,
+        description: `已處理 ${actionState.data.processedCount} 筆，略過 ${actionState.data.skippedCount} 筆。`,
       });
     }
 
@@ -530,7 +513,7 @@ export function RecordSearchPanel({
         query={query}
       />
       <div className="min-h-0 flex-1 overflow-hidden">
-        <RecordSearchResults
+        <RecordResultsList
           categoriesById={categoriesById}
           emptyMessage={emptyMessage}
           hasMoreRecords={hasMoreRecords || hasMorePaymentResults}
@@ -538,14 +521,16 @@ export function RecordSearchPanel({
           onLoadMoreRecords={
             isPaymentSurface ? loadMorePaymentResults : loadMoreRecords
           }
-          onOpenRecord={(recordId) => {
-            setSelectedRelatedDetailRecord(null);
-            setSelectedDetailRecordId(recordId);
+          onOpenRecord={detailFlow.openRecord}
+          onOpenPaymentResult={(resultId) => {
+            const result =
+              loadedPaymentResults.find((candidate) => candidate.id === resultId) ??
+              null;
+
+            if (result) {
+              detailFlow.openPaymentResult(result);
+            }
           }}
-          onOpenPaymentResult={(resultId) =>
-            setSelectedPaymentResult(
-              loadedPaymentResults.find((result) => result.id === resultId) ?? null,
-            )}
           onToggleRecordSelection={
             isSelectionMode ? toggleRecordSelection : undefined
           }
@@ -597,82 +582,14 @@ export function RecordSearchPanel({
         open={batchAction === "refund"}
         records={selectedRecords}
       />
-      <Dialog
-        open={Boolean(selectedDetailRecord)}
-        onOpenChange={(open) => {
-          if (!open && !isSelectedRecordPending) {
-            setIsSelectedRecordPending(false);
-            setSelectedDetailRecordId(null);
-            setSelectedRelatedDetailRecord(null);
-          }
-        }}
-      >
-        {selectedDetailRecord ? (
-          <RecordDetailDialog
-            actor={actor}
-            category={categoriesById[selectedDetailRecord.categoryId]}
-            categories={categories}
-            categoryName={
-              categoriesById[selectedDetailRecord.categoryId]?.name ??
-              selectedDetailRecord.categoryId
-            }
-            memberNames={memberNames}
-            onMutationSuccess={() => {
-              setSelectedDetailRecordId(null);
-              setSelectedRelatedDetailRecord(null);
-              setIsSelectedRecordPending(false);
-              reloadCurrentQuery();
-            }}
-            onOpenReimbursementPayment={
-              openReimbursementPaymentDetailForLedgerRecord
-            }
-            onPendingChange={setIsSelectedRecordPending}
-            onRefresh={reloadCurrentQuery}
-            record={selectedDetailRecord}
-          />
-        ) : null}
-      </Dialog>
-      <Dialog
-        open={Boolean(selectedPaymentResult)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedPaymentResult(null);
-          }
-        }}
-      >
-        {selectedPaymentResult ? (
-          <ReimbursementPaymentDetailDialog
-            canEdit={canEditReimbursementPayments}
-            onOpenLinkedRecords={() => {
-              setSelectedPaymentResult(null);
-              setSelectedPaymentLinkedResult(selectedPaymentResult);
-            }}
-            onUpdated={handleReimbursementPaymentUpdated}
-            result={selectedPaymentResult}
-          />
-        ) : null}
-      </Dialog>
-      <Dialog
-        open={Boolean(selectedPaymentLinkedResult)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedPaymentLinkedResult(null);
-          }
-        }}
-      >
-        {selectedPaymentLinkedResult ? (
-          <LinkedRecordsDialog
-            categoriesById={categoriesById}
-            memberNames={memberNames}
-            onOpenRecord={(record) => {
-              setSelectedPaymentLinkedResult(null);
-              setSelectedRelatedDetailRecord(record);
-              setSelectedDetailRecordId(record.id);
-            }}
-            records={selectedPaymentLinkedRecords}
-          />
-        ) : null}
-      </Dialog>
+      <RecordDetailFlowDialogs
+        actor={actor}
+        canEditReimbursementPayments={canEditReimbursementPayments}
+        categories={categories}
+        categoriesById={categoriesById}
+        flow={detailFlow}
+        memberNames={memberNames}
+      />
     </div>
   );
 }

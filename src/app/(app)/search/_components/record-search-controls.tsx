@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   initialReimbursementPaymentQueryState,
   type ReimbursementPaymentQueryState,
-} from "@/modules/reporting/reimbursement-payment-search-query";
+} from "@/modules/reimbursement/reimbursement-payment-search-query";
 import {
   initialRecordQueryState,
   nextDraftQueryForParticipant,
@@ -30,7 +30,7 @@ import {
   recordFilterCount,
   type RecordQueryOptions,
   type RecordQueryState,
-} from "@/modules/reporting/record-query";
+} from "@/modules/fund-ledger/search/record-search-state";
 
 export type SearchSurface = "records" | "reimbursements";
 

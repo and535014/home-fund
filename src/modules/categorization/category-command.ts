@@ -1,10 +1,8 @@
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
-  DEFAULT_CATEGORY_COLOR,
-  DEFAULT_CATEGORY_ICON,
-  isCategoryColorKey,
-  isCategoryIconKey,
-} from "./category-visual-options";
+  loadHouseholdCategories,
+  type CategoryQueryPrismaClient,
+} from "./category-query";
 import {
   archiveCategory,
   createCategory,
@@ -22,32 +20,8 @@ import {
   type UpdateCategoryCommand,
 } from "./category-catalog";
 
-type PrismaCategoryRow = Omit<Category, "color" | "icon"> & {
-  color: string;
-  icon: string;
-};
-
 export type CategoryCommandPrismaClient = {
-  category: {
-    findMany(args: {
-      where: {
-        householdId: string;
-      };
-      select: {
-        id: true;
-        type: true;
-        name: true;
-        color: true;
-        icon: true;
-        sortOrder: true;
-        status: true;
-      };
-      orderBy?: Array<
-        | { type: "asc" }
-        | { sortOrder: "asc" }
-        | { name: "asc" }
-      >;
-    }): Promise<PrismaCategoryRow[]>;
+  category: CategoryQueryPrismaClient["category"] & {
     create(args: {
       data: {
         id: string;
@@ -64,7 +38,13 @@ export type CategoryCommandPrismaClient = {
       where: {
         id: string;
       };
-      data: Partial<Pick<Category, "color" | "icon" | "name" | "sortOrder" | "status">>;
+      data: Partial<{
+        color: UpdateCategoryCommand["color"];
+        icon: UpdateCategoryCommand["icon"];
+        name: string;
+        sortOrder: number;
+        status: "active" | "archived";
+      }>;
     }): Promise<unknown>;
   };
   $transaction?<T>(callback: (transaction: CategoryCommandPrismaClient) => Promise<T>): Promise<T>;
@@ -303,28 +283,5 @@ function loadCategories(
   prisma: CategoryCommandPrismaClient,
   householdId: string,
 ): Promise<Category[]> {
-  return prisma.category.findMany({
-    where: {
-      householdId,
-    },
-    select: {
-      id: true,
-      type: true,
-      name: true,
-      color: true,
-      icon: true,
-      sortOrder: true,
-      status: true,
-    },
-  }).then((categories) => categories.map(mapPrismaCategoryToCategory));
-}
-
-function mapPrismaCategoryToCategory(category: PrismaCategoryRow): Category {
-  return {
-    ...category,
-    color: isCategoryColorKey(category.color)
-      ? category.color
-      : DEFAULT_CATEGORY_COLOR,
-    icon: isCategoryIconKey(category.icon) ? category.icon : DEFAULT_CATEGORY_ICON,
-  };
+  return loadHouseholdCategories({ householdId, prisma });
 }

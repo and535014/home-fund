@@ -73,8 +73,16 @@ describe("getVisibleDashboardNavigationItems", () => {
     expect(navigation.map((item) => item.label)).toEqual([
       "總覽",
       "搜尋",
+      "退款",
       "設定",
     ]);
+    expect(navigation).toContainEqual(
+      expect.objectContaining({
+        href: "/refunds",
+        label: "退款",
+        mobileVisible: false,
+      }),
+    );
     expect(navigation).toContainEqual(
       expect.objectContaining({
         href: "/settings/account",

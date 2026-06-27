@@ -17,6 +17,7 @@ import {
   formatRecordDate,
   recordActorLabel,
 } from "./record-display-utils";
+import type { RecordDetailActionAccess } from "./record-detail-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { formatAmount } from "@/lib/format";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-
-export type RecordDetailActionAccess = {
-  blockedReason?: string;
-  canDelete: boolean;
-  canEdit: boolean;
-  canRefund: boolean;
-};
 
 export function RecordDetailView({
   access,

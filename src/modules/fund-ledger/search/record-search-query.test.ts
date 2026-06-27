@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { initialRecordQueryState } from "@/modules/reporting/record-query";
+import { initialRecordQueryState } from "@/modules/fund-ledger/search/record-search-state";
 import {
   buildRecordSearchPageQuery,
   calculateRecordSearchNetTotal,

@@ -17,6 +17,7 @@ export type AppNavigationItem = {
   label: string;
   href: string;
   icon: AppNavigationIconName;
+  mobileVisible?: boolean;
 };
 
 export type AuthenticatedLayoutProps = {

@@ -26,7 +26,9 @@ export function AuthenticatedMobileNav({
   const pathname = usePathname() ?? "";
   const hideMobileNavigation = pathname === "/search";
   const hideRecordCreateFab = pathname === "/settings" || pathname.startsWith("/settings/");
-  const mobileNavigationItems = orderMobileNavigationItems(navigationItems);
+  const mobileNavigationItems = orderMobileNavigationItems(
+    navigationItems.filter((item) => item.mobileVisible !== false),
+  );
 
   if (hideMobileNavigation) {
     return null;
