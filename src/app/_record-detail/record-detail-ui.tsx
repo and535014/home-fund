@@ -37,6 +37,7 @@ export function RecordDetailView({
   canShowFooterActions,
   categoryName,
   displayedRecord,
+  isConfirmRecurringPostingPending = false,
   memberNames,
   onDelete,
   onEdit,
@@ -52,6 +53,7 @@ export function RecordDetailView({
   canShowFooterActions: boolean;
   categoryName: string;
   displayedRecord: LedgerRecord;
+  isConfirmRecurringPostingPending?: boolean;
   memberNames: Record<string, string>;
   onDelete: () => void;
   onEdit: () => void;
@@ -139,9 +141,13 @@ export function RecordDetailView({
       {canShowFooterActions ? (
         <DialogFooter className="mt-4">
           {recurringPostingPending ? (
-            <Button onClick={onConfirmRecurringPosting} type="button">
+            <Button
+              disabled={isConfirmRecurringPostingPending}
+              onClick={onConfirmRecurringPosting}
+              type="button"
+            >
               <CheckCircle2 />
-              確認入帳
+              {isConfirmRecurringPostingPending ? "入帳中..." : "確認入帳"}
             </Button>
           ) : null}
           {!recurringPostingPending && access.canDelete ? (

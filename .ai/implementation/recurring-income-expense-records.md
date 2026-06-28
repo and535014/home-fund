@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: Home/Search persisted pending occurrence read model
+- current_slice: persisted pending occurrence detail confirmation
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -189,12 +189,36 @@ Implemented after red tests:
 - `src/app/_record-detail/record-list-detail.tsx` and `src/app/(app)/search/_components/record-results-list.tsx`
   - use pending recurring ids for `未入帳`, opacity, and `成員 · 週期事件` row treatment.
 
+## TDD Slice 7: Pending Occurrence Detail Confirmation
+
+Tests written first:
+
+- updates to `src/modules/recurring/recurring-occurrence-query.test.ts`
+- `src/app/_record-detail/record-detail-dialog.test.tsx`
+
+Implemented after red tests:
+
+- `src/modules/recurring/recurring-occurrence-query.ts`
+  - carries persisted schedule/posting-mode trace as `recurringEventLabel`.
+  - exposes helpers for recognizing pending occurrence row ids and extracting occurrence ids.
+- `src/app/_record-detail/record-detail-flow.tsx`
+  - reads recurring trace labels from persisted pending occurrence rows.
+  - passes occurrence ids into the detail dialog.
+- `src/app/_record-detail/record-detail-dialog.tsx`
+  - confirms pending recurring occurrences through `confirmRecurringOccurrenceAction`.
+  - shows success/error toast from the server action result.
+  - only marks the row confirmed locally after server action success.
+- `src/app/_record-detail/record-detail-ui.tsx`
+  - disables the confirm button while posting and shows `入帳中...`.
+- `src/app/recurring-prototype-data.ts`
+  - removed after Home/Search/detail stopped depending on prototype recurring records.
+
 ## Remaining Implementation
 
 - production cron route and secret handling.
-- recurring trace labels and detail confirmation for persisted pending occurrences.
+- recurring trace labels for already-posted recurring ledger records.
 - focused component and E2E coverage.
 
 ## Next Slice
 
-Wire persisted pending occurrence detail confirmation to `confirmRecurringOccurrenceAction`, including recurring event trace labels.
+Add the production recurring posting trigger and production release readiness checks for recurring event scheduling.

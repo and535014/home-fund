@@ -2,10 +2,13 @@
 
 import { useRef, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
-import { recurringPrototypeEventLabel } from "@/app/recurring-prototype-data";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import type { HouseholdAccessProfile } from "@/modules/identity-access/session-access";
+import {
+  isPendingRecurringOccurrenceRecord,
+  pendingRecurringOccurrenceIdFromRecordId,
+} from "@/modules/recurring/recurring-occurrence-query";
 import { RecordDetailDialog } from "./record-detail-dialog";
 import {
   LinkedRecordsDialog,
@@ -53,7 +56,9 @@ export function useRecordDetailFlow({
   }
 
   function recurringEventLabel(record: LedgerRecord): string | undefined {
-    return recurringPrototypeEventLabel(record.id);
+    return isPendingRecurringOccurrenceRecord(record)
+      ? record.recurringEventLabel
+      : undefined;
   }
 
   function closeSelectedRecord() {
@@ -193,6 +198,9 @@ export function RecordDetailFlowDialogs({
             onRefresh={flow.onRefresh}
             record={flow.selectedRecord}
             recurringEventLabel={flow.recurringEventLabel(flow.selectedRecord)}
+            recurringOccurrenceId={pendingRecurringOccurrenceIdFromRecordId(
+              flow.selectedRecord.id,
+            )}
             recurringPostingPending={flow.isPendingRecurringRecord(flow.selectedRecord)}
           />
         ) : null}

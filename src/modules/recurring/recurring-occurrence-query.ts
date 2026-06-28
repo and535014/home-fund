@@ -12,22 +12,26 @@ type RecurringOccurrenceRow = {
     amountCents: number;
     categoryId: string;
     createdByMemberId: string;
+    dayOfMonth: number | null;
     name: string;
     payerMemberId: string | null;
     paymentSource: "fund" | "member" | null;
+    postingMode: "immediate" | "reminder";
+    scheduleAnchor: "fixed_day" | "month_end";
     sourceMemberId: string | null;
     type: "income" | "expense";
   };
 };
 
 export type PendingRecurringOccurrenceRecord = LedgerRecord & {
+  recurringEventLabel: string;
   recurringOccurrenceId: string;
 };
 
 export type PendingRecurringOccurrencePrismaClient = {
   recurringOccurrence: {
     findMany(args: {
-      include: { recurringRule: true };
+    include: { recurringRule: true };
       orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }];
       where: {
         householdId: string;
@@ -124,6 +128,7 @@ function mapPendingOccurrenceRowToLedgerRecord(
     note: undefined,
     occurredOn: formatDateOnly(row.targetDate),
     recurringOccurrenceId: row.id,
+    recurringEventLabel: recurringEventLabel(row.recurringRule),
     reimbursementStatus: "not_applicable" as const,
     status: "active" as const,
   };
@@ -155,6 +160,20 @@ export function isPendingRecurringOccurrenceRecordId(recordId: string): boolean 
   return recordId.startsWith("recurring-occurrence:");
 }
 
+export function pendingRecurringOccurrenceIdFromRecordId(
+  recordId: string,
+): string | undefined {
+  return isPendingRecurringOccurrenceRecordId(recordId)
+    ? recordId.slice("recurring-occurrence:".length)
+    : undefined;
+}
+
+export function isPendingRecurringOccurrenceRecord(
+  record: LedgerRecord,
+): record is PendingRecurringOccurrenceRecord {
+  return isPendingRecurringOccurrenceRecordId(record.id);
+}
+
 function formatDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -175,4 +194,15 @@ function recurringTargetDateRange(query: RecordQueryState) {
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
+}
+
+function recurringEventLabel(rule: RecurringOccurrenceRow["recurringRule"]): string {
+  const scheduleLabel = rule.scheduleAnchor === "month_end"
+    ? "每月底"
+    : `每月 ${rule.dayOfMonth ?? 1} 號`;
+  const postingModeLabel = rule.postingMode === "immediate"
+    ? "馬上入帳"
+    : "提醒入帳";
+
+  return `${scheduleLabel}，${postingModeLabel}`;
 }

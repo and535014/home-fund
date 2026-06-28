@@ -17,6 +17,11 @@ import {
   type VoidLedgerRecordActionField,
 } from "@/app/ledger-record-actions";
 import {
+  confirmRecurringOccurrenceAction,
+  type ConfirmRecurringOccurrenceActionCode,
+  type ConfirmRecurringOccurrenceActionField,
+} from "@/app/recurring-event-actions";
+import {
   LedgerRecordAmountNameFields,
   LedgerRecordCancelButton,
   LedgerRecordCategoryField,
@@ -60,6 +65,7 @@ export function RecordDetailDialog({
   onRefresh,
   record,
   recurringEventLabel,
+  recurringOccurrenceId,
   recurringPostingPending = false,
 }: {
   actor: HouseholdAccessProfile;
@@ -74,12 +80,23 @@ export function RecordDetailDialog({
   onRefresh: () => void;
   record: LedgerRecord;
   recurringEventLabel?: string;
+  recurringOccurrenceId?: string;
   recurringPostingPending?: boolean;
 }) {
   const [mode, setMode] = useState<"detail" | "edit" | "delete" | "refund">(
     "detail",
   );
   const [isRefundedLocally, setIsRefundedLocally] = useState(false);
+  const [confirmRecurringActionState, setConfirmRecurringActionState] =
+    useState(() =>
+      initialActionState<
+        { occurrenceId: string; recordId: string },
+        ConfirmRecurringOccurrenceActionField,
+        ConfirmRecurringOccurrenceActionCode
+      >(),
+    );
+  const [isConfirmRecurringPending, startConfirmRecurringTransition] =
+    useTransition();
   const displayedRecord =
     isRefundedLocally && record.type === "expense"
       ? ({
@@ -100,6 +117,43 @@ export function RecordDetailDialog({
         access.canRefund ||
         canOpenReimbursementPayment) &&
       (!access.blockedReason || canOpenReimbursementPayment));
+
+  useEffect(() => {
+    if (!recurringPostingPending) {
+      return;
+    }
+
+    onPendingChange(isConfirmRecurringPending);
+
+    return () => onPendingChange(false);
+  }, [isConfirmRecurringPending, onPendingChange, recurringPostingPending]);
+
+  function confirmRecurringPosting() {
+    if (!recurringOccurrenceId) {
+      toast.error("找不到要入帳的週期事件。");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("occurrenceId", recurringOccurrenceId);
+
+    startConfirmRecurringTransition(async () => {
+      const nextState = await confirmRecurringOccurrenceAction(
+        confirmRecurringActionState,
+        formData,
+      );
+
+      setConfirmRecurringActionState(nextState);
+
+      if (nextState.status === "success") {
+        toast.success(nextState.message ?? "週期事件已入帳。");
+        onConfirmRecurringPosting?.();
+        return;
+      }
+
+      toast.error(nextState.message ?? "週期事件入帳失敗。");
+    });
+  }
 
   if (mode === "edit") {
     return (
@@ -168,7 +222,8 @@ export function RecordDetailDialog({
       memberNames={memberNames}
       onDelete={() => setMode("delete")}
       onEdit={() => setMode("edit")}
-      onConfirmRecurringPosting={onConfirmRecurringPosting}
+      isConfirmRecurringPostingPending={isConfirmRecurringPending}
+      onConfirmRecurringPosting={confirmRecurringPosting}
       onOpenReimbursementPayment={() =>
         onOpenReimbursementPayment?.(displayedRecord)}
       onRefund={() => setMode("refund")}
