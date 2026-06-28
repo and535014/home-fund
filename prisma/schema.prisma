@@ -88,6 +88,11 @@ enum RecurringPostingMode {
   reminder
 }
 
+enum RecurringScheduleAnchor {
+  fixed_day
+  month_end
+}
+
 enum RecurringOccurrenceStatus {
   pending
   posted
@@ -134,6 +139,8 @@ model Member {
   reimbursementPaymentsRecorded ReimbursementPayment[]       @relation("ReimbursementPaymentRecorder")
   reimbursementPaymentsEdited   ReimbursementPayment[]       @relation("ReimbursementPaymentEditor")
   createdLedgerImportBatches    LedgerImportBatch[]          @relation("LedgerImportBatchCreator")
+  createdRecurringRules         RecurringRule[]              @relation("RecurringEventCreator")
+  postedRecurringOccurrences    RecurringOccurrence[]        @relation("RecurringOccurrencePoster")
   createdInvitations            MemberInvitation[]           @relation("MemberInvitationCreator")
   invitations                   MemberInvitation[]           @relation("MemberInvitationTarget")
 
@@ -285,41 +292,51 @@ model LedgerImportRow {
 }
 
 model RecurringRule {
-  id             String               @id @default(cuid())
-  householdId    String
-  type           LedgerRecordType
-  amountCents    Int
-  categoryId     String
-  sourceMemberId String?
-  paymentSource  PaymentSource?
-  payerMemberId  String?
-  postingMode    RecurringPostingMode
-  dayOfMonth     Int
-  note           String?
-  active         Boolean              @default(true)
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                String                  @id @default(cuid())
+  householdId       String
+  name              String
+  type              LedgerRecordType
+  amountCents       Int
+  categoryId        String
+  sourceMemberId    String?
+  paymentSource     PaymentSource?
+  payerMemberId     String?
+  postingMode       RecurringPostingMode
+  scheduleAnchor    RecurringScheduleAnchor
+  dayOfMonth        Int?
+  note              String?
+  active            Boolean                 @default(true)
+  createdByMemberId String
+  deletedAt         DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
-  household   Household             @relation(fields: [householdId], references: [id], onDelete: Restrict)
-  category    Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  occurrences RecurringOccurrence[]
+  household       Household             @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category        Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdByMember Member                @relation("RecurringEventCreator", fields: [createdByMemberId], references: [id], onDelete: Restrict)
+  occurrences     RecurringOccurrence[]
 
   @@index([householdId, active])
+  @@index([householdId, type, active])
 }
 
 model RecurringOccurrence {
-  id              String                    @id @default(cuid())
-  householdId     String
-  recurringRuleId String
-  month           String
-  status          RecurringOccurrenceStatus
-  ledgerRecordId  String?                   @unique
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  id               String                    @id @default(cuid())
+  householdId      String
+  recurringRuleId  String
+  month            String
+  targetDate       DateTime                  @db.Date
+  status           RecurringOccurrenceStatus
+  ledgerRecordId   String?                   @unique
+  postedByMemberId String?
+  postedAt         DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
 
-  household     Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
-  recurringRule RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
-  ledgerRecord  LedgerRecord? @relation(fields: [ledgerRecordId], references: [id], onDelete: SetNull)
+  household      Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  recurringRule  RecurringRule @relation(fields: [recurringRuleId], references: [id], onDelete: Cascade)
+  ledgerRecord   LedgerRecord? @relation(fields: [ledgerRecordId], references: [id], onDelete: SetNull)
+  postedByMember Member?       @relation("RecurringOccurrencePoster", fields: [postedByMemberId], references: [id], onDelete: Restrict)
 
   @@unique([recurringRuleId, month])
   @@index([householdId, month, status])

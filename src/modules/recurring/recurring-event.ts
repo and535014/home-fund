@@ -111,6 +111,10 @@ export type ResolveRecurringTargetDateResult =
       reason: "invalid_month" | "invalid_schedule_day";
     };
 
+export type RecurringEventToLedgerCommandResult =
+  | CreateLedgerRecordCommand
+  | Exclude<ResolveRecurringTargetDateResult, string>;
+
 export function createRecurringEvent(
   actor: AuthenticatedMember,
   command: CreateRecurringEventCommand,
@@ -148,7 +152,7 @@ export function createRecurringEvent(
 export function recurringEventToLedgerCommand(
   event: RecurringEvent,
   month: string,
-): CreateLedgerRecordCommand | ResolveRecurringTargetDateResult {
+): RecurringEventToLedgerCommandResult {
   const occurredOn = resolveRecurringTargetDate(event.schedule, month);
 
   if (typeof occurredOn !== "string") {
