@@ -10,7 +10,6 @@ import {
 } from "./record-detail-flow";
 import { recordActorLabel } from "./record-display-utils";
 import { RecordListItem } from "./record-list-item";
-import { isRecurringPrototypeRecord } from "@/app/recurring-prototype-data";
 import { ItemGroup } from "@/components/ui/item";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
@@ -86,7 +85,6 @@ export function RecordListDetail({
             {records.map((record) => {
               const isPendingRecurringRecord =
                 detailFlow.isPendingRecurringRecord(record);
-              const isRecurringRecord = isRecurringPrototypeRecord(record.id);
 
               return (
                 <RecordListItem
@@ -94,7 +92,7 @@ export function RecordListDetail({
                   className={isPendingRecurringRecord ? "opacity-70" : undefined}
                   dateLabel={isPendingRecurringRecord ? "未入帳" : undefined}
                   description={
-                    isRecurringRecord
+                    isPendingRecurringRecord
                       ? `${recordActorLabel(record, memberNames)} · 週期事件`
                       : undefined
                   }

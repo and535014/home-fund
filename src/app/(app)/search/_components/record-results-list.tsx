@@ -20,7 +20,6 @@ import {
 import { formatAmount } from "@/lib/format";
 import type { Category } from "@/modules/categorization/category-catalog";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
-import { isRecurringPrototypeRecord } from "@/app/recurring-prototype-data";
 
 export function RecordResultsList({
   categoriesById,
@@ -95,19 +94,19 @@ export function RecordResultsList({
           }
           dateLabel={pendingRecurringRecordIdSet.has(record.id) ? "未入帳" : undefined}
           description={
-            isRecurringPrototypeRecord(record.id)
+            pendingRecurringRecordIdSet.has(record.id)
               ? `${recordActorLabel(record, memberNames)} · 週期事件`
               : undefined
           }
           isSelected={
-            !isRecurringPrototypeRecord(record.id) &&
+            !pendingRecurringRecordIdSet.has(record.id) &&
             (selectedRecordIds?.has(record.id) ?? false)
           }
           key={record.id}
           memberNames={memberNames}
           onOpen={() => onOpenRecord(record.id)}
           onToggleSelection={
-            isRecurringPrototypeRecord(record.id)
+            pendingRecurringRecordIdSet.has(record.id)
               ? undefined
               : onToggleRecordSelection
           }

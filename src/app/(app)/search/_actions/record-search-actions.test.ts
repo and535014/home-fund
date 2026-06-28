@@ -4,6 +4,7 @@ import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import {
   batchRefundSearchRecordsAction,
+  loadRecordSearchPageAction,
   loadReimbursementPaymentSearchPageAction,
 } from "./record-search-actions";
 import {
@@ -29,6 +30,82 @@ vi.mock("@/db/prisma", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuthenticatedMember();
+});
+
+describe("loadRecordSearchPageAction", () => {
+  it("returns matching pending recurring occurrences before ledger records", async () => {
+    const prisma = {
+      ledgerRecord: {
+        findMany: vi.fn(async () => [
+          ledgerRecordRow({ id: "ledger-income-1", type: "income" }),
+        ]),
+        count: vi.fn(async () => 1),
+        groupBy: vi.fn(async () => [
+          { type: "income" as const, _sum: { amountCents: 50_000 } },
+        ]),
+      },
+      recurringOccurrence: {
+        findMany: vi.fn(async () => [
+          {
+            id: "occurrence-rent-2026-07",
+            targetDate: new Date("2026-07-01T00:00:00.000Z"),
+            recurringRule: {
+              amountCents: 1_800_000,
+              categoryId: "income-rent",
+              createdByMemberId: "member-fin",
+              name: "成員 A 房租收入",
+              payerMemberId: null,
+              paymentSource: null,
+              sourceMemberId: "member-fin",
+              type: "income" as const,
+            },
+          },
+        ]),
+      },
+    };
+
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    const result = await loadRecordSearchPageAction({
+      query: {
+        categoryId: "all",
+        dateFrom: "2026-07-01",
+        dateTo: "2026-07-31",
+        participant: "all",
+        reimbursementStatus: "all",
+        search: "房租",
+        sort: "newest",
+        type: "income",
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      records: [
+        {
+          id: "recurring-occurrence:occurrence-rent-2026-07",
+          name: "成員 A 房租收入",
+          occurredOn: "2026-07-01",
+        },
+        {
+          id: "ledger-income-1",
+        },
+      ],
+      totalCount: 1,
+      totalNetAmountCents: 50_000,
+    });
+    expect(prisma.recurringOccurrence.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          householdId: "household-demo",
+          status: "pending",
+          recurringRule: expect.objectContaining({
+            postingMode: "reminder",
+          }),
+        }),
+      }),
+    );
+  });
 });
 
 describe("batchRefundSearchRecordsAction", () => {
@@ -454,6 +531,30 @@ function mockAuthenticatedMember(overrides?: {
       },
     },
   } as Awaited<ReturnType<typeof requireAuthenticatedMember>>);
+}
+
+function ledgerRecordRow({
+  id,
+  type,
+}: {
+  id: string;
+  type: "income" | "expense";
+}) {
+  return {
+    id,
+    type,
+    name: type === "income" ? "房租收入" : "網路費",
+    amountCents: type === "income" ? 50_000 : 12_990,
+    occurredOn: new Date("2026-07-02T00:00:00.000Z"),
+    categoryId: type === "income" ? "income-rent" : "expense-network",
+    createdByMemberId: "member-fin",
+    sourceMemberId: type === "income" ? "member-fin" : null,
+    paymentSource: type === "expense" ? "member" as const : null,
+    payerMemberId: type === "expense" ? "member-fin" : null,
+    reimbursementStatus: type === "expense" ? "refundable" as const : "not_applicable" as const,
+    status: "active" as const,
+    note: null,
+  };
 }
 
 function reimbursementPaymentRow({

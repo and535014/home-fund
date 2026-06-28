@@ -12,10 +12,6 @@ import {
 import { MonthSwitcher } from "@/app/month-switcher";
 import { HomeRecordTabs } from "@/app/home-record-tabs";
 import {
-	buildRecurringPrototypeRecords,
-	isRecurringPrototypeReminderRecord,
-} from "@/app/recurring-prototype-data";
-import {
 	MonthlyTrendChart,
 	type MonthlyTrendPoint,
 } from "@/app/dashboard-charts";
@@ -50,17 +46,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 			member.displayName,
 		]),
 	);
-	const recurringPrototypeRecords = buildRecurringPrototypeRecords({
-		categories: dashboardData.categories,
-		members: dashboardData.householdMembers,
-		month,
-	});
 	const visibleMonthRecords = [
-		...recurringPrototypeRecords,
+		...dashboardData.pendingRecurringRecords,
 		...dashboardData.records.toReversed(),
 	];
-	const pendingRecurringRecordIds = recurringPrototypeRecords
-			.filter((record) => isRecurringPrototypeReminderRecord(record.id))
+	const pendingRecurringRecordIds = dashboardData.pendingRecurringRecords
 			.map((record) => record.id);
 	const trendPoints = buildYearlyTrendPoints(month, dashboardData.yearlyRecords);
 	const reimbursementFeedback = readSearchParam(

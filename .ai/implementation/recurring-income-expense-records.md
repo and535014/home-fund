@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: persisted settings read and delete wiring
+- current_slice: Home/Search persisted pending occurrence read model
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -161,13 +161,40 @@ Implemented after red tests:
   - delete confirmation calls `deleteRecurringEventAction`.
   - successful delete removes the row locally and shows the server action success toast.
 
+## TDD Slice 6: Home/Search Pending Occurrence Read Model
+
+Tests written first:
+
+- `src/modules/recurring/recurring-occurrence-query.test.ts`
+- updates to `src/app/home-dashboard-data-source.test.ts`
+- updates to `src/app/(app)/search/_actions/record-search-actions.test.ts`
+
+Implemented after red tests:
+
+- `src/modules/recurring/recurring-occurrence-query.ts`
+  - loads active, non-deleted, reminder-mode pending occurrences for a selected month.
+  - maps pending occurrences into the existing ledger-compatible list row shape.
+  - prefixes pending occurrence row ids with `recurring-occurrence:`.
+  - applies ordinary search filters for Search pending occurrence results.
+- `src/app/home-dashboard-data-source.ts`
+  - loads persisted pending recurring records with monthly dashboard data.
+- `src/app/(app)/(home)/page.tsx`
+  - replaces prototype recurring rows with persisted pending recurring rows.
+- `src/app/(app)/search/_actions/record-search-actions.ts`
+  - includes matching pending recurring rows on the first search page.
+  - keeps `totalCount` and `totalNetAmountCents` ledger-only so pending rows do not affect totals.
+- `src/app/(app)/search/_components/record-search-panel.tsx`
+  - removes client-side prototype recurring rows.
+  - prevents pending recurring rows from batch selection.
+- `src/app/_record-detail/record-list-detail.tsx` and `src/app/(app)/search/_components/record-results-list.tsx`
+  - use pending recurring ids for `未入帳`, opacity, and `成員 · 週期事件` row treatment.
+
 ## Remaining Implementation
 
 - production cron route and secret handling.
-- Home/Search read model for pending occurrences and recurring trace.
-- replace prototype records in Home/Search with persisted recurring occurrence read models.
+- recurring trace labels and detail confirmation for persisted pending occurrences.
 - focused component and E2E coverage.
 
 ## Next Slice
 
-Replace Home/Search prototype recurring rows with persisted occurrence read models, then wire detail confirmation to `confirmRecurringOccurrenceAction`.
+Wire persisted pending occurrence detail confirmation to `confirmRecurringOccurrenceAction`, including recurring event trace labels.
