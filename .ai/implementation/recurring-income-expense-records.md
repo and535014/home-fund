@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: persistence schema and recurring occurrence commands
+- current_slice: ActionState server actions and form parser
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -78,6 +78,7 @@ Implemented after red tests:
 - `corepack pnpm db:validate` passed.
 - `corepack pnpm type-check` passed.
 - `corepack pnpm lint` passed.
+- `corepack pnpm vitest run src/app/recurring-event-form.test.ts src/app/recurring-event-actions.test.ts src/modules/recurring/recurring-event-command.test.ts` passed.
 
 ## TDD Slice 2: Persistence Commands And Schema
 
@@ -102,9 +103,29 @@ Implemented after red tests:
   - forward migration for the production schema changes.
   - clamps migrated target dates to each month end for old occurrence rows.
 
+## TDD Slice 3: ActionState Server Actions And Form Parser
+
+Tests written first:
+
+- `src/app/recurring-event-form.test.ts`
+- `src/app/recurring-event-actions.test.ts`
+
+Implemented after red tests:
+
+- `src/app/recurring-event-form.ts`
+  - parses recurring create form data from existing add-record fields.
+  - validates fixed-day 1-28 and explicit month-end schedule.
+  - parses delete and confirm ids.
+- `src/app/recurring-event-actions.ts`
+  - `createRecurringEventAction`
+  - `deleteRecurringEventAction`
+  - `confirmRecurringOccurrenceAction`
+  - returns existing project `ActionState` shape.
+  - maps domain and parser failures to typed field errors.
+  - revalidates `/`, `/search`, `/settings/recurring`, and `/refunds` according to the mutation.
+
 ## Remaining Implementation
 
-- `ActionState` server actions and form parser.
 - production cron route and secret handling.
 - Home/Search read model for pending occurrences and recurring trace.
 - replace prototype-only recurring list and prototype records.
@@ -112,4 +133,4 @@ Implemented after red tests:
 
 ## Next Slice
 
-Implement `ActionState` server actions and form parsers for recurring create/delete/confirm, then wire the add-record dialog, settings delete, and detail confirmation to those actions.
+Wire the add-record dialog, settings delete, and detail confirmation to the recurring actions, then replace prototype-only recurring settings data with persisted reads.
