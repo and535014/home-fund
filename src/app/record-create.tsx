@@ -57,7 +57,7 @@ export function RecordCreateScope({
     setCreatePending(false);
     setMode(null);
     toast.success("週期事件已新增", {
-      description: "正式儲存會在後續實作接上週期事件資料。",
+      description: "已更新週期事件設定。",
       id: "create-recurring-event-success",
     });
   }, []);

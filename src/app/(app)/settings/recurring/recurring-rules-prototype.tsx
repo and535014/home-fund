@@ -5,12 +5,17 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { initialActionState } from "@/app/action-state";
 import {
   CategoryVisualMark,
   getCategoryVisual,
 } from "@/app/category-visuals";
+import {
+  deleteRecurringEventAction,
+  type DeleteRecurringEventActionState,
+} from "@/app/recurring-event-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,134 +37,46 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/modules/categorization/category-catalog";
-
-type MemberOption = {
-  id: string;
-  displayName: string;
-};
+import type { RecurringEventSettingsItem } from "@/modules/recurring/recurring-event-query";
 
 type PostingMode = "immediate" | "reminder";
 type RecordType = "income" | "expense";
 type ScheduleAnchor = "fixed_day" | "month_end";
-type PaymentSource = "fund" | "member";
 type RecurringRuleTab = "expense" | "income";
 type RecurringRule = {
-  amount: number;
+  amountCents: number;
   categoryId: string;
   id: string;
-  memberId: string;
   name: string;
   nextOccurrenceLabel: string;
-  paymentSource: PaymentSource;
   postingMode: PostingMode;
   scheduleAnchor: ScheduleAnchor;
-  scheduleDay: number;
+  scheduleDay?: number;
   type: RecordType;
 };
 
-type RecurringRulesPrototypeProps = {
+type RecurringEventsPanelProps = {
   categories: Category[];
-  members: MemberOption[];
+  events: RecurringEventSettingsItem[];
 };
 
-export function RecurringRulesPrototype({
+export function RecurringEventsPanel({
   categories,
-  members,
-}: RecurringRulesPrototypeProps) {
-  const fallbackMembers = members.length > 0
-    ? members
-    : [
-        { id: "member-a", displayName: "成員 A" },
-        { id: "member-b", displayName: "成員 B" },
-      ];
-  const fallbackCategories = categories.length > 0
-    ? categories
-    : [
-        {
-          color: "teal" as const,
-          icon: "badge-dollar-sign" as const,
-          id: "income-rent",
-          name: "房租收入",
-          sortOrder: 0,
-          status: "active" as const,
-          type: "income" as const,
-        },
-        {
-          color: "blue" as const,
-          icon: "wifi" as const,
-          id: "expense-network",
-          name: "網路費",
-          sortOrder: 0,
-          status: "active" as const,
-          type: "expense" as const,
-        },
-        {
-          color: "gold" as const,
-          icon: "home" as const,
-          id: "expense-maintenance",
-          name: "管理費",
-          sortOrder: 1,
-          status: "active" as const,
-          type: "expense" as const,
-        },
-      ];
-
-  const incomeCategories = fallbackCategories.filter((category) =>
-    category.status === "active" && category.type === "income",
-  );
-  const expenseCategories = fallbackCategories.filter((category) =>
-    category.status === "active" && category.type === "expense",
-  );
-  const defaultIncomeCategoryId = incomeCategories[0]?.id ?? fallbackCategories[0]?.id ?? "";
-  const defaultExpenseCategoryId = expenseCategories[0]?.id ?? defaultIncomeCategoryId;
-  const defaultMemberId = fallbackMembers[0]?.id ?? "";
-  const secondMemberId = fallbackMembers[1]?.id ?? defaultMemberId;
-
-  const [rules, setRules] = useState<RecurringRule[]>(() => [
-    {
-      amount: 18000,
-      categoryId: defaultIncomeCategoryId,
-      id: "rule-rent",
-      memberId: defaultMemberId,
-      name: "成員 A 房租收入",
-      nextOccurrenceLabel: "2026/07/01",
-      paymentSource: "member",
-      postingMode: "reminder",
-      scheduleAnchor: "fixed_day",
-      scheduleDay: 1,
-      type: "income",
-    },
-    {
-      amount: 1299,
-      categoryId: defaultExpenseCategoryId,
-      id: "rule-network",
-      memberId: secondMemberId,
-      name: "網路費",
-      nextOccurrenceLabel: "2026/07/15",
-      paymentSource: "member",
-      postingMode: "immediate",
-      scheduleAnchor: "fixed_day",
-      scheduleDay: 15,
-      type: "expense",
-    },
-    {
-      amount: 3200,
-      categoryId: expenseCategories[1]?.id ?? defaultExpenseCategoryId,
-      id: "rule-month-end",
-      memberId: secondMemberId,
-      name: "月底管理費",
-      nextOccurrenceLabel: "2026/07/31",
-      paymentSource: "fund",
-      postingMode: "reminder",
-      scheduleAnchor: "month_end",
-      scheduleDay: 31,
-      type: "expense",
-    },
-  ]);
+  events,
+}: RecurringEventsPanelProps) {
+  const [deletedRuleIds, setDeletedRuleIds] = useState<string[]>([]);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [activeMobileTab, setActiveMobileTab] =
     useState<RecurringRuleTab>("expense");
+  const [isPending, startTransition] = useTransition();
 
+  const rules = useMemo(
+    () =>
+      events
+        .filter((event) => !deletedRuleIds.includes(event.id))
+        .map(toRecurringRule),
+    [deletedRuleIds, events],
+  );
   const incomeRules = rules.filter((rule) => rule.type === "income");
   const expenseRules = rules.filter((rule) => rule.type === "expense");
   const deletingRule =
@@ -170,18 +87,31 @@ export function RecurringRulesPrototype({
       return;
     }
 
-    setRules((currentRules) =>
-      currentRules.filter((rule) => rule.id !== deletingRule.id),
-    );
-    setDeletingRuleId(null);
-    toast.success("週期事件已刪除");
+    const formData = new FormData();
+    formData.set("recurringEventId", deletingRule.id);
+
+    startTransition(async () => {
+      const result = await deleteRecurringEventAction(
+        initialActionState() as DeleteRecurringEventActionState,
+        formData,
+      );
+
+      if (result.status === "error") {
+        toast.error(result.message ?? "週期事件刪除失敗。");
+        return;
+      }
+
+      setDeletedRuleIds((currentIds) => [...currentIds, deletingRule.id]);
+      setDeletingRuleId(null);
+      toast.success(result.message ?? "週期事件已刪除");
+    });
   }
 
   return (
     <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)] gap-4">
       <div className="hidden min-h-0 gap-4 md:grid md:grid-cols-2">
         <RecurringRulePanelContent
-          categories={fallbackCategories}
+          categories={categories}
           count={expenseRules.length}
           emptyLabel="尚無支出週期事件"
           onDelete={setDeletingRuleId}
@@ -189,7 +119,7 @@ export function RecurringRulesPrototype({
           title="支出"
         />
         <RecurringRulePanelContent
-          categories={fallbackCategories}
+          categories={categories}
           count={incomeRules.length}
           emptyLabel="尚無收入週期事件"
           onDelete={setDeletingRuleId}
@@ -209,7 +139,7 @@ export function RecurringRulesPrototype({
         </TabsList>
         {activeMobileTab === "expense" ? (
           <RecurringRulePanelContent
-            categories={fallbackCategories}
+            categories={categories}
             count={expenseRules.length}
             emptyLabel="尚無支出週期事件"
             onDelete={setDeletingRuleId}
@@ -219,7 +149,7 @@ export function RecurringRulesPrototype({
           />
         ) : (
           <RecurringRulePanelContent
-            categories={fallbackCategories}
+            categories={categories}
             count={incomeRules.length}
             emptyLabel="尚無收入週期事件"
             onDelete={setDeletingRuleId}
@@ -247,7 +177,7 @@ export function RecurringRulesPrototype({
                 <div className="rounded-card border border-destructive/40 bg-destructive/10 p-4">
                   <p className="text-body-strong">{deletingRule.name}</p>
                   <p className="mt-1 text-body text-muted-foreground">
-                    {formatCurrency(deletingRule.amount)} · {scheduleLabel(deletingRule)} ·{" "}
+                    {formatCurrency(deletingRule.amountCents)} · {scheduleLabel(deletingRule)} ·{" "}
                     {postingModeLabel(deletingRule.postingMode)}
                   </p>
                 </div>
@@ -255,6 +185,7 @@ export function RecurringRulesPrototype({
               <DialogFooter className="mt-4">
                 <Button
                   onClick={() => setDeletingRuleId(null)}
+                  disabled={isPending}
                   type="button"
                   variant="outline"
                 >
@@ -263,11 +194,12 @@ export function RecurringRulesPrototype({
                 </Button>
                 <Button
                   onClick={confirmDeleteRule}
+                  disabled={isPending}
                   type="button"
                   variant="destructive"
                 >
                   <Trash2 />
-                  確認刪除
+                  {isPending ? "刪除中..." : "確認刪除"}
                 </Button>
               </DialogFooter>
             </>
@@ -392,7 +324,7 @@ function RecurringRuleItem({
             rule.type === "income" ? "text-income" : "text-expense",
           )}
         >
-          <span className="truncate">{formatCurrency(rule.amount)}</span>
+          <span className="truncate">{formatCurrency(rule.amountCents)}</span>
         </ItemTitle>
         <ItemDescription className="truncate">
           下次 {rule.nextOccurrenceLabel}
@@ -441,5 +373,21 @@ function formatCurrency(amount: number): string {
     currency: "TWD",
     maximumFractionDigits: 0,
     style: "currency",
-  }).format(amount);
+  }).format(amount / 100);
+}
+
+function toRecurringRule(event: RecurringEventSettingsItem): RecurringRule {
+  return {
+    amountCents: event.amountCents,
+    categoryId: event.categoryId,
+    id: event.id,
+    name: event.name,
+    nextOccurrenceLabel: event.nextOccurrenceLabel,
+    postingMode: event.postingMode,
+    scheduleAnchor: event.schedule.anchor,
+    ...(event.schedule.anchor === "fixed_day"
+      ? { scheduleDay: event.schedule.dayOfMonth }
+      : {}),
+    type: event.type,
+  };
 }

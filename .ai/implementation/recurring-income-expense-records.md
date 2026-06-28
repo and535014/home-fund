@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: ActionState server actions and form parser
+- current_slice: persisted settings read and delete wiring
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -124,13 +124,50 @@ Implemented after red tests:
   - maps domain and parser failures to typed field errors.
   - revalidates `/`, `/search`, `/settings/recurring`, and `/refunds` according to the mutation.
 
+## TDD Slice 4: Add-Record Dialog Action Wiring
+
+Tests written first:
+
+- `src/app/record-entry-panel.test.tsx`
+
+Implemented after red tests:
+
+- `src/app/record-entry-panel.tsx`
+  - `重複 = 不重複` still submits to `createLedgerRecordAction`.
+  - recurring schedules submit the same uncontrolled form data to `createRecurringEventAction`.
+  - record and recurring event action states share the same pending and feedback surface.
+  - success callbacks close the create dialog and trigger the existing toast path.
+- `src/app/record-create.tsx`
+  - recurring-event success toast now reflects real persisted creation.
+
+## TDD Slice 5: Settings Persisted Read And Delete Wiring
+
+Tests written first:
+
+- `src/modules/recurring/recurring-event-query.test.ts`
+- `src/app/(app)/settings/recurring/recurring-events-panel.test.tsx`
+
+Implemented after red tests:
+
+- `src/modules/recurring/recurring-event-query.ts`
+  - loads active, non-deleted recurring events for settings.
+  - maps persisted schedule anchors into domain-facing recurring schedules.
+  - computes the next occurrence label for fixed-day and month-end events.
+- `src/app/(app)/settings/recurring/page.tsx`
+  - loads recurring events from persisted data instead of local prototype fixtures.
+- `src/app/(app)/settings/recurring/recurring-rules-prototype.tsx`
+  - component export is now `RecurringEventsPanel`.
+  - renders only persisted event props, with no fallback prototype rows.
+  - delete confirmation calls `deleteRecurringEventAction`.
+  - successful delete removes the row locally and shows the server action success toast.
+
 ## Remaining Implementation
 
 - production cron route and secret handling.
 - Home/Search read model for pending occurrences and recurring trace.
-- replace prototype-only recurring list and prototype records.
+- replace prototype records in Home/Search with persisted recurring occurrence read models.
 - focused component and E2E coverage.
 
 ## Next Slice
 
-Wire the add-record dialog, settings delete, and detail confirmation to the recurring actions, then replace prototype-only recurring settings data with persisted reads.
+Replace Home/Search prototype recurring rows with persisted occurrence read models, then wire detail confirmation to `confirmRecurringOccurrenceAction`.
