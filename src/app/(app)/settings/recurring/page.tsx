@@ -7,11 +7,8 @@ import { RecurringRulesPrototype } from "./recurring-rules-prototype";
 
 export default async function RecurringSettingsPage() {
   const session = await requireAuthenticatedMember();
-  const canManageRecurringRules =
-    session.profile.roles.includes("admin") ||
-    session.profile.roles.includes("finance_manager");
 
-  if (!canManageRecurringRules) {
+  if (!session.accessHints.actions.canManageRecurringEvents) {
     redirect("/");
   }
 

@@ -6,6 +6,7 @@ export type AccessNavigationHints = {
   canOpenCreateRecord: boolean;
   canOpenReimbursements: boolean;
   canOpenCategories: boolean;
+  canOpenRecurringEvents: boolean;
   canOpenMembers: boolean;
 };
 
@@ -18,6 +19,7 @@ export type AccessActionHints = {
   canDeleteRecordsForOthers: boolean;
   canPerformReimbursement: boolean;
   canImportLedgerRecords: boolean;
+  canManageRecurringEvents: boolean;
   canManageMembers: boolean;
   canManageCategories: boolean;
 };
@@ -33,6 +35,9 @@ export function buildAccessHints(member: AuthenticatedMember): AccessHints {
   const canBrowse = allowed(member, { type: "browse_household_records" });
   const canManageMembers = allowed(member, { type: "manage_members" });
   const canManageCategories = allowed(member, { type: "manage_categories" });
+  const canManageRecurringEvents = allowed(member, {
+    type: "manage_recurring_events",
+  });
   const canPerformReimbursement = allowed(member, { type: "perform_reimbursement" });
   const canImportLedgerRecords = allowed(member, { type: "import_ledger_records" });
   const canCreateOwnRecords = allowed(member, {
@@ -67,6 +72,7 @@ export function buildAccessHints(member: AuthenticatedMember): AccessHints {
       canOpenCreateRecord: canCreateOwnRecords,
       canOpenReimbursements: canPerformReimbursement,
       canOpenCategories: canManageCategories,
+      canOpenRecurringEvents: canManageRecurringEvents,
       canOpenMembers: canManageMembers,
     },
     actions: {
@@ -78,6 +84,7 @@ export function buildAccessHints(member: AuthenticatedMember): AccessHints {
       canDeleteRecordsForOthers,
       canPerformReimbursement,
       canImportLedgerRecords,
+      canManageRecurringEvents,
       canManageMembers,
       canManageCategories,
     },

@@ -75,7 +75,7 @@ export type HouseholdMemberOptionQueryPrismaClient = {
 };
 
 const memberRoles = ["admin", "finance_manager", "general_member"] as const;
-const memberCapabilities = ["manage_categories"] as const;
+const memberCapabilities = ["manage_categories", "manage_recurring"] as const;
 
 export async function loadHouseholdMembers({
   householdId,

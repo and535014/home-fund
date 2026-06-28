@@ -22,9 +22,6 @@ export default async function SettingsLayout({
 }) {
   const session = await requireAuthenticatedMember();
   const displayName = session.profile.displayName;
-  const canManageRecurringRules =
-    session.profile.roles.includes("admin") ||
-    session.profile.roles.includes("finance_manager");
   const settingsItems = [
     { href: "/settings/account", label: "帳號資訊", visible: true },
     {
@@ -40,7 +37,7 @@ export default async function SettingsLayout({
     {
       href: "/settings/recurring",
       label: "週期事件",
-      visible: canManageRecurringRules,
+      visible: session.accessHints.navigation.canOpenRecurringEvents,
     },
     {
       href: "/settings/import",

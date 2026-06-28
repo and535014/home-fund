@@ -142,6 +142,45 @@ describe("authorize", () => {
     });
   });
 
+  it("allows admins and finance managers to manage recurring events", () => {
+    expect(authorize(admin, command("manage_recurring_events"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(financeManager, command("manage_recurring_events"))).toEqual({
+      allowed: true,
+    });
+    expect(authorize(generalMember, command("manage_recurring_events"))).toEqual({
+      allowed: false,
+      reason: "finance_manager_required",
+    });
+  });
+
+  it("authorizes recurring confirmation with ordinary record creation ownership", () => {
+    expect(
+      authorize(
+        generalMember,
+        command("confirm_recurring_occurrence", { targetMemberId: "member-a" }),
+      ),
+    ).toEqual({ allowed: true });
+
+    expect(
+      authorize(
+        generalMember,
+        command("confirm_recurring_occurrence", { targetMemberId: "member-b" }),
+      ),
+    ).toEqual({
+      allowed: false,
+      reason: "cannot_create_record_for_other_member",
+    });
+
+    expect(
+      authorize(
+        financeManager,
+        command("confirm_recurring_occurrence", { targetMemberId: "member-b" }),
+      ),
+    ).toEqual({ allowed: true });
+  });
+
   it("allows only admins to manage categories", () => {
     expect(authorize(admin, command("manage_categories"))).toEqual({
       allowed: true,
