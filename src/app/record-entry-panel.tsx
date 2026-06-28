@@ -16,6 +16,12 @@ import {
   type CreateLedgerRecordActionState,
 } from "./ledger-record-actions";
 import {
+  createRecurringEventAction,
+  type CreateRecurringEventActionCode,
+  type CreateRecurringEventActionField,
+  type CreateRecurringEventActionState,
+} from "./recurring-event-actions";
+import {
   useRecordCreate,
   type RecordCreateData,
   type RecordCreateMode,
@@ -207,7 +213,7 @@ function RecordEntryFormShell({
   setCreatePending: (pending: boolean) => void;
   submitLabel: string;
 }) {
-  const [actionState, formAction, isPending] = useActionState(
+  const [recordActionState, recordFormAction, isRecordPending] = useActionState(
     createLedgerRecordAction,
     initialActionState<
       { recordId: string },
@@ -215,15 +221,27 @@ function RecordEntryFormShell({
       CreateLedgerRecordActionCode
     >(),
   );
-  const feedbackMessage = createRecordFeedbackMessage(actionState);
+  const [recurringEventActionState, recurringEventFormAction, isRecurringEventPending] =
+    useActionState(
+      createRecurringEventAction,
+      initialActionState<
+        { recurringEventId: string },
+        CreateRecurringEventActionField,
+        CreateRecurringEventActionCode
+      >(),
+    );
+  const isPending = isRecordPending || isRecurringEventPending;
+  const feedbackMessage = createRecordFeedbackMessage(
+    recurrenceSchedule === "none" ? recordActionState : recurringEventActionState,
+  );
 
   function submitAction(formData: FormData) {
     if (formData.get("recurrenceSchedule") !== "none") {
-      onRecurringEventCreated();
+      recurringEventFormAction(formData);
       return;
     }
 
-    formAction(formData);
+    recordFormAction(formData);
   }
 
   useEffect(() => {
@@ -233,12 +251,20 @@ function RecordEntryFormShell({
   }, [isPending, setCreatePending]);
 
   useActionStateEffect(
-    actionState,
+    recordActionState,
     useCallback((handledState) => {
       if (handledState.status === "success") {
         onRecordCreated();
       }
     }, [onRecordCreated]),
+  );
+  useActionStateEffect(
+    recurringEventActionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
+        onRecurringEventCreated();
+      }
+    }, [onRecurringEventCreated]),
   );
 
   return (
@@ -398,7 +424,7 @@ function useActiveCategories(
 }
 
 function createRecordFeedbackMessage(
-  result: CreateLedgerRecordActionState,
+  result: CreateLedgerRecordActionState | CreateRecurringEventActionState,
 ): { tone: "success" | "error"; message: string } | undefined {
   if (result.status === "idle" || !result.message) {
     return undefined;
