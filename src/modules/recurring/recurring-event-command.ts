@@ -51,6 +51,39 @@ export type RecurringEventMutationPrismaClient = {
   ): Promise<T>;
 };
 
+export type RecurringEventPostingJobPrismaClient =
+  RecurringEventMutationPrismaClient & {
+    household: {
+      findMany(args: {
+        orderBy: { createdAt: "asc" };
+        select: { id: true };
+      }): Promise<{ id: string }[]>;
+    };
+    member: {
+      findFirst(args: {
+        orderBy: { createdAt: "asc" };
+        select: {
+          id: true;
+          roles: {
+            select: { role: true };
+          };
+        };
+        where: {
+          householdId: string;
+          roles: {
+            some: {
+              role: { in: ["admin", "finance_manager"] };
+            };
+          };
+          status: "active";
+        };
+      }): Promise<{
+        id: string;
+        roles: { role: "admin" | "finance_manager" | "general_member" }[];
+      } | null>;
+    };
+  };
+
 type RecurringEventMutationTransaction = CategoryLookupQueryPrismaClient & {
   ledgerRecord: {
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
@@ -121,6 +154,12 @@ export type EnsureRecurringOccurrencesResult = {
   pendingCount: number;
   postedCount: number;
   skippedCount: number;
+};
+
+export type RunRecurringPostingJobResult = EnsureRecurringOccurrencesResult & {
+  householdCount: number;
+  skippedHouseholdCount: number;
+  targetMonth: string;
 };
 
 export type ConfirmRecurringOccurrenceResult =
@@ -294,6 +333,11 @@ export async function ensureRecurringOccurrencesForMonth(
         continue;
       }
 
+      if (targetDate > formatDateInTimeZone(context.now?.() ?? new Date(), "Asia/Taipei")) {
+        summary.skippedCount += 1;
+        continue;
+      }
+
       const postResult = await postRecurringEventLedgerRecord(actor, event, {
         categories,
         generateLedgerRecordId: context.generateLedgerRecordId,
@@ -313,6 +357,54 @@ export async function ensureRecurringOccurrencesForMonth(
 
     return summary;
   });
+}
+
+export async function runRecurringPostingJob({
+  prisma,
+  targetDate = new Date(),
+}: {
+  prisma: RecurringEventPostingJobPrismaClient;
+  targetDate?: Date;
+}): Promise<RunRecurringPostingJobResult> {
+  const targetMonth = formatMonthInTimeZone(targetDate, "Asia/Taipei");
+  const households = await prisma.household.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  const summary: RunRecurringPostingJobResult = {
+    alreadyPostedCount: 0,
+    householdCount: 0,
+    pendingCount: 0,
+    postedCount: 0,
+    skippedCount: 0,
+    skippedHouseholdCount: 0,
+    targetMonth,
+  };
+
+  for (const household of households) {
+    const actor = await loadRecurringPostingActor(prisma, household.id);
+
+    if (!actor) {
+      summary.skippedHouseholdCount += 1;
+      continue;
+    }
+
+    const result = await ensureRecurringOccurrencesForMonth(actor, {
+      month: targetMonth,
+    }, {
+      householdId: household.id,
+      now: () => targetDate,
+      prisma,
+    });
+
+    summary.alreadyPostedCount += result.alreadyPostedCount;
+    summary.householdCount += 1;
+    summary.pendingCount += result.pendingCount;
+    summary.postedCount += result.postedCount;
+    summary.skippedCount += result.skippedCount;
+  }
+
+  return summary;
 }
 
 export async function confirmRecurringOccurrenceInDatabase(
@@ -501,4 +593,70 @@ function toLedgerRecordCreateData(record: LedgerRecord, householdId: string) {
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
+}
+
+async function loadRecurringPostingActor(
+  prisma: RecurringEventPostingJobPrismaClient,
+  householdId: string,
+): Promise<AuthenticatedMember | null> {
+  const member = await prisma.member.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      roles: {
+        select: { role: true },
+      },
+    },
+    where: {
+      householdId,
+      roles: {
+        some: {
+          role: { in: ["admin", "finance_manager"] },
+        },
+      },
+      status: "active",
+    },
+  });
+
+  if (!member) {
+    return null;
+  }
+
+  return {
+    googleAccountLinked: true,
+    id: member.id,
+    roles: member.roles.map((role) => role.role),
+  };
+}
+
+function formatMonthInTimeZone(date: Date, timeZone: string): string {
+  const parts = datePartsInTimeZone(date, timeZone);
+
+  return `${parts.year}-${parts.month}`;
+}
+
+function formatDateInTimeZone(date: Date, timeZone: string): string {
+  const parts = datePartsInTimeZone(date, timeZone);
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function datePartsInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(date);
+  const valueByType = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return {
+    day: valueByType.day,
+    month: valueByType.month,
+    year: valueByType.year,
+  };
 }

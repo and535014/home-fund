@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: persisted pending occurrence detail confirmation
+- current_slice: production recurring posting trigger
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -213,12 +213,37 @@ Implemented after red tests:
 - `src/app/recurring-prototype-data.ts`
   - removed after Home/Search/detail stopped depending on prototype recurring records.
 
+## TDD Slice 8: Production Recurring Posting Trigger
+
+Tests written first:
+
+- updates to `src/modules/recurring/recurring-event-command.test.ts`
+- `src/app/api/cron/recurring-posting/route.test.ts`
+
+Implemented after red tests:
+
+- `src/modules/recurring/recurring-event-command.ts`
+  - adds `runRecurringPostingJob`.
+  - derives target month from the supplied date in `Asia/Taipei`.
+  - processes one month only and returns aggregate counts without household financial details.
+  - selects an active admin/finance-manager actor per household for ordinary ledger authorization.
+  - skips households without a posting actor.
+  - prevents future-dated immediate occurrences in the target month from posting early.
+- `src/app/api/cron/recurring-posting/route.ts`
+  - adds protected `GET /api/cron/recurring-posting`.
+  - requires `Authorization: Bearer <secret>` when `RECURRING_POSTING_CRON_SECRET` or `CRON_SECRET` is configured.
+  - requires a configured secret in production.
+  - returns only summary counts.
+- `vercel.json`
+  - schedules `/api/cron/recurring-posting` daily at `16:15 UTC`, equivalent to `00:15 Asia/Taipei`.
+- `.env.example`, `README.md`, and `docs/deployment.md`
+  - document `RECURRING_POSTING_CRON_SECRET` and the Vercel `CRON_SECRET` compatibility requirement.
+
 ## Remaining Implementation
 
-- production cron route and secret handling.
 - recurring trace labels for already-posted recurring ledger records.
 - focused component and E2E coverage.
 
 ## Next Slice
 
-Add the production recurring posting trigger and production release readiness checks for recurring event scheduling.
+Run the full verification gate and then production target-aware release readiness for the recurring event slice.

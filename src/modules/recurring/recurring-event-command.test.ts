@@ -5,6 +5,7 @@ import {
   createRecurringEventInDatabase,
   deleteRecurringEventInDatabase,
   ensureRecurringOccurrencesForMonth,
+  runRecurringPostingJob,
 } from "./recurring-event-command";
 
 const admin: AuthenticatedMember = {
@@ -246,6 +247,140 @@ describe("ensureRecurringOccurrencesForMonth", () => {
         status: "posted",
       },
     });
+  });
+
+  it("does not post an immediate occurrence before its target date", async () => {
+    const tx = {
+      category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        create: vi.fn(async ({ data }) => data),
+        findUnique: vi.fn(async () => null),
+        update: vi.fn(async () => undefined),
+      },
+      recurringRule: {
+        findMany: vi.fn(async () => [
+          createRecurringRuleRow({
+            amountCents: 129_900,
+            categoryId: "expense-network",
+            dayOfMonth: 15,
+            id: "event-network",
+            name: "網路費",
+            payerMemberId: "member-b",
+            paymentSource: "member",
+            postingMode: "immediate",
+            sourceMemberId: null,
+            type: "expense",
+          }),
+        ]),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(ensureRecurringOccurrencesForMonth(admin, {
+      month: "2026-07",
+    }, {
+      generateOccurrenceId: () => "occ-network-2026-07",
+      householdId: "household-demo",
+      now: () => new Date("2026-07-01T01:00:00.000Z"),
+      prisma,
+    })).resolves.toEqual({
+      alreadyPostedCount: 0,
+      pendingCount: 0,
+      postedCount: 0,
+      skippedCount: 1,
+    });
+
+    expect(tx.recurringOccurrence.create).toHaveBeenCalled();
+    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
+    expect(tx.recurringOccurrence.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("runRecurringPostingJob", () => {
+  it("runs the current Asia Taipei month for households with a posting actor", async () => {
+    const tx = {
+      category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        create: vi.fn(async ({ data }) => data),
+        findUnique: vi.fn(async () => null),
+        update: vi.fn(async () => undefined),
+      },
+      recurringRule: {
+        findMany: vi.fn(async () => [
+          createRecurringRuleRow({
+            amountCents: 129_900,
+            categoryId: "expense-network",
+            dayOfMonth: 1,
+            id: "event-network",
+            name: "網路費",
+            payerMemberId: "member-b",
+            paymentSource: "member",
+            postingMode: "immediate",
+            sourceMemberId: null,
+            type: "expense",
+          }),
+        ]),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+      household: {
+        findMany: vi.fn(async () => [
+          { id: "household-demo" },
+          { id: "household-without-manager" },
+        ]),
+      },
+      member: {
+        findFirst: vi.fn(async ({ where }) =>
+          where.householdId === "household-demo"
+            ? {
+                id: "member-admin",
+                roles: [{ role: "admin" as const }],
+              }
+            : null,
+        ),
+      },
+    };
+
+    await expect(runRecurringPostingJob({
+      prisma,
+      targetDate: new Date("2026-06-30T16:30:00.000Z"),
+    })).resolves.toEqual({
+      alreadyPostedCount: 0,
+      householdCount: 1,
+      pendingCount: 0,
+      postedCount: 1,
+      skippedCount: 0,
+      skippedHouseholdCount: 1,
+      targetMonth: "2026-07",
+    });
+    expect(prisma.member.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        roles: {
+          some: {
+            role: { in: ["admin", "finance_manager"] },
+          },
+        },
+        status: "active",
+      }),
+    }));
+    expect(tx.recurringRule.findMany).toHaveBeenCalledWith({
+      where: {
+        active: true,
+        householdId: "household-demo",
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(tx.ledgerRecord.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        createdByMemberId: "member-admin",
+        occurredOn: new Date("2026-07-01T00:00:00.000Z"),
+      }),
+    }));
   });
 });
 
