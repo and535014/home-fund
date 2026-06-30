@@ -52,8 +52,8 @@ trace_links:
     - Member-paid expense became refundable
     - Ledger record corrected
     - Ledger record deleted
-    - Recurring rule created
-    - Recurring rule updated
+    - Recurring event created
+    - Recurring event deleted
     - Immediate recurring item posted
     - Recurring reminder created
     - Recurring reminder confirmed
@@ -99,7 +99,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 | Member Management UI | Member list, invite/create form, display-name edit, role/capability controls | Identity and Access Module | Keeps admin workflows separate from auth enforcement. |
 | Category Catalog Module | Income/expense category lifecycle, active/archive status, category pickers | Fund Ledger, Recurring Schedule, Reporting | Categories are shared reference data and must preserve historical readability. |
 | Fund Ledger Module | Income records, expense records, record ownership, payment source, correction/deletion rules, fund-paid/member-paid classification | Identity and Access, Category Catalog, Reimbursement, Reporting, Recurring Schedule | Ledger records are the financial source of truth for confirmed activity. |
-| Recurring Schedule Module | Recurring rules, posting mode, monthly occurrences, pending reminders, confirmation into ledger records | Fund Ledger, Category Catalog, Reporting | Recurring rules own schedule and pending/confirmed semantics but do not own final ledger totals. |
+| Recurring Schedule Module | Recurring events, posting mode, monthly occurrences, pending reminders, confirmation into ledger records | Fund Ledger, Category Catalog, Reporting | Recurring events own schedule and pending/confirmed semantics but do not own final ledger totals. |
 | Reimbursement Module | Reimbursement table read model, refundable expense selection, one-time reimbursed status transition | Fund Ledger, Identity and Access, Reporting | Reimbursement owns settlement status and double-reimbursement prevention. |
 | Reporting Module | Monthly report read models, category summaries, pending recurring visibility, reimbursement status summaries | Fund Ledger, Category Catalog, Recurring Schedule, Reimbursement | Reporting derives views; it must not become a second source of truth. |
 | Shared UI Component Layer | Page header, month selector, record row/table/list, status badge, form field, confirmation dialog, toast patterns | Web App Shell, feature UIs | Supports RWD and consistency while remaining domain-agnostic. |
@@ -116,8 +116,8 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 | Record ownership metadata | Fund Ledger | Identity and Access authorization checks, record UI | Strong consistency for edit/delete decisions. |
 | Payment source | Fund Ledger | Reimbursement, Reporting, record UI | Strong consistency; drives fund-paid vs member-paid behavior. |
 | Reimbursement status | Reimbursement | Reporting, reimbursement table, record UI | Strong consistency; selected refundable expense can transition to reimbursed once. |
-| Recurring rule | Recurring Schedule | Pending reminders, generated records, reports | Strong consistency for schedule changes after save; historical generated records remain independent. |
-| Recurring occurrence / pending reminder | Recurring Schedule | Reporting, ledger confirmation flow | Idempotent per rule/month; pending items excluded from ledger totals. |
+| Recurring event | Recurring Schedule | Pending reminders, generated records, reports | Strong consistency for schedule changes after save; historical generated records remain independent. |
+| Recurring occurrence / pending reminder | Recurring Schedule | Reporting, ledger confirmation flow | Idempotent per event/month; pending items excluded from ledger totals. |
 | Monthly report read model | Reporting | Web report pages | Derived; may be rebuilt from source modules on read for MVP. |
 | Reimbursement table read model | Reimbursement | Reimbursement UI, monthly report summary | Derived from member-paid expenses and reimbursement status. |
 | UI route/filter state | Web App Shell / feature UI | Current page only | Client-owned; server remains source for financial state. |
@@ -127,7 +127,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 |---|---|---|---|
 | Google OAuth Provider | Identity and Access | Google sign-in returns verified external account identity needed to create an app session. | Failed/cancelled sign-in returns to login with non-sensitive error copy. |
 | Vercel Runtime | Web App Shell and backend route/action handlers | Builds and serves the Next.js App Router application. | Deployment errors fail the build; runtime errors surface through route/page error states and logs. |
-| Neon Postgres | Persistence Boundary | Provides Postgres storage for members, categories, ledger records, recurring rules, reimbursement status, and derived read queries. | Connection pooling and migration deploy behavior must be reviewed before production. |
+| Neon Postgres | Persistence Boundary | Provides Postgres storage for members, categories, ledger records, recurring events, reimbursement status, and derived read queries. | Connection pooling and migration deploy behavior must be reviewed before production. |
 | Prisma | Persistence Boundary | Provides primary type-safe data access and migrations for Neon Postgres. | Complex report/reimbursement queries may use raw SQL or DB views; migration failures block deployment. |
 | Identity and Access | Web App Shell | `getCurrentMember()` returns member id, Google account link status, display name, roles/capabilities, and allowed navigation/action hints. | Expired/invalid session redirects to Google sign-in; unlinked accounts render account-not-recognized state. |
 | Identity and Access | Command handlers | `authorize(member, command, target)` permits or rejects command based on role/capability and target ownership. | Denials are explicit domain errors; UI must not rely only on hidden controls. |
@@ -135,8 +135,8 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 | Category UI | Category Catalog | `createCategory`, `updateCategory`, `archiveCategory`, `listCategories(type,status)`. | Duplicate/invalid names return field errors; archived categories remain visible on historical records. |
 | Ledger UI | Fund Ledger | `createIncome`, `createExpense`, `updateLedgerRecord`, `deleteLedgerRecord`, `getRecord`. | Permission, validation, stale category/member, and lifecycle conflicts return structured errors. |
 | Fund Ledger | Reimbursement | Member-paid expenses emit/are queryable as refundable until reimbursed; fund-paid expenses are excluded. | Payment source changes after reimbursement need explicit conflict behavior during verification design. |
-| Recurring UI | Recurring Schedule | `createRecurringRule`, `updateRecurringRule`, `listPendingOccurrences`, `confirmOccurrence`. | Duplicate rule/month occurrence must be rejected idempotently. |
-| Recurring Schedule | Fund Ledger | `confirmOccurrence` creates a confirmed income/expense ledger record with trace to recurring rule/occurrence. | If ledger creation fails, occurrence remains pending or failed with retry. |
+| Recurring UI | Recurring Schedule | `createRecurringEvent`, `deleteRecurringEvent`, `listPendingOccurrences`, `confirmOccurrence`. | Duplicate event/month occurrence must be rejected idempotently; rule changes are delete-and-recreate for the MVP. |
+| Recurring Schedule | Fund Ledger | `confirmOccurrence` creates a confirmed income/expense ledger record with trace to recurring event/occurrence. | If ledger creation fails, occurrence remains pending or failed with retry. |
 | Reimbursement UI | Reimbursement | `getReimbursementTable(month)`, `markExpensesReimbursed(expenseIds)`. | Must be atomic for selected ids or return per-id conflict policy; already reimbursed ids cannot be reimbursed twice. |
 | Reporting UI | Reporting | `getMonthlyReport(month)` returns totals, records, category summaries, pending reminders, reimbursement summary, and trace ids. | Failed reads show retry; report values are derived and refresh after mutations. |
 | Feature UIs | Shared UI Component Layer | Use shared form validation display, status badges, dialogs, list/table rows, toast provider. | Component failures remain client concerns; domain errors must map to accessible messages. |
@@ -308,7 +308,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
     label: valid categories
   - from: categories
     to: recurring
-    label: recurring rule categories
+    label: recurring event categories
   - from: recurring
     to: ledger
     label: confirmed occurrence creates record
@@ -346,7 +346,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 ## Open Risks
 - Primary UI locale is decided as Traditional Chinese (`zh-TW`). Currency remains unresolved, so currency formatting/configuration should stay explicit rather than buried in UI constants.
 - Role composition remains unresolved. The capability model should support a member holding multiple roles/capabilities unless product later forbids it.
-- Category and recurring-rule manager roles remain unresolved. Authorization should support configuring this without rewriting feature code.
+- Category and recurring-event manager roles remain unresolved. Authorization should support configuring this without rewriting feature code.
 - Reimbursement accounting effect remains unresolved. MVP marks status only; fund-balance transaction behavior may require a later ADR.
 - Deletion semantics remain unresolved. MVP can choose hard delete during implementation, but void/archive is safer for financial history and should be revisited before production.
 - Member invitation/linking mechanism remains unresolved. MVP should support Google account mapping by admin-managed email/linking; exact flow can be decided during implementation.
@@ -354,7 +354,7 @@ The accepted implementation stack is Next.js App Router with TypeScript, deploye
 - Vercel/Neon production readiness requires connection pooling, environment variable, migration deploy, backup/restore, and spend-limit review.
 - Prisma is accepted as primary ORM, but report/reimbursement query complexity may require raw SQL or database views.
 - Basic lint/type-check command names should be defined during scaffolding for the accepted TypeScript/Next.js stack.
-- Recurring occurrence generation needs idempotency per rule/month; implementation must not rely on UI preventing duplicates.
+- Recurring occurrence generation needs idempotency per event/month; implementation must not rely on UI preventing duplicates.
 - Reporting performance is an accepted MVP risk if computed on read.
 - Dense mobile reimbursement/report screens need verification for no horizontal overflow and accessible labels.
 - Dark theme requires contrast verification for forms, tables/lists, badges, dialogs, and financial status colors, especially income `--income` and expense `--expense`.

@@ -9,7 +9,7 @@ import {
   RotateCcw,
   Tags,
 } from "lucide-react";
-import type { ComponentProps, FormEvent, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 
 import {
@@ -36,6 +36,7 @@ import {
   FieldLabel,
   FieldSet,
 } from "@/components/ui/field";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import {
   Item,
@@ -111,11 +112,13 @@ export function CategoryPanel({
   children,
   count,
   describedBy,
+  showTitle = true,
   title,
 }: {
   children: ReactNode;
   count: number;
   describedBy?: string;
+  showTitle?: boolean;
   title: string;
 }) {
   return (
@@ -124,9 +127,11 @@ export function CategoryPanel({
       aria-describedby={describedBy}
       className="flex min-h-0 min-w-0 flex-col justify-start gap-3 overflow-hidden"
     >
-      <h3 className="shrink-0 text-body-strong text-foreground">
-        {title} ({count})
-      </h3>
+      {showTitle ? (
+        <h3 className="shrink-0 text-body-strong text-foreground">
+          {title} ({count})
+        </h3>
+      ) : null}
       <div className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
         {children}
       </div>
@@ -172,7 +177,7 @@ export function CategoryForm({
   onColorChange,
   onIconChange,
   onNameChange,
-  onSubmit,
+  action,
   onTypeChange,
   pending = false,
   submitLabel,
@@ -184,10 +189,10 @@ export function CategoryForm({
   fieldError?: string;
   icon: CategoryIconKey;
   name: string;
+  action: (formData: FormData) => void;
   onColorChange: (color: CategoryColorKey) => void;
   onIconChange: (icon: CategoryIconKey) => void;
   onNameChange: (name: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onTypeChange: (type: CategoryType) => void;
   pending?: boolean;
   submitLabel: string;
@@ -197,7 +202,7 @@ export function CategoryForm({
   const fieldErrors = fieldError ? { name: [fieldError] } : undefined;
 
   return (
-    <form className="flex min-h-0 flex-1 flex-col gap-4" onSubmit={onSubmit}>
+    <form action={action} className="flex min-h-0 flex-1 flex-col gap-4">
       {categoryId ? <input name="categoryId" type="hidden" value={categoryId} /> : null}
       <input name="color" type="hidden" value={color} />
       <input name="icon" type="hidden" value={icon} />
@@ -303,10 +308,14 @@ export function CategoryForm({
         </FieldSet>
       </DialogBody>
       <DialogFooter>
-        <Button disabled={pending} type="submit">
+        <FormSubmitButton
+          disabled={pending}
+          pendingLabel="處理中..."
+          type="submit"
+        >
           <Tags aria-hidden="true" />
-          {pending ? "處理中..." : submitLabel}
-        </Button>
+          {submitLabel}
+        </FormSubmitButton>
       </DialogFooter>
     </form>
   );

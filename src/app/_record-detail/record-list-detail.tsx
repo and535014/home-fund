@@ -8,6 +8,7 @@ import {
   RecordDetailFlowDialogs,
   useRecordDetailFlow,
 } from "./record-detail-flow";
+import { recordActorLabel } from "./record-display-utils";
 import { RecordListItem } from "./record-list-item";
 import { ItemGroup } from "@/components/ui/item";
 import type { Category } from "@/modules/categorization/category-catalog";
@@ -23,6 +24,7 @@ export function RecordListDetail({
   memberNames,
   onLoadMoreRecords,
   onToggleRecordSelection,
+  pendingRecurringRecordIds = [],
   records,
   selectedRecordIds,
 }: {
@@ -34,6 +36,7 @@ export function RecordListDetail({
   memberNames: Record<string, string>;
   onLoadMoreRecords?: () => void;
   onToggleRecordSelection?: (recordId: string) => void;
+  pendingRecurringRecordIds?: string[];
   records: LedgerRecord[];
   selectedRecordIds?: Set<string>;
 }) {
@@ -41,6 +44,7 @@ export function RecordListDetail({
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const detailFlow = useRecordDetailFlow({
     onRefresh: () => router.refresh(),
+    pendingRecurringRecordIds,
     records,
   });
 
@@ -78,17 +82,29 @@ export function RecordListDetail({
           </div>
         ) : (
           <ItemGroup className="min-h-0 flex-1 overflow-y-auto">
-            {records.map((record) => (
-              <RecordListItem
-                category={categoriesById[record.categoryId]}
-                isSelected={selectedRecordIds?.has(record.id) ?? false}
-                key={record.id}
-                memberNames={memberNames}
-                onOpen={(trigger) => detailFlow.openRecord(record.id, trigger)}
-                onToggleSelection={onToggleRecordSelection}
-                record={record}
-              />
-            ))}
+            {records.map((record) => {
+              const isPendingRecurringRecord =
+                detailFlow.isPendingRecurringRecord(record);
+
+              return (
+                <RecordListItem
+                  category={categoriesById[record.categoryId]}
+                  className={isPendingRecurringRecord ? "opacity-70" : undefined}
+                  dateLabel={isPendingRecurringRecord ? "未入帳" : undefined}
+                  description={
+                    isPendingRecurringRecord
+                      ? `${recordActorLabel(record, memberNames)} · 週期事件`
+                      : undefined
+                  }
+                  isSelected={selectedRecordIds?.has(record.id) ?? false}
+                  key={record.id}
+                  memberNames={memberNames}
+                  onOpen={(trigger) => detailFlow.openRecord(record.id, trigger)}
+                  onToggleSelection={onToggleRecordSelection}
+                  record={record}
+                />
+              );
+            })}
             {hasMoreRecords ? (
               <div
                 ref={loadMoreRef}

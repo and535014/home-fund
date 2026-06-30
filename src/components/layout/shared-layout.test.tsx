@@ -101,6 +101,7 @@ describe("shared app layout", () => {
           members: [],
           mode: null,
           onRecordCreated: () => undefined,
+          onRecurringEventCreated: () => undefined,
           openExpense: () => undefined,
           openIncome: () => undefined,
           setCreatePending: () => undefined,

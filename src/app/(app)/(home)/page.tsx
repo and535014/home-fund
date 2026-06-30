@@ -46,7 +46,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 			member.displayName,
 		]),
 	);
-	const visibleMonthRecords = dashboardData.records.toReversed();
+	const visibleMonthRecords = [
+		...dashboardData.pendingRecurringRecords,
+		...dashboardData.records.toReversed(),
+	];
+	const pendingRecurringRecordIds = dashboardData.pendingRecurringRecords
+			.map((record) => record.id);
 	const trendPoints = buildYearlyTrendPoints(month, dashboardData.yearlyRecords);
 	const reimbursementFeedback = readSearchParam(
 		context.rawSearchParams,
@@ -115,6 +120,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 						categories={dashboardData.categories}
 						categoriesById={categoriesById}
 						memberNames={memberNames}
+						pendingRecurringRecordIds={pendingRecurringRecordIds}
 						records={visibleMonthRecords}
 					/>
 				</DashboardPanel>

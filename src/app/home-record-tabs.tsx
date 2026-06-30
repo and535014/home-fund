@@ -21,12 +21,14 @@ export function HomeRecordTabs({
   categories,
   categoriesById,
   memberNames,
+  pendingRecurringRecordIds = [],
   records,
 }: {
   actor: HouseholdAccessProfile;
   categories: Category[];
   categoriesById: Record<string, Category>;
   memberNames: Record<string, string>;
+  pendingRecurringRecordIds?: string[];
   records: LedgerRecord[];
 }) {
   const [activeTab, setActiveTab] = useState<HomeRecordTab>("all");
@@ -58,6 +60,7 @@ export function HomeRecordTabs({
           categoriesById={categoriesById}
           emptyMessage={emptyMessages[activeTab]}
           memberNames={memberNames}
+          pendingRecurringRecordIds={pendingRecurringRecordIds}
           records={filteredRecords}
         />
       </div>

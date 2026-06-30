@@ -662,6 +662,7 @@ SET "amountCents" = EXCLUDED."amountCents",
 INSERT INTO "RecurringRule" (
   "id",
   "householdId",
+  "name",
   "type",
   "amountCents",
   "categoryId",
@@ -669,15 +670,18 @@ INSERT INTO "RecurringRule" (
   "paymentSource",
   "payerMemberId",
   "postingMode",
+  "scheduleAnchor",
   "dayOfMonth",
   "note",
   "active",
+  "createdByMemberId",
   "updatedAt"
 )
 VALUES
   (
     'rule-living-kai',
     'household-demo',
+    'E2E Kai 週期生活費',
     'income',
     8000000,
     'income-living',
@@ -685,19 +689,24 @@ VALUES
     NULL,
     NULL,
     'reminder',
+    'fixed_day',
     10,
     'Kai 每月生活費提醒',
     true,
+    'member-fin',
     CURRENT_TIMESTAMP
   )
 ON CONFLICT ("id") DO UPDATE
 SET "amountCents" = EXCLUDED."amountCents",
+    "name" = EXCLUDED."name",
     "categoryId" = EXCLUDED."categoryId",
     "sourceMemberId" = EXCLUDED."sourceMemberId",
     "postingMode" = EXCLUDED."postingMode",
+    "scheduleAnchor" = EXCLUDED."scheduleAnchor",
     "dayOfMonth" = EXCLUDED."dayOfMonth",
     "note" = EXCLUDED."note",
     "active" = EXCLUDED."active",
+    "createdByMemberId" = EXCLUDED."createdByMemberId",
     "updatedAt" = CURRENT_TIMESTAMP;
 
 INSERT INTO "RecurringOccurrence" (
@@ -705,6 +714,7 @@ INSERT INTO "RecurringOccurrence" (
   "householdId",
   "recurringRuleId",
   "month",
+  "targetDate",
   "status",
   "ledgerRecordId",
   "updatedAt"
@@ -714,11 +724,13 @@ VALUES (
   'household-demo',
   'rule-living-kai',
   '2026-06',
+  DATE '2026-06-10',
   'pending',
   NULL,
   CURRENT_TIMESTAMP
 )
 ON CONFLICT ("recurringRuleId", "month") DO UPDATE
-SET "status" = EXCLUDED."status",
+SET "targetDate" = EXCLUDED."targetDate",
+    "status" = EXCLUDED."status",
     "ledgerRecordId" = EXCLUDED."ledgerRecordId",
     "updatedAt" = CURRENT_TIMESTAMP;

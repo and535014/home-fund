@@ -35,6 +35,11 @@ export default async function SettingsLayout({
       visible: session.accessHints.navigation.canOpenCategories,
     },
     {
+      href: "/settings/recurring",
+      label: "週期事件",
+      visible: session.accessHints.navigation.canOpenRecurringEvents,
+    },
+    {
       href: "/settings/import",
       label: "CSV 匯入",
       visible: session.accessHints.actions.canImportLedgerRecords,

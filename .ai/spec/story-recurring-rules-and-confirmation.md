@@ -12,8 +12,8 @@ outputs:
   - experience_design_need
 trace_links:
   domain_events:
-    - Recurring rule created
-    - Recurring rule updated
+    - Recurring event created
+    - Recurring event deleted
     - Immediate recurring item posted
     - Recurring reminder created
     - Recurring reminder confirmed
@@ -41,7 +41,7 @@ As an authorized household manager, I want to define monthly recurring income an
 ## Domain Trace
 | Type | ID / Name | Why It Matters |
 |---|---|---|
-| Event | Recurring rule created | Captures expected monthly activity. |
+| Event | Recurring event created | Captures expected monthly activity. |
 | Event | Immediate recurring item posted | Books auto-posted items into the ledger. |
 | Event | Recurring reminder created | Shows expected but unconfirmed items. |
 | Event | Recurring reminder confirmed | Turns pending items into actual records. |
@@ -55,18 +55,18 @@ As an authorized household manager, I want to define monthly recurring income an
 
 ## Draft Acceptance Criteria
 - Authorized users can create recurring income and expense rules with amount, category, monthly schedule, and posting mode.
-- Authorized users can update recurring rules.
+- Authorized users can delete recurring events; changing a recurring event requires deleting it and creating a replacement.
 - Immediate posting creates a ledger record for the relevant month.
 - Reminder-based posting creates a pending recurring item for the relevant month.
 - Pending recurring items do not affect ledger totals.
 - Authorized users can confirm a pending recurring item into an income or expense record.
-- Confirmed recurring records preserve trace to the originating recurring rule.
-- Duplicate records for the same recurring rule and month are prevented.
+- Confirmed recurring records preserve trace to the originating recurring event.
+- Duplicate records for the same recurring event and month are prevented.
 
 ## Experience Design Need
 - experience_design_required: true
-- reason: Users need rule setup, posting mode selection, pending reminders, and confirmation flows.
-- user_facing_surfaces: Recurring rule management, posting mode control, pending reminders, confirmation action, monthly report indicators.
+- reason: Users need event setup, posting mode selection, pending reminders, and confirmation flows.
+- user_facing_surfaces: Recurring event management, posting mode control, pending reminders, confirmation action, monthly report indicators.
 - UX_risks: Immediate versus reminder-based posting must be very clear to avoid wrong totals.
 
 ## Visual Model
@@ -75,7 +75,7 @@ As an authorized household manager, I want to define monthly recurring income an
 - title: Recurring Rules Trace
 - nodes:
   - id: event_rule_created
-    label: Recurring rule created
+    label: Recurring event created
     kind: domain_event
   - id: event_immediate_posted
     label: Immediate recurring item posted
@@ -90,7 +90,7 @@ As an authorized household manager, I want to define monthly recurring income an
     label: Pending recurring items visible
     kind: business_outcome
   - id: xd_recurring
-    label: Rule setup and reminder confirmation
+    label: Event setup and reminder confirmation
     kind: experience_design
 - edges:
   - from: event_rule_created
@@ -116,10 +116,10 @@ P1. Recurring items are core to monthly household settlement but depend on categ
 - `story-authenticated-household-access`
 - `story-category-management`
 - `story-ledger-entry-creation`
-- Domain decision: who can manage recurring rules.
+- Domain decision: who can manage recurring events.
 
 ## Open Questions
-- Who can manage recurring rules: admin, finance manager, or both?
+- Who can manage recurring events: admin, finance manager, or both?
 - Should reminders be in-app only for MVP?
 - How should the app handle skipped months or changed recurring amounts?
 

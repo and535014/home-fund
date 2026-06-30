@@ -2,9 +2,16 @@
 
 import { Archive } from "lucide-react";
 import type { ComponentProps } from "react";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 import { initialActionState } from "@/app/action-state";
+import { useActionStateEffect } from "@/app/use-action-state-effect";
 import {
   archiveCategoryAction,
   createCategoryAction,
@@ -44,6 +51,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type CategoryType = Category["type"];
 
@@ -54,6 +62,8 @@ export type EditableCategory = Category & {
 type CategoryManagementPanelProps = {
   categories: EditableCategory[];
 };
+
+type CategoryListTab = "expense" | "income";
 
 const OPEN_CATEGORY_CREATE_EVENT = "home-fund:open-category-create";
 
@@ -96,7 +106,18 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [showArchivedCategories, setShowArchivedCategories] = useState(false);
   const [displayedCategories, setDisplayedCategories] = useState(categories);
-  const [isPending, startTransition] = useTransition();
+  const [activeMobileTab, setActiveMobileTab] =
+    useState<CategoryListTab>("expense");
+  const [isCommandPending, startTransition] = useTransition();
+  const [createActionState, createFormAction, isCreatePending] = useActionState(
+    createCategoryAction,
+    initialActionState() as CreateCategoryActionState,
+  );
+  const [updateActionState, updateFormAction, isUpdatePending] = useActionState(
+    updateCategoryAction,
+    initialActionState() as UpdateCategoryActionState,
+  );
+  const isPending = isCommandPending || isCreatePending || isUpdatePending;
 
   const activeCategories = displayedCategories
     .filter((category) => category.status === "active")
@@ -130,55 +151,37 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
     };
   }, []);
 
-  function submitCreateCategory(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedName = newName.trim();
-    const formData = new FormData(event.currentTarget);
-
-    if (!normalizedName) {
-      toast.error("請輸入分類名稱。");
-      return;
-    }
-
-    if (hasDuplicateActiveName(displayedCategories, newType, normalizedName)) {
-      toast.error("同類型已有啟用中的相同分類名稱。");
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await createCategoryAction(
-        initialActionState() as CreateCategoryActionState,
-        formData,
-      );
-
-      if (result.status === "error") {
-        toast.error(result.message ?? "分類新增失敗。");
+  useActionStateEffect(
+    createActionState,
+    useCallback((handledState) => {
+      if (handledState.status === "error") {
+        toast.error(handledState.message ?? "分類新增失敗。");
         return;
       }
 
-      const data = result.data;
-
-      if (data) {
-        setDisplayedCategories((current) => [
-          ...current,
-          {
-            color: data.color,
-            icon: data.icon,
-            id: data.categoryId,
-            name: data.name,
-            recordCount: 0,
-            sortOrder: data.sortOrder,
-            status: "active",
-            type: data.type,
-          },
-        ]);
+      const data = handledState.data;
+      if (!data) {
+        return;
       }
 
+      setDisplayedCategories((current) => [
+        ...current,
+        {
+          color: data.color,
+          icon: data.icon,
+          id: data.categoryId,
+          name: data.name,
+          recordCount: 0,
+          sortOrder: data.sortOrder,
+          status: "active",
+          type: data.type,
+        },
+      ]);
       setNewName("");
       setIsCreateDialogOpen(false);
-      toast.success(result.message ?? "分類已新增");
-    });
-  }
+      toast.success(handledState.message ?? "分類已新增");
+    }, []),
+  );
 
   function startRename(category: EditableCategory) {
     setEditingId(category.id);
@@ -187,57 +190,35 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
     setEditingIcon(category.icon);
   }
 
-  function submitRenameCategory(
-    event: FormEvent<HTMLFormElement>,
-    category: EditableCategory,
-  ) {
-    event.preventDefault();
-    const normalizedName = editingName.trim();
-    const formData = new FormData(event.currentTarget);
+  useActionStateEffect(
+    updateActionState,
+    useCallback((handledState) => {
+      if (handledState.status === "error") {
+        toast.error(handledState.message ?? "分類更新失敗。");
+        return;
+      }
 
-    if (!normalizedName) {
-      toast.error("請輸入分類名稱。");
-      return;
-    }
-
-    if (
-      hasDuplicateActiveName(
-        displayedCategories.filter((candidate) => candidate.id !== category.id),
-        category.type,
-        normalizedName,
-      )
-    ) {
-      toast.error("同類型已有啟用中的相同分類名稱。");
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await updateCategoryAction(
-        initialActionState() as UpdateCategoryActionState,
-        formData,
-      );
-
-      if (result.status === "error") {
-        toast.error(result.message ?? "分類更新失敗。");
+      const data = handledState.data;
+      if (!data) {
         return;
       }
 
       setDisplayedCategories((current) =>
         current.map((candidate) =>
-          candidate.id === category.id && result.data
+          candidate.id === data.categoryId
             ? {
                 ...candidate,
-                color: result.data.color,
-                icon: result.data.icon,
-                name: result.data.name,
+                color: data.color,
+                icon: data.icon,
+                name: data.name,
               }
             : candidate,
         ),
       );
       setEditingId(null);
-      toast.success(result.message ?? "分類已更新");
-    });
-  }
+      toast.success(handledState.message ?? "分類已更新");
+    }, []),
+  );
 
   function startArchive(category: EditableCategory) {
     setArchivingId(category.id);
@@ -370,57 +351,85 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   }
 
   return (
-    <div className="grid h-full min-h-0 gap-5">
+    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-5">
       <CategoryArchiveVisibilitySwitch
         checked={showArchivedCategories}
         disabled={isPending}
         onCheckedChange={setShowArchivedCategories}
       />
+      <p className="sr-only" id="category-archive-visibility-note">
+        {showArchivedCategories
+          ? "封存分類目前會顯示在各類型列表底部。"
+          : "封存分類目前已隱藏。"}
+      </p>
       <section
         aria-describedby="category-archive-visibility-note"
         aria-label="分類列表"
-        className="grid min-h-0 gap-4 lg:grid-cols-2"
+        className="row-start-2 hidden min-h-0 gap-4 lg:grid lg:grid-cols-2"
       >
-        <p className="sr-only" id="category-archive-visibility-note">
-          {showArchivedCategories
-            ? "封存分類目前會顯示在各類型列表底部。"
-            : "封存分類目前已隱藏。"}
-        </p>
-        <CategoryPanel count={expenseCategories.length} title="支出">
-          {expenseCategories.length === 0 ? (
-            <CategoryEmptyState />
-          ) : (
-            <CategoryList
-              categories={expenseCategories}
-              editingId={editingId}
-              onArchive={startArchive}
-              onEdit={startRename}
-              onReorder={reorderCategory}
-              onUnarchive={unarchiveCategory}
-              pending={isPending}
-              type="expense"
-            />
-          )}
-        </CategoryPanel>
-        <CategoryPanel count={incomeCategories.length} title="收入">
-          {incomeCategories.length === 0 ? (
-            <CategoryEmptyState />
-          ) : (
-            <CategoryList
-              categories={incomeCategories}
-              editingId={editingId}
-              onArchive={startArchive}
-              onEdit={startRename}
-              onReorder={reorderCategory}
-              onUnarchive={unarchiveCategory}
-              pending={isPending}
-              type="income"
-            />
-          )}
-        </CategoryPanel>
+        <CategoryPanelContent
+          categories={expenseCategories}
+          editingId={editingId}
+          isPending={isPending}
+          onArchive={startArchive}
+          onEdit={startRename}
+          onReorder={reorderCategory}
+          onUnarchive={unarchiveCategory}
+          title="支出"
+          type="expense"
+        />
+        <CategoryPanelContent
+          categories={incomeCategories}
+          editingId={editingId}
+          isPending={isPending}
+          onArchive={startArchive}
+          onEdit={startRename}
+          onReorder={reorderCategory}
+          onUnarchive={unarchiveCategory}
+          title="收入"
+          type="income"
+        />
       </section>
+      <Tabs
+        aria-describedby="category-archive-visibility-note"
+        className="row-start-2 min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:hidden"
+        onValueChange={(value) => setActiveMobileTab(value as CategoryListTab)}
+        value={activeMobileTab}
+      >
+        <TabsList aria-label="分類類型" className="w-full" variant="line">
+          <TabsTrigger value="expense">支出({expenseCategories.length})</TabsTrigger>
+          <TabsTrigger value="income">收入({incomeCategories.length})</TabsTrigger>
+        </TabsList>
+        {activeMobileTab === "expense" ? (
+          <CategoryPanelContent
+            categories={expenseCategories}
+            editingId={editingId}
+            isPending={isPending}
+            onArchive={startArchive}
+            onEdit={startRename}
+            onReorder={reorderCategory}
+            onUnarchive={unarchiveCategory}
+            showTitle={false}
+            title="支出"
+            type="expense"
+          />
+        ) : (
+          <CategoryPanelContent
+            categories={incomeCategories}
+            editingId={editingId}
+            isPending={isPending}
+            onArchive={startArchive}
+            onEdit={startRename}
+            onReorder={reorderCategory}
+            onUnarchive={unarchiveCategory}
+            showTitle={false}
+            title="收入"
+            type="income"
+          />
+        )}
+      </Tabs>
       {showArchivedCategories && archivedCount === 0 ? (
-        <p className="text-caption text-muted-foreground">
+        <p className="row-start-3 text-caption text-muted-foreground">
           目前沒有封存分類。
         </p>
       ) : null}
@@ -443,7 +452,8 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
             onColorChange={setNewColor}
             onIconChange={setNewIcon}
             onNameChange={setNewName}
-            onSubmit={submitCreateCategory}
+            action={createFormAction}
+            fieldError={createActionState.fieldErrors?.name?.[0]}
             onTypeChange={setNewType}
             pending={isPending}
             submitLabel="新增分類"
@@ -472,7 +482,8 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
               onColorChange={setEditingColor}
               onIconChange={setEditingIcon}
               onNameChange={setEditingName}
-              onSubmit={(event) => submitRenameCategory(event, editingCategory)}
+              action={updateFormAction}
+              fieldError={updateActionState.fieldErrors?.name?.[0]}
               onTypeChange={() => undefined}
               pending={isPending}
               submitLabel="儲存修改"
@@ -529,6 +540,53 @@ export function CategoryManagementPanel({ categories }: CategoryManagementPanelP
   );
 }
 
+function CategoryPanelContent({
+  categories,
+  editingId,
+  isPending,
+  onArchive,
+  onEdit,
+  onReorder,
+  onUnarchive,
+  showTitle = true,
+  title,
+  type,
+}: {
+  categories: EditableCategory[];
+  editingId: string | null;
+  isPending: boolean;
+  onArchive: (category: EditableCategory) => void;
+  onEdit: (category: EditableCategory) => void;
+  onReorder: (input: {
+    draggedCategoryId: string;
+    targetCategoryId: string;
+    type: CategoryType;
+  }) => void;
+  onUnarchive: (category: EditableCategory) => void;
+  showTitle?: boolean;
+  title: string;
+  type: CategoryType;
+}) {
+  return (
+    <CategoryPanel count={categories.length} showTitle={showTitle} title={title}>
+      {categories.length === 0 ? (
+        <CategoryEmptyState />
+      ) : (
+        <CategoryList
+          categories={categories}
+          editingId={editingId}
+          onArchive={onArchive}
+          onEdit={onEdit}
+          onReorder={onReorder}
+          onUnarchive={onUnarchive}
+          pending={isPending}
+          type={type}
+        />
+      )}
+    </CategoryPanel>
+  );
+}
+
 function seedEditableCategories(
   categories: Category[],
   records: { categoryId: string }[],
@@ -549,17 +607,4 @@ export function buildEditableCategories(
   records: { categoryId: string }[],
 ): EditableCategory[] {
   return seedEditableCategories(categories, records);
-}
-
-function hasDuplicateActiveName(
-  categories: EditableCategory[],
-  type: CategoryType,
-  name: string,
-): boolean {
-  return categories.some(
-    (category) =>
-      category.type === type &&
-      category.status === "active" &&
-      category.name === name,
-  );
 }

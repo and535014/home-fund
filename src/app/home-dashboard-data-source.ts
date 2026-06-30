@@ -14,17 +14,24 @@ import {
   loadHouseholdMembers,
   type HouseholdMemberQueryPrismaClient,
 } from "../modules/identity-access/household-member-query";
+import {
+  loadPendingRecurringOccurrenceRecordsForMonth,
+  type PendingRecurringOccurrencePrismaClient,
+  type PendingRecurringOccurrenceRecord,
+} from "../modules/recurring/recurring-occurrence-query";
 
 export type HomeDashboardData = {
   householdMembers: HouseholdMemberAccount[];
   categories: Category[];
+  pendingRecurringRecords: PendingRecurringOccurrenceRecord[];
   records: LedgerRecord[];
   yearlyRecords: LedgerRecord[];
 };
 
 export type HomeDashboardPrismaClient =
   HouseholdMemberQueryPrismaClient &
-  CategoryQueryPrismaClient & {
+  CategoryQueryPrismaClient &
+  PendingRecurringOccurrencePrismaClient & {
   ledgerRecord: {
     findMany(args: {
       where: {
@@ -46,7 +53,7 @@ export function createHomeDashboardDataSource(
       householdId: string,
       month: string,
     ): Promise<HomeDashboardData> {
-      const [householdMembers, categories, records, yearlyRecords] =
+      const [householdMembers, categories, records, yearlyRecords, pendingRecurringRecords] =
         await Promise.all([
           loadHouseholdMembers({ householdId, prisma }),
           loadHouseholdCategories({ householdId, prisma }),
@@ -68,11 +75,17 @@ export function createHomeDashboardDataSource(
             select: prismaLedgerRecordSelect,
             orderBy: [{ occurredOn: "asc" }, { createdAt: "asc" }],
           }),
+          loadPendingRecurringOccurrenceRecordsForMonth({
+            householdId,
+            month,
+            prisma,
+          }),
         ]);
 
       return {
         householdMembers,
         categories,
+        pendingRecurringRecords,
         records: records.map(mapPrismaLedgerRecordToLedgerRecord),
         yearlyRecords: yearlyRecords.map(mapPrismaLedgerRecordToLedgerRecord),
       };
@@ -86,6 +99,7 @@ export function createHomeDashboardDataSource(
       return {
         householdMembers,
         categories,
+        pendingRecurringRecords: [],
         records: [],
         yearlyRecords: [],
       };

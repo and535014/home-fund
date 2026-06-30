@@ -134,6 +134,24 @@ openssl rand -base64 32
 CSV_IMPORT_PREVIEW_SECRET="generated-base64-secret"
 ```
 
+#### `RECURRING_POSTING_CRON_SECRET`
+
+週期事件自動入帳 cron route 的 Bearer token secret。production 必須設定，不能共用
+`BETTER_AUTH_SECRET`。
+
+產生方式：
+
+```sh
+openssl rand -base64 32
+```
+
+```env
+RECURRING_POSTING_CRON_SECRET="generated-base64-secret"
+```
+
+Vercel Cron 若使用平台自動 Authorization header，請在 Vercel Production runtime
+額外設定同值的 `CRON_SECRET`。
+
 #### `GOOGLE_CLIENT_ID` 和 `GOOGLE_CLIENT_SECRET`
 
 建立 Google OAuth client：

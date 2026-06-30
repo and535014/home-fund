@@ -54,6 +54,7 @@ import {
 } from "@/modules/reimbursement/reimbursement-payment-search-query";
 import type { SearchRecordCursor } from "@/modules/fund-ledger/search/record-search-query";
 import { readBatchRefundPaymentFormData } from "@/app/_reimbursement/batch-refund-client";
+import { isPendingRecurringOccurrenceRecordId } from "@/modules/recurring/recurring-occurrence-query";
 
 export function RecordSearchPanel({
   actor,
@@ -106,7 +107,12 @@ export function RecordSearchPanel({
   const hasActivePaymentQuery = !isInitialReimbursementPaymentQuery(paymentQuery);
   const isRecordSurface = activeSurface === "records";
   const isPaymentSurface = activeSurface === "reimbursements";
-  const displayedRecords = isRecordSurface && hasActiveQuery ? loadedRecords : [];
+  const pendingRecurringRecordIds = loadedRecords
+    .filter((record) => isPendingRecurringOccurrenceRecordId(record.id))
+    .map((record) => record.id);
+  const displayedRecords = isRecordSurface
+    ? hasActiveQuery ? loadedRecords : []
+    : [];
   const displayedPaymentResults = isPaymentSurface && hasActivePaymentQuery
     ? loadedPaymentResults
     : [];
@@ -122,12 +128,14 @@ export function RecordSearchPanel({
         ? "沒有符合條件的退款紀錄。"
         : "請輸入關鍵字或設定篩選條件。";
   const selectedRecords = displayedRecords.filter((record) =>
-    selectedRecordIds.has(record.id),
+    selectedRecordIds.has(record.id) &&
+    !isPendingRecurringOccurrenceRecordId(record.id),
   );
   const detailFlow = useRecordDetailFlow({
     loadPaymentForRecord: loadReimbursementPaymentDetailForLedgerRecord,
     onPaymentUpdated: syncReimbursementPaymentUpdate,
     onRefresh: reloadCurrentQuery,
+    pendingRecurringRecordIds,
     records: displayedRecords,
   });
 
@@ -267,6 +275,10 @@ export function RecordSearchPanel({
   }
 
   function toggleRecordSelection(recordId: string) {
+    if (isPendingRecurringOccurrenceRecordId(recordId)) {
+      return;
+    }
+
     setSelectedRecordIds((current) => {
       const next = new Set(current);
 
@@ -287,7 +299,9 @@ export function RecordSearchPanel({
   function selectVisibleResults() {
     setSelectedRecordIds((current) => {
       const next = new Set(current);
-      displayedRecords.forEach((record) => next.add(record.id));
+      displayedRecords
+        .filter((record) => !isPendingRecurringOccurrenceRecordId(record.id))
+        .forEach((record) => next.add(record.id));
       return next;
     });
   }
@@ -535,6 +549,7 @@ export function RecordSearchPanel({
             isSelectionMode ? toggleRecordSelection : undefined
           }
           paymentResults={displayedPaymentResults}
+          pendingRecurringRecordIds={pendingRecurringRecordIds}
           records={displayedRecords}
           selectedRecordIds={isSelectionMode ? selectedRecordIds : undefined}
         />

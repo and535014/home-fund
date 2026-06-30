@@ -36,6 +36,7 @@ export function getVisibleDashboardNavigationItems(
       visible:
         accessHints.navigation.canOpenReports ||
         accessHints.navigation.canOpenCategories ||
+        accessHints.navigation.canOpenRecurringEvents ||
         accessHints.navigation.canOpenMembers,
     },
   ] satisfies VisibleNavigationItem[];

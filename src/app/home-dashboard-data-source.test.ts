@@ -63,10 +63,30 @@ describe("createHomeDashboardDataSource", () => {
           note: "年初收入",
         },
       ]);
+    const recurringOccurrenceFindMany = vi.fn(async () => [
+      {
+        id: "occurrence-rent-2026-06",
+        targetDate: new Date("2026-06-01T00:00:00.000Z"),
+        recurringRule: {
+          amountCents: 1_800_000,
+          categoryId: "income-rent",
+          createdByMemberId: "member-fin",
+          dayOfMonth: 1,
+          name: "房租收入",
+          payerMemberId: null,
+          paymentSource: null,
+          postingMode: "reminder" as const,
+          scheduleAnchor: "fixed_day" as const,
+          sourceMemberId: "member-fin",
+          type: "income" as const,
+        },
+      },
+    ]);
     const dataSource = createHomeDashboardDataSource({
       member: { findMany: memberFindMany },
       category: { findMany: categoryFindMany },
       ledgerRecord: { findMany: ledgerRecordFindMany },
+      recurringOccurrence: { findMany: recurringOccurrenceFindMany },
     });
 
     await expect(
@@ -93,6 +113,22 @@ describe("createHomeDashboardDataSource", () => {
           color: "gold",
           icon: "shopping-cart",
           sortOrder: 10,
+          status: "active",
+        },
+      ],
+      pendingRecurringRecords: [
+        {
+          id: "recurring-occurrence:occurrence-rent-2026-06",
+          recurringOccurrenceId: "occurrence-rent-2026-06",
+          recurringEventLabel: "每月 1 號，提醒入帳",
+          type: "income",
+          name: "房租收入",
+          amountCents: 1_800_000,
+          occurredOn: "2026-06-01",
+          categoryId: "income-rent",
+          createdByMemberId: "member-fin",
+          sourceMemberId: "member-fin",
+          reimbursementStatus: "not_applicable",
           status: "active",
         },
       ],
@@ -163,6 +199,20 @@ describe("createHomeDashboardDataSource", () => {
       },
       orderBy: [{ type: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
     });
+    expect(recurringOccurrenceFindMany).toHaveBeenCalledWith({
+      include: { recurringRule: true },
+      orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }],
+      where: {
+        householdId: "household-demo",
+        month: "2026-06",
+        status: "pending",
+        recurringRule: {
+          active: true,
+          deletedAt: null,
+          postingMode: "reminder",
+        },
+      },
+    });
   });
 
   it("loads lookup data only for the search page", async () => {
@@ -191,16 +241,20 @@ describe("createHomeDashboardDataSource", () => {
       },
     ]);
     const ledgerRecordFindMany = vi.fn(async () => []);
+    const recurringOccurrenceFindMany = vi.fn(async () => []);
     const dataSource = createHomeDashboardDataSource({
       member: { findMany: memberFindMany },
       category: { findMany: categoryFindMany },
       ledgerRecord: { findMany: ledgerRecordFindMany },
+      recurringOccurrence: { findMany: recurringOccurrenceFindMany },
     });
 
     const data = await dataSource.getSearchPageData("household-demo");
 
+    expect(data.pendingRecurringRecords).toEqual([]);
     expect(data.records).toEqual([]);
     expect(data.yearlyRecords).toEqual([]);
     expect(ledgerRecordFindMany).not.toHaveBeenCalled();
+    expect(recurringOccurrenceFindMany).not.toHaveBeenCalled();
   });
 });

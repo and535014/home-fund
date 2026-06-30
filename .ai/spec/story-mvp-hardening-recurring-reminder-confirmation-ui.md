@@ -54,7 +54,7 @@ As an authorized household member, I want to confirm a pending recurring reminde
 | Event | Recurring reminder created | The user starts from a pending item visible in the month. |
 | Event | Recurring reminder confirmed | Confirmation turns the pending item into an actual record. |
 | Policy | Reminder-based items do not affect totals until confirmed | Dashboard totals must change only after confirmation. |
-| Policy | Duplicate rule/month occurrence is prevented | Confirmation must be idempotent or conflict-safe. |
+| Policy | Duplicate event/month occurrence is prevented | Confirmation must be idempotent or conflict-safe. |
 
 ## Impact Trace
 | Impact Area | Source | Story Constraint / Note |
@@ -68,10 +68,10 @@ As an authorized household member, I want to confirm a pending recurring reminde
 - Pending reminder-based recurring items are visible for the selected month.
 - Authorized users can confirm a pending recurring item.
 - Confirmation creates the corresponding income or expense ledger record.
-- Confirmed records preserve trace to the recurring rule or occurrence.
+- Confirmed records preserve trace to the recurring event or occurrence.
 - Confirmed records are included in monthly totals after confirmation.
 - The pending item is no longer shown as pending after successful confirmation.
-- Duplicate confirmation for the same rule/month is rejected or treated as already confirmed without duplicate ledger records.
+- Duplicate confirmation for the same event/month is rejected or treated as already confirmed without duplicate ledger records.
 
 ## Experience Design Need
 - experience_design_required: true

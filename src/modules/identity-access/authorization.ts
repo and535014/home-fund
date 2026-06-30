@@ -1,5 +1,5 @@
 export type MemberRole = "admin" | "finance_manager" | "general_member";
-export type MemberCapability = "manage_categories";
+export type MemberCapability = "manage_categories" | "manage_recurring";
 
 export type AuthenticatedMember = {
   id: string;
@@ -12,8 +12,10 @@ export type AuthorizationCommand =
   | { type: "browse_household_records" }
   | { type: "manage_members" }
   | { type: "manage_categories" }
+  | { type: "manage_recurring_events" }
   | { type: "create_income_record"; targetMemberId: string }
   | { type: "create_expense_record"; targetMemberId: string }
+  | { type: "confirm_recurring_occurrence"; targetMemberId: string }
   | { type: "edit_ledger_record"; recordOwnerId: string }
   | { type: "delete_ledger_record"; recordOwnerId: string }
   | { type: "import_ledger_records" }
@@ -59,9 +61,16 @@ export function authorize(
       : { allowed: false, reason: "admin_required" };
   }
 
+  if (command.type === "manage_recurring_events") {
+    return hasRole(member, "admin") || hasRole(member, "finance_manager")
+      ? { allowed: true }
+      : { allowed: false, reason: "finance_manager_required" };
+  }
+
   if (
     command.type === "create_income_record" ||
-    command.type === "create_expense_record"
+    command.type === "create_expense_record" ||
+    command.type === "confirm_recurring_occurrence"
   ) {
     return canCreateRecordFor(member, command.targetMemberId);
   }

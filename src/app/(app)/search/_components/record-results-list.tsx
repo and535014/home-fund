@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { HandCoins } from "lucide-react";
 
 import { RecordListItem } from "@/app/_record-detail/record-list-item";
+import { recordActorLabel } from "@/app/_record-detail/record-display-utils";
 import {
   formatPaymentDate,
   type ReimbursementPaymentSearchResult,
@@ -30,6 +31,7 @@ export function RecordResultsList({
   onOpenPaymentResult,
   onToggleRecordSelection,
   paymentResults,
+  pendingRecurringRecordIds,
   records,
   selectedRecordIds,
 }: {
@@ -42,10 +44,12 @@ export function RecordResultsList({
   onOpenPaymentResult: (resultId: string) => void;
   onToggleRecordSelection?: (recordId: string) => void;
   paymentResults: ReimbursementPaymentSearchResult[];
+  pendingRecurringRecordIds?: string[];
   records: LedgerRecord[];
   selectedRecordIds?: Set<string>;
 }) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const pendingRecurringRecordIdSet = new Set(pendingRecurringRecordIds ?? []);
 
   useEffect(() => {
     if (!hasMoreRecords) {
@@ -85,11 +89,27 @@ export function RecordResultsList({
       {records.map((record) => (
         <RecordListItem
           category={categoriesById[record.categoryId]}
-          isSelected={selectedRecordIds?.has(record.id) ?? false}
+          className={
+            pendingRecurringRecordIdSet.has(record.id) ? "opacity-70" : undefined
+          }
+          dateLabel={pendingRecurringRecordIdSet.has(record.id) ? "未入帳" : undefined}
+          description={
+            pendingRecurringRecordIdSet.has(record.id)
+              ? `${recordActorLabel(record, memberNames)} · 週期事件`
+              : undefined
+          }
+          isSelected={
+            !pendingRecurringRecordIdSet.has(record.id) &&
+            (selectedRecordIds?.has(record.id) ?? false)
+          }
           key={record.id}
           memberNames={memberNames}
           onOpen={() => onOpenRecord(record.id)}
-          onToggleSelection={onToggleRecordSelection}
+          onToggleSelection={
+            pendingRecurringRecordIdSet.has(record.id)
+              ? undefined
+              : onToggleRecordSelection
+          }
           record={record}
         />
       ))}

@@ -53,6 +53,14 @@ export function RecordCreateScope({
       id: "create-record-success",
     });
   }, [router]);
+  const handleRecurringEventCreated = useCallback(() => {
+    setCreatePending(false);
+    setMode(null);
+    toast.success("週期事件已新增", {
+      description: "已更新週期事件設定。",
+      id: "create-recurring-event-success",
+    });
+  }, []);
 
   const value = useMemo<RecordCreateContextValue>(
     () => ({
@@ -63,12 +71,14 @@ export function RecordCreateScope({
       openExpense,
       openIncome,
       onRecordCreated: handleRecordCreated,
+      onRecurringEventCreated: handleRecurringEventCreated,
       setCreatePending,
     }),
     [
       close,
       createRecord,
       handleRecordCreated,
+      handleRecurringEventCreated,
       isCreatePending,
       mode,
       openExpense,

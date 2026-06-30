@@ -40,6 +40,10 @@ import {
   type ReimbursementPaymentSearchResult,
 } from "@/modules/reimbursement/reimbursement-payment-search-query";
 import type { RecordQueryState } from "@/modules/fund-ledger/search/record-search-state";
+import {
+  loadPendingRecurringOccurrenceRecordsForSearch,
+  type PendingRecurringOccurrencePrismaClient,
+} from "@/modules/recurring/recurring-occurrence-query";
 
 export type SearchRecordPageRequest = {
   query: RecordQueryState;
@@ -112,16 +116,25 @@ export async function loadRecordSearchPageAction(
   const session = await requireAuthenticatedMember();
 
   try {
+    const prisma = getPrismaClient();
     const page = await loadRecordSearchPageInDatabase({
-      prisma: getPrismaClient(),
+      prisma,
       householdId: session.access.member.householdId,
       query: request.query,
       cursor: request.cursor,
     });
+    const pendingRecurringRecords = request.cursor
+      ? []
+      : await loadPendingRecurringOccurrenceRecordsForSearch({
+          householdId: session.access.member.householdId,
+          prisma: prisma as unknown as PendingRecurringOccurrencePrismaClient,
+          query: request.query,
+        });
 
     return {
       ok: true,
       ...page,
+      records: [...pendingRecurringRecords, ...page.records],
     };
   } catch {
     return {

@@ -36,6 +36,7 @@ describe("buildAccessHints", () => {
         canOpenCreateRecord: true,
         canOpenReimbursements: false,
         canOpenCategories: false,
+        canOpenRecurringEvents: false,
         canOpenMembers: false,
       },
       actions: {
@@ -47,6 +48,7 @@ describe("buildAccessHints", () => {
         canDeleteRecordsForOthers: false,
         canPerformReimbursement: false,
         canImportLedgerRecords: false,
+        canManageRecurringEvents: false,
         canManageMembers: false,
         canManageCategories: false,
       },
@@ -57,13 +59,15 @@ describe("buildAccessHints", () => {
     expect(buildAccessHints(financeManager)).toMatchObject({
       navigation: {
         canOpenReimbursements: true,
+        canOpenRecurringEvents: true,
       },
       actions: {
-      canCreateRecordsForOthers: true,
-      canEditRecordsForOthers: true,
-      canDeleteRecordsForOthers: false,
-      canPerformReimbursement: true,
-      canImportLedgerRecords: true,
+        canCreateRecordsForOthers: true,
+        canEditRecordsForOthers: true,
+        canDeleteRecordsForOthers: false,
+        canPerformReimbursement: true,
+        canImportLedgerRecords: true,
+        canManageRecurringEvents: true,
       },
     });
   });
@@ -74,6 +78,7 @@ describe("buildAccessHints", () => {
         canOpenReimbursements: true,
         canOpenMembers: true,
         canOpenCategories: true,
+        canOpenRecurringEvents: true,
       },
       actions: {
         canManageMembers: true,
@@ -81,6 +86,7 @@ describe("buildAccessHints", () => {
         canDeleteRecordsForOthers: true,
         canPerformReimbursement: true,
         canImportLedgerRecords: true,
+        canManageRecurringEvents: true,
       },
     });
   });
@@ -89,10 +95,12 @@ describe("buildAccessHints", () => {
     expect(buildAccessHints(categoryManager)).toMatchObject({
       navigation: {
         canOpenCategories: false,
+        canOpenRecurringEvents: false,
         canOpenMembers: false,
       },
       actions: {
         canManageCategories: false,
+        canManageRecurringEvents: false,
         canManageMembers: false,
       },
     });
@@ -109,6 +117,7 @@ describe("buildAccessHints", () => {
         canOpenCreateRecord: false,
         canOpenReimbursements: false,
         canOpenCategories: false,
+        canOpenRecurringEvents: false,
         canOpenMembers: false,
       },
       actions: {
@@ -120,6 +129,7 @@ describe("buildAccessHints", () => {
         canDeleteRecordsForOthers: false,
         canPerformReimbursement: false,
         canImportLedgerRecords: false,
+        canManageRecurringEvents: false,
         canManageMembers: false,
         canManageCategories: false,
       },

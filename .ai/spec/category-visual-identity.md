@@ -62,23 +62,24 @@ reviewed_at: 2026-06-20
 8. The create and edit dialogs do not show explanatory descriptions or preview blocks.
 9. The create and edit dialogs lay out type/name as equal-width fields on desktop and stacked fields on narrow viewports.
 10. The create and edit dialogs lay out color/icon selectors side by side on desktop, with selector options using flex wrapping.
-11. `/settings/categories` displays active expense and active income categories in two side-by-side panels on desktop and stacked panels on narrow viewports.
-12. The category panels follow dashboard-panel behavior: title at top, fixed gap, fill available height, and internally scrollable list content.
-13. Archived categories are not shown on the category management page.
-14. Archived categories remain unavailable for new record category choices.
-15. Archived categories retain saved visual identity for historical record/report display.
-16. Active categories can be reordered only within their own type.
-17. Reordering uses the drag handle icon only; dragging the row body, category name, edit button, or archive button does not start a reorder.
-18. Reordering an expense category never changes income category order, and vice versa.
-19. Reordered category order persists after refresh.
-20. New-record category choices display category color/icon and follow the persisted active order for the selected record type.
-21. Record list category media displays only the category visual mark, not the category name, while preserving an accessible category name.
-22. The record-list category media is vertically centered in the row.
-23. Dashboard category summaries display the category visual label and use the category color for the bar.
-24. Historical record detail still displays the category name as text where the detail field asks for a category value.
-25. Non-admin members cannot create, edit, archive, or reorder category visual identity/order server-side.
-26. Invalid color, unsupported icon, cross-type reorder, archived-category reorder, duplicate reorder IDs, missing reorder IDs, or non-admin mutations are rejected server-side.
-27. UI copy remains Traditional Chinese and uses the existing category-management vocabulary.
+11. `/settings/categories` displays active expense and active income categories in two side-by-side panels on desktop, with expense on the left and income on the right.
+12. On narrow viewports, `/settings/categories` uses line tabs `支出(數量)` and `收入(數量)` and shows only the active type panel without repeating a panel title.
+13. The category panels follow dashboard-panel behavior on desktop: title at top, fixed gap, fill available height, and internally scrollable list content.
+14. Archived categories are not shown on the category management page.
+15. Archived categories remain unavailable for new record category choices.
+16. Archived categories retain saved visual identity for historical record/report display.
+17. Active categories can be reordered only within their own type.
+18. Reordering uses the drag handle icon only; dragging the row body, category name, edit button, or archive button does not start a reorder.
+19. Reordering an expense category never changes income category order, and vice versa.
+20. Reordered category order persists after refresh.
+21. New-record category choices display category color/icon and follow the persisted active order for the selected record type.
+22. Record list category media displays only the category visual mark, not the category name, while preserving an accessible category name.
+23. The record-list category media is vertically centered in the row.
+24. Dashboard category summaries display the category visual label and use the category color for the bar.
+25. Historical record detail still displays the category name as text where the detail field asks for a category value.
+26. Non-admin members cannot create, edit, archive, or reorder category visual identity/order server-side.
+27. Invalid color, unsupported icon, cross-type reorder, archived-category reorder, duplicate reorder IDs, missing reorder IDs, or non-admin mutations are rejected server-side.
+28. UI copy remains Traditional Chinese and uses the existing category-management vocabulary.
 
 ## BDD Scenarios
 
@@ -174,7 +175,7 @@ Then each category row shows the category visual label and uses the category col
 | Scenario | Route | Fixture | Viewport | Selectors / Assertions |
 |---|---|---|---|---|
 | Category page panels | `/settings/categories` | admin with active income/expense categories | desktop | heading `分類`; button `新增分類`; regions `支出分類`, `收入分類`; no tab named `封存分類`; archived category text not visible. |
-| Mobile panel stacking | `/settings/categories` | admin | mobile | regions `支出分類`, `收入分類` both visible in stacked layout; each panel list scrolls independently if content overflows. |
+| Mobile category tabs | `/settings/categories` | admin | mobile | line tabs `支出(數量)` and `收入(數量)` switch between the matching category panels; the inactive panel is not shown; the active panel does not repeat a `支出 (n)` or `收入 (n)` heading. |
 | Create with visual identity | `/settings/categories` | admin | desktop | open `新增分類`; labels `類型`, `分類名稱`, `顏色`, `Icon`; select swatch/icon by accessible names; submit; toast `分類已新增`; new row appears in correct panel. |
 | Edit visual identity | `/settings/categories` | admin | desktop | activate `修改 <category>`; dialog has no descriptive copy; update name/color/icon; submit; row updates. |
 | Drag reorder handle only | `/settings/categories` | admin with at least 3 expense categories | desktop | dragging handle `排序 <category>` changes order; dragging row text or action buttons does not. |
@@ -209,7 +210,7 @@ Then each category row shows the category visual label and uses the category col
 ## Responsive And Accessibility Requirements
 
 - Desktop category management uses two side-by-side panels with internally scrollable lists.
-- Narrow viewports stack panels and preserve independent list scrolling.
+- Narrow viewports use line tabs for `支出(數量)` and `收入(數量)` and preserve list scrolling inside the active panel.
 - The sort handle is the only draggable target.
 - Drag sorting must have an implementation path for keyboard accessibility before hardening; if native drag remains pointer-only, Technical Design must add an accessible alternative.
 - Color and icon choices expose names to assistive technology.

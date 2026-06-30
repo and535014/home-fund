@@ -20,6 +20,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
 
   return (
     <PageLayout
+      contentClassName="h-full min-h-0 overflow-hidden"
       header={
         <PageHeader
           actions={<AddCategoryHeaderButton />}
