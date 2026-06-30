@@ -33,17 +33,25 @@ afterEach(() => {
 });
 
 describe("RecurringEventsPanel", () => {
-  it("renders persisted recurring events without prototype fallback rows", async () => {
-    const { RecurringEventsPanel } = await import("./recurring-rules-prototype");
+  it("renders persisted recurring events with actor badges", async () => {
+    const { RecurringEventsPanel } = await import("./recurring-events-panel");
 
     renderRecurringEventsPanel(RecurringEventsPanel);
 
     expect(screen.getAllByText("網路費")).toHaveLength(2);
+    expect(screen.getAllByText("Mei")).toHaveLength(2);
+    expect(screen.getAllByText("管理費")).toHaveLength(2);
+    expect(screen.getAllByText("基金")).toHaveLength(2);
+    expect(screen.getAllByText("馬上入帳")).toHaveLength(2);
+    expect(screen.getAllByText("提醒入帳")).toHaveLength(2);
+    expect(screen.queryByText("每月底")).not.toBeInTheDocument();
+    expect(screen.queryByText("每月 15 號")).not.toBeInTheDocument();
+    expect(screen.queryByText("每月底 · 提醒入帳")).not.toBeInTheDocument();
     expect(screen.queryByText("成員 A 房租收入")).not.toBeInTheDocument();
   });
 
   it("deletes a recurring event after confirmation", async () => {
-    const { RecurringEventsPanel } = await import("./recurring-rules-prototype");
+    const { RecurringEventsPanel } = await import("./recurring-events-panel");
 
     renderRecurringEventsPanel(RecurringEventsPanel);
 
@@ -72,7 +80,7 @@ function formDataValueFromDeleteCall(name: string) {
 }
 
 function renderRecurringEventsPanel(
-  RecurringEventsPanel: typeof import("./recurring-rules-prototype").RecurringEventsPanel,
+  RecurringEventsPanel: typeof import("./recurring-events-panel").RecurringEventsPanel,
 ) {
   return render(
     <TooltipProvider>
@@ -85,11 +93,28 @@ function renderRecurringEventsPanel(
             id: "event-network",
             name: "網路費",
             nextOccurrenceLabel: "2026/08/15",
+            payerMemberId: "member-mei",
+            paymentSource: "member",
             postingMode: "immediate",
             schedule: { anchor: "fixed_day", dayOfMonth: 15 },
+            sourceMemberId: null,
+            type: "expense",
+          },
+          {
+            amountCents: 320_000,
+            categoryId: "expense-maintenance",
+            id: "event-maintenance",
+            name: "管理費",
+            nextOccurrenceLabel: "2026/08/31",
+            payerMemberId: null,
+            paymentSource: "fund",
+            postingMode: "reminder",
+            schedule: { anchor: "month_end" },
+            sourceMemberId: null,
             type: "expense",
           },
         ]}
+        memberNameById={{ "member-mei": "Mei" }}
       />
     </TooltipProvider>,
   );
@@ -102,6 +127,15 @@ const categories = [
     id: "expense-network",
     name: "網路費",
     sortOrder: 1,
+    status: "active" as const,
+    type: "expense" as const,
+  },
+  {
+    color: "gold" as const,
+    icon: "home" as const,
+    id: "expense-maintenance",
+    name: "管理費",
+    sortOrder: 2,
     status: "active" as const,
     type: "expense" as const,
   },
