@@ -61,4 +61,32 @@ describe("ledger record Prisma adapter", () => {
       status: "active",
     });
   });
+
+  it("maps recurring occurrence trace labels", () => {
+    expect(mapPrismaLedgerRecordToLedgerRecord({
+      id: "income-rent-june",
+      type: "income",
+      name: "六月房租",
+      amountCents: 120_000_00,
+      occurredOn: new Date("2026-06-05T00:00:00.000Z"),
+      categoryId: "income-rent",
+      createdByMemberId: "member-mei",
+      sourceMemberId: "member-mei",
+      paymentSource: null,
+      payerMemberId: null,
+      reimbursementStatus: "not_applicable",
+      status: "active",
+      note: null,
+      recurringOccurrence: {
+        recurringRule: {
+          dayOfMonth: 5,
+          postingMode: "reminder",
+          scheduleAnchor: "fixed_day",
+        },
+      },
+    })).toMatchObject({
+      id: "income-rent-june",
+      recurringEventLabel: "每月 5 號，提醒入帳",
+    });
+  });
 });

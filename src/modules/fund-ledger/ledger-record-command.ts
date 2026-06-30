@@ -62,7 +62,7 @@ type LedgerRecordMutationTransaction = {
         id: string;
         status: "active";
       };
-      select: Record<string, true>;
+      select: typeof prismaLedgerRecordSelect;
     }): Promise<PrismaLedgerRecordRow | null>;
     update(args: {
       where: {
@@ -245,6 +245,6 @@ function toLedgerRecordUpdateData(record: LedgerRecord) {
   };
 }
 
-function ledgerRecordSelect(): Record<string, true> {
+function ledgerRecordSelect(): typeof prismaLedgerRecordSelect {
   return prismaLedgerRecordSelect;
 }

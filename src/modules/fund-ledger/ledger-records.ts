@@ -19,6 +19,10 @@ export type ReimbursementStatus =
   | "refundable"
   | "reimbursed";
 
+type RecurringLedgerTrace = {
+  recurringEventLabel?: string;
+};
+
 export type CreateIncomeRecordCommand = {
   type: "income";
   name: string;
@@ -44,7 +48,7 @@ export type CreateLedgerRecordCommand =
   | CreateIncomeRecordCommand
   | CreateExpenseRecordCommand;
 
-export type IncomeLedgerRecord = {
+export type IncomeLedgerRecord = RecurringLedgerTrace & {
   id: string;
   type: "income";
   name: string;
@@ -58,7 +62,7 @@ export type IncomeLedgerRecord = {
   status: LedgerRecordStatus;
 };
 
-export type ExpenseLedgerRecord = {
+export type ExpenseLedgerRecord = RecurringLedgerTrace & {
   id: string;
   type: "expense";
   name: string;

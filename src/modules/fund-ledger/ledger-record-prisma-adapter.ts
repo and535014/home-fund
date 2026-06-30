@@ -3,6 +3,15 @@ import type {
   LedgerRecord,
   ReimbursementStatus,
 } from "./ledger-records";
+import { recurringEventLabel } from "@/modules/recurring/recurring-event-label";
+
+type RecurringOccurrenceTraceRow = {
+  recurringRule: {
+    dayOfMonth: number | null;
+    postingMode: "immediate" | "reminder";
+    scheduleAnchor: "fixed_day" | "month_end";
+  };
+};
 
 export type PrismaLedgerRecordRow = {
   id: string;
@@ -18,6 +27,7 @@ export type PrismaLedgerRecordRow = {
   reimbursementStatus: ReimbursementStatus;
   status: LedgerRecord["status"];
   note: string | null;
+  recurringOccurrence?: RecurringOccurrenceTraceRow | null;
 };
 
 export type PrismaExpenseLedgerRecordRow = Omit<
@@ -39,6 +49,17 @@ export const prismaLedgerRecordSelect = {
   reimbursementStatus: true,
   status: true,
   note: true,
+  recurringOccurrence: {
+    select: {
+      recurringRule: {
+        select: {
+          dayOfMonth: true,
+          postingMode: true,
+          scheduleAnchor: true,
+        },
+      },
+    },
+  },
 } as const;
 
 export const prismaExpenseLedgerRecordSelect = {
@@ -104,6 +125,7 @@ function baseLedgerRecordFields(record: {
   createdByMemberId: string;
   status: LedgerRecord["status"];
   note: string | null;
+  recurringOccurrence?: RecurringOccurrenceTraceRow | null;
 }) {
   return {
     id: record.id,
@@ -114,6 +136,13 @@ function baseLedgerRecordFields(record: {
     createdByMemberId: record.createdByMemberId,
     status: record.status,
     ...(record.note ? { note: record.note } : {}),
+    ...(record.recurringOccurrence
+      ? {
+          recurringEventLabel: recurringEventLabel(
+            record.recurringOccurrence.recurringRule,
+          ),
+        }
+      : {}),
   };
 }
 

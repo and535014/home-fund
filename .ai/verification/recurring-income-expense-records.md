@@ -21,7 +21,7 @@ trace_links:
 
 ## Result
 
-- decision: pass_for_target_aware_release_review_with_e2e_gap
+- decision: pass_for_target_aware_release_review
 - release_target_supported: production-readiness review, not direct production deployment.
 - recommended_next_gate: Target-Aware Release for production.
 
@@ -35,10 +35,12 @@ trace_links:
 - `/settings/recurring` reads persisted recurring events, separates desktop lists into left `支出` and right `收入`, uses mobile line tabs with counts, and deletes only after confirmation.
 - Pending reminder occurrences are loaded into Home and Search as separate pending rows, excluded from ledger/report totals, not batch-selectable, and displayed with ordinary record row layout plus `未入帳` and `成員 · 週期事件`.
 - Pending occurrence detail shows recurring event trace text, hides ordinary edit/delete/refund actions, and confirms through `confirmRecurringOccurrenceAction`.
+- Posted recurring ledger record detail shows the same recurring event trace text after a pending occurrence is confirmed.
 - Create-time current-month occurrence generation creates only the new event's current-month occurrence when the target date is today or later; it does not backfill already-passed days.
 - Immediate mode posts at create time only when the target date is today, and future-dated immediate occurrences remain pending for the scheduled cron job.
 - Production scheduled posting has a protected cron route and Vercel schedule documented for Taiwan time.
 - Server actions use the project `ActionState` contract, typed action states, and existing `FormSubmitButton` where submit pending state is needed.
+- Recurring-specific Playwright coverage now exercises create recurring event, create-time current-month occurrence generation, settings delete confirmation, Home pending confirmation, Search pending detail, and posted detail trace after confirmation.
 
 ## Commands Run
 
@@ -49,9 +51,11 @@ trace_links:
 - `corepack pnpm type-check`
   - Result: passed.
 - `corepack pnpm test`
-  - Result: passed, 71 test files, 323 tests.
+  - Result: passed, 71 test files, 324 tests.
 - `corepack pnpm build`
   - Result: passed.
+- `corepack pnpm test:e2e e2e/recurring-events.spec.ts`
+  - Result: passed, 5 Playwright tests.
 
 ## Trace And Alignment
 
@@ -62,11 +66,10 @@ trace_links:
 
 ## Findings And Gaps
 
-- E2E coverage is not complete for the recurring slice. Existing Playwright specs cover adjacent create-record, dashboard, search, and settings-category flows, but there is no recurring-specific E2E spec for create recurring event, settings delete, pending row visibility, or confirm posting.
 - Broad multi-month search backfill remains intentionally out of scope for MVP and is still a known product/technical limitation.
 - Production release still requires target-aware checks for migration deployment, cron secret configuration, Vercel cron authorization, a safe cron dry run, runtime log review, rollback readiness, and smoke testing.
 
 ## Review Gate
 
-- Decision needed: approve verification with the E2E gap accepted for production-readiness review, request recurring E2E coverage before release readiness, or block.
+- Decision needed: approve verification for production-readiness review, request additional release evidence, or block.
 - Recommended next gate after approval: Target-Aware Release for `production`.

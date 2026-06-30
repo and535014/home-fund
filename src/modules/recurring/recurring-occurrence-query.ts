@@ -4,6 +4,7 @@ import {
   initialRecordQueryState,
   type RecordQueryState,
 } from "@/modules/fund-ledger/search/record-search-state";
+import { recurringEventLabel } from "./recurring-event-label";
 
 type RecurringOccurrenceRow = {
   id: string;
@@ -194,15 +195,4 @@ function recurringTargetDateRange(query: RecordQueryState) {
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-function recurringEventLabel(rule: RecurringOccurrenceRow["recurringRule"]): string {
-  const scheduleLabel = rule.scheduleAnchor === "month_end"
-    ? "每月底"
-    : `每月 ${rule.dayOfMonth ?? 1} 號`;
-  const postingModeLabel = rule.postingMode === "immediate"
-    ? "馬上入帳"
-    : "提醒入帳";
-
-  return `${scheduleLabel}，${postingModeLabel}`;
 }

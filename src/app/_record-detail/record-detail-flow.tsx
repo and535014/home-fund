@@ -58,7 +58,7 @@ export function useRecordDetailFlow({
   function recurringEventLabel(record: LedgerRecord): string | undefined {
     return isPendingRecurringOccurrenceRecord(record)
       ? record.recurringEventLabel
-      : undefined;
+      : record.recurringEventLabel;
   }
 
   function closeSelectedRecord() {

@@ -264,8 +264,33 @@ Implemented after red tests:
 
 ## Remaining Implementation
 
-- recurring trace labels for already-posted recurring ledger records.
-- focused component and E2E coverage.
+- none identified for the approved MVP behavior slice.
+
+## TDD Slice 10: Recurring E2E And Posted Trace Closure
+
+Tests written first:
+
+- `e2e/recurring-events.spec.ts`
+  - creates a recurring event from the existing add-record dialog.
+  - verifies create-time current-month occurrence generation for a due month-end event.
+  - verifies already-passed fixed-day events are not backfilled into the current month.
+  - deletes a recurring event from settings after confirmation.
+  - shows and confirms a pending recurring occurrence from Home.
+  - includes pending recurring occurrences in Search detail flow.
+  - verifies the posted ledger detail still shows the recurring event trace after confirmation.
+- updates to `src/modules/fund-ledger/ledger-record-prisma-adapter.test.ts`
+  - maps recurring occurrence trace labels on posted ledger records.
+
+Implemented after red tests:
+
+- `prisma/seed.e2e.sql`
+  - updates recurring fixtures for the hardened recurring schema with event name, creator, schedule anchor, and target date.
+- `src/modules/recurring/recurring-event-label.ts`
+  - centralizes `週期事件` schedule/posting-mode label formatting.
+- `src/modules/fund-ledger/ledger-record-prisma-adapter.ts`
+  - selects recurring occurrence trace for ledger records and maps it to `recurringEventLabel`.
+- `src/app/_record-detail/record-detail-flow.tsx`
+  - shows recurring event labels for both pending recurring occurrences and posted recurring ledger records.
 
 ## Next Slice
 
