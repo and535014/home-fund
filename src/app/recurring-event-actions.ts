@@ -231,6 +231,7 @@ function confirmRecurringOccurrenceError(
     invalid_month: "週期月份格式不正確。",
     invalid_schedule_day: "指定日期不支援。",
     missing_category: "請選擇分類。",
+    occurrence_not_due: "這筆週期事件尚未到入帳日期。",
     missing_occurrence_id: "找不到要入帳的週期事件。",
     occurrence_not_found: "找不到這筆週期事件，可能已被更新或刪除。",
     permission_denied: "目前帳號沒有入帳這筆週期事件的權限。",

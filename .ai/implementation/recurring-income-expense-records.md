@@ -43,7 +43,7 @@ reviewed_at:
 ## Current Status
 
 - status: in_progress
-- current_slice: production recurring posting trigger
+- current_slice: create-time current-month occurrence generation
 - implementation_started_at: 2026-06-27
 - production_target: yes
 
@@ -238,6 +238,29 @@ Implemented after red tests:
   - schedules `/api/cron/recurring-posting` daily at `16:15 UTC`, equivalent to `00:15 Asia/Taipei`.
 - `.env.example`, `README.md`, and `docs/deployment.md`
   - document `RECURRING_POSTING_CRON_SECRET` and the Vercel `CRON_SECRET` compatibility requirement.
+
+## TDD Slice 9: Create-Time Current-Month Occurrence Generation
+
+Tests written first:
+
+- updates to `src/modules/recurring/recurring-event-command.test.ts`
+  - creating a fixed-day reminder event on day 16 creates the current-month day-17 pending occurrence.
+  - creating a fixed-day reminder event on day 16 does not backfill the already-passed day-1 occurrence.
+  - creating a current-day immediate event creates the occurrence and posts the ledger record.
+  - manually confirming a future-dated immediate occurrence returns `occurrence_not_due` without posting.
+
+Implemented after red tests:
+
+- `src/modules/recurring/recurring-event-command.ts`
+  - creates recurring events and their optional current-month occurrence inside one transaction.
+  - limits create-time occurrence generation to the new event only.
+  - uses `Asia/Taipei` for the current month and today comparison.
+  - creates the occurrence only when the target date is today or later.
+  - posts `immediate` mode during creation only when the target date is today.
+  - keeps future `immediate` occurrences pending for the scheduled cron job.
+  - replaces unsafe ledger failure casting with explicit recurring failure mapping.
+- `src/app/recurring-event-actions.ts`
+  - maps `occurrence_not_due` to the user-facing action error message.
 
 ## Remaining Implementation
 

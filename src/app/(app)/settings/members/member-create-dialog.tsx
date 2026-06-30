@@ -12,6 +12,7 @@ import {
   type CreateMemberActionResult,
 } from "@/app/member-actions";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   Dialog,
   DialogContent,
@@ -142,10 +143,14 @@ export function CreateMemberDialog({
             >
               取消
             </Button>
-            <Button disabled={isPending} type="submit">
+            <FormSubmitButton
+              disabled={isPending}
+              pendingLabel="建立中..."
+              type="submit"
+            >
               <UserPlus aria-hidden="true" size={18} />
-              {isPending ? "建立中..." : "建立成員"}
-            </Button>
+              建立成員
+            </FormSubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

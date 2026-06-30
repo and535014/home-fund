@@ -54,9 +54,7 @@ describe("RecordEntryPanel", () => {
     fireEvent.change(screen.getByLabelText("指定日期"), {
       target: { value: "15" },
     });
-    fireEvent.change(screen.getByLabelText("入帳模式"), {
-      target: { value: "immediate" },
-    });
+    expect(screen.getByLabelText("入帳模式")).toHaveValue("immediate");
     fireEvent.submit(getRecordEntryForm());
 
     await waitFor(() => {

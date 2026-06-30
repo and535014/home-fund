@@ -11,14 +11,10 @@ import {
 import { initialActionState } from "./action-state";
 import {
   createLedgerRecordAction,
-  type CreateLedgerRecordActionCode,
-  type CreateLedgerRecordActionField,
   type CreateLedgerRecordActionState,
 } from "./ledger-record-actions";
 import {
   createRecurringEventAction,
-  type CreateRecurringEventActionCode,
-  type CreateRecurringEventActionField,
   type CreateRecurringEventActionState,
 } from "./recurring-event-actions";
 import {
@@ -26,7 +22,7 @@ import {
   type RecordCreateData,
   type RecordCreateMode,
 } from "./record-create-context";
-import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   LedgerRecordAmountNameFields,
   LedgerRecordCancelButton,
@@ -215,20 +211,12 @@ function RecordEntryFormShell({
 }) {
   const [recordActionState, recordFormAction, isRecordPending] = useActionState(
     createLedgerRecordAction,
-    initialActionState<
-      { recordId: string },
-      CreateLedgerRecordActionField,
-      CreateLedgerRecordActionCode
-    >(),
+    initialActionState() as CreateLedgerRecordActionState,
   );
   const [recurringEventActionState, recurringEventFormAction, isRecurringEventPending] =
     useActionState(
       createRecurringEventAction,
-      initialActionState<
-        { recurringEventId: string },
-        CreateRecurringEventActionField,
-        CreateRecurringEventActionCode
-      >(),
+      initialActionState() as CreateRecurringEventActionState,
     );
   const isPending = isRecordPending || isRecurringEventPending;
   const feedbackMessage = createRecordFeedbackMessage(
@@ -287,9 +275,13 @@ function RecordEntryFormShell({
       footer={
         <>
           <LedgerRecordCancelButton disabled={isPending} onClick={close} />
-          <Button disabled={!hasCategories || isPending} type="submit">
-            <span>{isPending ? "新增中..." : submitLabel}</span>
-          </Button>
+          <FormSubmitButton
+            disabled={!hasCategories || isPending}
+            pendingLabel="新增中..."
+            type="submit"
+          >
+            {submitLabel}
+          </FormSubmitButton>
         </>
       }
     >
@@ -363,7 +355,7 @@ function RecurringEventFields({
       <Field>
         <FieldLabel htmlFor="recurring-posting-mode">入帳模式</FieldLabel>
         <NativeSelect
-          defaultValue="reminder"
+          defaultValue="immediate"
           id="recurring-posting-mode"
           name="postingMode"
           required

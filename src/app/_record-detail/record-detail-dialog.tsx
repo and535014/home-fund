@@ -1,7 +1,13 @@
 "use client";
 
 import { HandCoins, Save, Trash2, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { initialActionState } from "@/app/action-state";
@@ -9,17 +15,13 @@ import {
   reimburseLedgerRecordAction,
   updateLedgerRecordAction,
   voidLedgerRecordAction,
-  type ReimburseLedgerRecordActionCode,
-  type ReimburseLedgerRecordActionField,
-  type UpdateLedgerRecordActionCode,
-  type UpdateLedgerRecordActionField,
-  type VoidLedgerRecordActionCode,
-  type VoidLedgerRecordActionField,
+  type ReimburseLedgerRecordActionState,
+  type UpdateLedgerRecordActionState,
+  type VoidLedgerRecordActionState,
 } from "@/app/ledger-record-actions";
 import {
   confirmRecurringOccurrenceAction,
-  type ConfirmRecurringOccurrenceActionCode,
-  type ConfirmRecurringOccurrenceActionField,
+  type ConfirmRecurringOccurrenceActionState,
 } from "@/app/recurring-event-actions";
 import {
   LedgerRecordAmountNameFields,
@@ -51,6 +53,7 @@ import { RecordDetailView } from "./record-detail-ui";
 import { formatRecordDate } from "./record-display-utils";
 import { RecordSummaryContent } from "./record-list-item";
 import { ReimbursementPaymentFields } from "./reimbursement-payment-fields";
+import { useActionStateEffect } from "@/app/use-action-state-effect";
 
 export function RecordDetailDialog({
   actor,
@@ -89,11 +92,7 @@ export function RecordDetailDialog({
   const [isRefundedLocally, setIsRefundedLocally] = useState(false);
   const [confirmRecurringActionState, setConfirmRecurringActionState] =
     useState(() =>
-      initialActionState<
-        { occurrenceId: string; recordId: string },
-        ConfirmRecurringOccurrenceActionField,
-        ConfirmRecurringOccurrenceActionCode
-      >(),
+      initialActionState() as ConfirmRecurringOccurrenceActionState,
     );
   const [isConfirmRecurringPending, startConfirmRecurringTransition] =
     useTransition();
@@ -249,32 +248,24 @@ function RecordReimbursementDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const [actionState, setActionState] = useState(() =>
-    initialActionState<
-      { recordId: string },
-      ReimburseLedgerRecordActionField,
-      ReimburseLedgerRecordActionCode
-    >(),
+  const [actionState, formAction, isPending] = useActionState(
+    reimburseLedgerRecordAction,
+    initialActionState() as ReimburseLedgerRecordActionState,
   );
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     onPendingChange(isPending);
 
     return () => onPendingChange(false);
   }, [isPending, onPendingChange]);
-
-  function formAction(formData: FormData) {
-    startTransition(async () => {
-      const nextState = await reimburseLedgerRecordAction(actionState, formData);
-
-      setActionState(nextState);
-
-      if (nextState.status === "success") {
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
         onSuccess();
       }
-    });
-  }
+    }, [onSuccess]),
+  );
 
   return (
     <DialogContent aria-describedby={undefined} className="max-w-md">
@@ -319,7 +310,7 @@ function RecordReimbursementDialog({
             type="submit"
           >
             <HandCoins />
-            {isPending ? "處理中..." : "確認退款"}
+            確認退款
           </FormSubmitButton>
         </DialogFooter>
       </form>
@@ -343,20 +334,24 @@ function EditRecordDialog({
   record: LedgerRecord;
 }) {
   const paymentSource = record.type === "expense" ? record.paymentSource : null;
-  const [actionState, setActionState] = useState(() =>
-    initialActionState<
-      { recordId: string },
-      UpdateLedgerRecordActionField,
-      UpdateLedgerRecordActionCode
-    >(),
+  const [actionState, formAction, isPending] = useActionState(
+    updateLedgerRecordAction,
+    initialActionState() as UpdateLedgerRecordActionState,
   );
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     onPendingChange(isPending);
 
     return () => onPendingChange(false);
   }, [isPending, onPendingChange]);
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
+        onSuccess();
+      }
+    }, [onSuccess]),
+  );
   const editableCategories = categories
     .filter(
       (category) =>
@@ -384,20 +379,8 @@ function EditRecordDialog({
       />
     ) : null;
 
-  function formAction(formData: FormData) {
-    startTransition(async () => {
-      const nextState = await updateLedgerRecordAction(actionState, formData);
-
-      setActionState(nextState);
-
-      if (nextState.status === "success") {
-        onSuccess();
-      }
-    });
-  }
-
   return (
-    <DialogContent aria-describedby={undefined} className="max-w-xl">
+    <DialogContent aria-describedby={undefined} className="max-w-lg">
       <DialogHeader>
         <DialogTitle>編輯紀錄</DialogTitle>
       </DialogHeader>
@@ -436,7 +419,7 @@ function EditRecordDialog({
               type="submit"
             >
               <Save />
-              {isPending ? "儲存中..." : "儲存變更"}
+              儲存變更
             </FormSubmitButton>
           </>
         }
@@ -479,32 +462,24 @@ function DeleteRecordDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const [actionState, setActionState] = useState(() =>
-    initialActionState<
-      { recordId: string },
-      VoidLedgerRecordActionField,
-      VoidLedgerRecordActionCode
-    >(),
+  const [actionState, formAction, isPending] = useActionState(
+    voidLedgerRecordAction,
+    initialActionState() as VoidLedgerRecordActionState,
   );
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     onPendingChange(isPending);
 
     return () => onPendingChange(false);
   }, [isPending, onPendingChange]);
-
-  function formAction(formData: FormData) {
-    startTransition(async () => {
-      const nextState = await voidLedgerRecordAction(actionState, formData);
-
-      setActionState(nextState);
-
-      if (nextState.status === "success") {
+  useActionStateEffect(
+    actionState,
+    useCallback((handledState) => {
+      if (handledState.status === "success") {
         onSuccess();
       }
-    });
-  }
+    }, [onSuccess]),
+  );
 
   return (
     <DialogContent className="max-w-md">
@@ -549,7 +524,7 @@ function DeleteRecordDialog({
             variant="destructive"
           >
             <Trash2 />
-            {isPending ? "刪除中..." : "確認刪除"}
+            確認刪除
           </FormSubmitButton>
         </DialogFooter>
       </form>

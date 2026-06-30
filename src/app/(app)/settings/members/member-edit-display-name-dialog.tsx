@@ -12,6 +12,7 @@ import {
 } from "@/app/member-actions";
 import type { MemberManagementMember } from "@/app/member-management-members";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   Dialog,
   DialogContent,
@@ -108,9 +109,13 @@ export function EditMemberDisplayNameDialog({
             >
               取消
             </Button>
-            <Button disabled={isPending} type="submit">
-              {isPending ? "儲存中..." : "儲存"}
-            </Button>
+            <FormSubmitButton
+              disabled={isPending}
+              pendingLabel="儲存中..."
+              type="submit"
+            >
+              儲存
+            </FormSubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

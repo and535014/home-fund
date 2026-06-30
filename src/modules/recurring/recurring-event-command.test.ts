@@ -48,11 +48,84 @@ function createRecurringRuleRow(overrides: Record<string, unknown> = {}) {
 }
 
 describe("createRecurringEventInDatabase", () => {
-  it("validates and writes a recurring event", async () => {
+  it("validates, writes, and creates the current-month future occurrence", async () => {
     const recurringRuleCreate = vi.fn(async ({ data }) => data);
-    const prisma = {
+    const recurringOccurrenceCreate = vi.fn(async ({ data }) => data);
+    const tx = {
       category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        create: recurringOccurrenceCreate,
+        update: vi.fn(async () => undefined),
+      },
       recurringRule: { create: recurringRuleCreate },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(createRecurringEventInDatabase(admin, {
+      amountCents: 1_800_000,
+      categoryId: "income-rent",
+      name: "成員 A 房租收入",
+      postingMode: "reminder",
+      schedule: { anchor: "fixed_day", dayOfMonth: 17 },
+      sourceMemberId: "member-a",
+      type: "income",
+    }, {
+      generateId: () => "event-rent",
+      generateOccurrenceId: () => "occ-rent-2026-06",
+      householdId: "household-demo",
+      now: () => new Date("2026-06-16T01:00:00.000Z"),
+      prisma,
+    })).resolves.toMatchObject({
+      ok: true,
+      event: {
+        id: "event-rent",
+        schedule: { anchor: "fixed_day", dayOfMonth: 17 },
+      },
+    });
+
+    expect(recurringRuleCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        amountCents: 1_800_000,
+        categoryId: "income-rent",
+        createdByMemberId: "member-admin",
+        dayOfMonth: 17,
+        householdId: "household-demo",
+        id: "event-rent",
+        name: "成員 A 房租收入",
+        postingMode: "reminder",
+        scheduleAnchor: "fixed_day",
+        sourceMemberId: "member-a",
+        type: "income",
+      }),
+    });
+    expect(recurringOccurrenceCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        householdId: "household-demo",
+        id: "occ-rent-2026-06",
+        month: "2026-06",
+        recurringRuleId: "event-rent",
+        status: "pending",
+        targetDate: new Date("2026-06-17T00:00:00.000Z"),
+      }),
+    });
+    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
+  });
+
+  it("does not create the current-month occurrence when its target date has passed", async () => {
+    const tx = {
+      category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        create: vi.fn(async ({ data }) => data),
+        update: vi.fn(async () => undefined),
+      },
+      recurringRule: { create: vi.fn(async ({ data }) => data) },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
     };
 
     await expect(createRecurringEventInDatabase(admin, {
@@ -64,9 +137,10 @@ describe("createRecurringEventInDatabase", () => {
       sourceMemberId: "member-a",
       type: "income",
     }, {
-      householdId: "household-demo",
-      prisma,
       generateId: () => "event-rent",
+      householdId: "household-demo",
+      now: () => new Date("2026-06-16T01:00:00.000Z"),
+      prisma,
     })).resolves.toMatchObject({
       ok: true,
       event: {
@@ -75,19 +149,68 @@ describe("createRecurringEventInDatabase", () => {
       },
     });
 
-    expect(recurringRuleCreate).toHaveBeenCalledWith({
+    expect(tx.recurringRule.create).toHaveBeenCalled();
+    expect(tx.recurringOccurrence.create).not.toHaveBeenCalled();
+  });
+
+  it("posts a current-day immediate occurrence after creating the event", async () => {
+    const tx = {
+      category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        create: vi.fn(async ({ data }) => data),
+        update: vi.fn(async () => undefined),
+      },
+      recurringRule: { create: vi.fn(async ({ data }) => data) },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(createRecurringEventInDatabase(admin, {
+      amountCents: 129_900,
+      categoryId: "expense-network",
+      name: "網路費",
+      payerMemberId: "member-a",
+      paymentSource: "member",
+      postingMode: "immediate",
+      schedule: { anchor: "fixed_day", dayOfMonth: 16 },
+      type: "expense",
+    }, {
+      generateId: () => "event-network",
+      generateLedgerRecordId: () => "record-network-2026-06",
+      generateOccurrenceId: () => "occ-network-2026-06",
+      householdId: "household-demo",
+      now: () => new Date("2026-06-16T01:00:00.000Z"),
+      prisma,
+    })).resolves.toMatchObject({
+      ok: true,
+      event: {
+        id: "event-network",
+        postingMode: "immediate",
+      },
+    });
+
+    expect(tx.recurringOccurrence.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        amountCents: 1_800_000,
-        categoryId: "income-rent",
-        createdByMemberId: "member-admin",
-        dayOfMonth: 1,
-        householdId: "household-demo",
-        id: "event-rent",
-        name: "成員 A 房租收入",
-        postingMode: "reminder",
-        scheduleAnchor: "fixed_day",
-        sourceMemberId: "member-a",
-        type: "income",
+        id: "occ-network-2026-06",
+        month: "2026-06",
+        targetDate: new Date("2026-06-16T00:00:00.000Z"),
+      }),
+    });
+    expect(tx.ledgerRecord.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: "record-network-2026-06",
+        occurredOn: new Date("2026-06-16T00:00:00.000Z"),
+        paymentSource: "member",
+        type: "expense",
+      }),
+    });
+    expect(tx.recurringOccurrence.update).toHaveBeenCalledWith({
+      where: { id: "occ-network-2026-06" },
+      data: expect.objectContaining({
+        ledgerRecordId: "record-network-2026-06",
+        status: "posted",
       }),
     });
   });
@@ -396,6 +519,7 @@ describe("confirmRecurringOccurrenceInDatabase", () => {
           month: "2026-07",
           recurringRule: createRecurringRuleRow(),
           status: "pending",
+          targetDate: new Date("2026-07-01T00:00:00.000Z"),
         })),
         update: vi.fn(async () => undefined),
       },
@@ -436,6 +560,51 @@ describe("confirmRecurringOccurrenceInDatabase", () => {
     });
   });
 
+  it("does not confirm an immediate occurrence before its target date", async () => {
+    const tx = {
+      category: { findMany: vi.fn(async () => categories) },
+      ledgerRecord: { create: vi.fn(async () => undefined) },
+      recurringOccurrence: {
+        findFirst: vi.fn(async () => ({
+          id: "occ-network-2026-07",
+          ledgerRecordId: null,
+          month: "2026-07",
+          recurringRule: createRecurringRuleRow({
+            amountCents: 129_900,
+            categoryId: "expense-network",
+            dayOfMonth: 15,
+            id: "event-network",
+            name: "網路費",
+            payerMemberId: "member-b",
+            paymentSource: "member",
+            postingMode: "immediate",
+            sourceMemberId: null,
+            type: "expense",
+          }),
+          status: "pending",
+          targetDate: new Date("2026-07-15T00:00:00.000Z"),
+        })),
+        update: vi.fn(async () => undefined),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(confirmRecurringOccurrenceInDatabase(admin, {
+      occurrenceId: "occ-network-2026-07",
+    }, {
+      householdId: "household-demo",
+      now: () => new Date("2026-07-01T01:00:00.000Z"),
+      prisma,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "occurrence_not_due",
+    });
+    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
+    expect(tx.recurringOccurrence.update).not.toHaveBeenCalled();
+  });
+
   it("does not duplicate an already posted occurrence", async () => {
     const tx = {
       category: { findMany: vi.fn(async () => categories) },
@@ -447,6 +616,7 @@ describe("confirmRecurringOccurrenceInDatabase", () => {
           month: "2026-07",
           recurringRule: createRecurringRuleRow(),
           status: "posted",
+          targetDate: new Date("2026-07-01T00:00:00.000Z"),
         })),
         update: vi.fn(async () => undefined),
       },
