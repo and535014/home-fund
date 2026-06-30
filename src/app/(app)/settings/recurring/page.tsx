@@ -4,10 +4,14 @@ import { PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { getPrismaClient } from "@/db/prisma";
 import { loadHouseholdCategories } from "@/modules/categorization/category-query";
 import {
+  loadHouseholdMemberOptions,
+  type HouseholdMemberOptionQueryPrismaClient,
+} from "@/modules/identity-access/household-member-query";
+import {
   loadRecurringEventsForSettings,
   type RecurringEventSettingsPrismaClient,
 } from "@/modules/recurring/recurring-event-query";
-import { RecurringEventsPanel } from "./recurring-rules-prototype";
+import { RecurringEventsPanel } from "./recurring-events-panel";
 
 export default async function RecurringSettingsPage() {
   const session = await requireAuthenticatedMember();
@@ -18,13 +22,20 @@ export default async function RecurringSettingsPage() {
 
   const prisma = getPrismaClient();
   const householdId = session.access.member.householdId;
-  const [categories, events] = await Promise.all([
+  const [categories, events, members] = await Promise.all([
     loadHouseholdCategories({ householdId, prisma }),
     loadRecurringEventsForSettings({
       householdId,
       prisma: prisma as unknown as RecurringEventSettingsPrismaClient,
     }),
+    loadHouseholdMemberOptions({
+      householdId,
+      prisma: prisma as unknown as HouseholdMemberOptionQueryPrismaClient,
+    }),
   ]);
+  const memberNameById = Object.fromEntries(
+    members.map((member) => [member.id, member.displayName] as const),
+  );
 
   return (
     <PageLayout
@@ -39,6 +50,7 @@ export default async function RecurringSettingsPage() {
       <RecurringEventsPanel
         categories={categories}
         events={events}
+        memberNameById={memberNameById}
       />
     </PageLayout>
   );

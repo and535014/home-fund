@@ -11,8 +11,11 @@ type RecurringEventSettingsRow = {
   dayOfMonth: number | null;
   id: string;
   name: string;
+  payerMemberId: string | null;
+  paymentSource: "fund" | "member" | null;
   postingMode: RecurringPostingMode;
   scheduleAnchor: "fixed_day" | "month_end";
+  sourceMemberId: string | null;
   type: RecurringRecordType;
 };
 
@@ -22,8 +25,11 @@ export type RecurringEventSettingsItem = {
   id: string;
   name: string;
   nextOccurrenceLabel: string;
+  payerMemberId: string | null;
+  paymentSource: "fund" | "member" | null;
   postingMode: RecurringPostingMode;
   schedule: RecurringSchedule;
+  sourceMemberId: string | null;
   type: RecurringRecordType;
 };
 
@@ -58,8 +64,11 @@ export async function loadRecurringEventsForSettings({
       dayOfMonth: true,
       id: true,
       name: true,
+      payerMemberId: true,
+      paymentSource: true,
       postingMode: true,
       scheduleAnchor: true,
+      sourceMemberId: true,
       type: true,
     },
     where: {
@@ -78,8 +87,11 @@ export async function loadRecurringEventsForSettings({
       id: row.id,
       name: row.name,
       nextOccurrenceLabel: formatNextOccurrenceLabel(schedule, now),
+      payerMemberId: row.payerMemberId,
+      paymentSource: row.paymentSource,
       postingMode: row.postingMode,
       schedule,
+      sourceMemberId: row.sourceMemberId,
       type: row.type,
     };
   });

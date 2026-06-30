@@ -16,6 +16,7 @@ import {
   deleteRecurringEventAction,
   type DeleteRecurringEventActionState,
 } from "@/app/recurring-event-actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,28 +42,28 @@ import type { RecurringEventSettingsItem } from "@/modules/recurring/recurring-e
 
 type PostingMode = "immediate" | "reminder";
 type RecordType = "income" | "expense";
-type ScheduleAnchor = "fixed_day" | "month_end";
 type RecurringRuleTab = "expense" | "income";
 type RecurringRule = {
   amountCents: number;
   categoryId: string;
   id: string;
+  memberName?: string;
   name: string;
   nextOccurrenceLabel: string;
   postingMode: PostingMode;
-  scheduleAnchor: ScheduleAnchor;
-  scheduleDay?: number;
   type: RecordType;
 };
 
 type RecurringEventsPanelProps = {
   categories: Category[];
   events: RecurringEventSettingsItem[];
+  memberNameById: Record<string, string>;
 };
 
 export function RecurringEventsPanel({
   categories,
   events,
+  memberNameById,
 }: RecurringEventsPanelProps) {
   const [deletedRuleIds, setDeletedRuleIds] = useState<string[]>([]);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
@@ -74,8 +75,8 @@ export function RecurringEventsPanel({
     () =>
       events
         .filter((event) => !deletedRuleIds.includes(event.id))
-        .map(toRecurringRule),
-    [deletedRuleIds, events],
+        .map((event) => toRecurringRule(event, memberNameById)),
+    [deletedRuleIds, events, memberNameById],
   );
   const incomeRules = rules.filter((rule) => rule.type === "income");
   const expenseRules = rules.filter((rule) => rule.type === "expense");
@@ -177,7 +178,7 @@ export function RecurringEventsPanel({
                 <div className="rounded-card border border-destructive/40 bg-destructive/10 p-4">
                   <p className="text-body-strong">{deletingRule.name}</p>
                   <p className="mt-1 text-body text-muted-foreground">
-                    {formatCurrency(deletingRule.amountCents)} · {scheduleLabel(deletingRule)} ·{" "}
+                    {formatCurrency(deletingRule.amountCents)} ·{" "}
                     {postingModeLabel(deletingRule.postingMode)}
                   </p>
                 </div>
@@ -312,10 +313,13 @@ function RecurringRuleItem({
         </ItemMedia>
       ) : null}
       <ItemContent className="min-w-0">
-        <ItemTitle className="truncate">{rule.name}</ItemTitle>
-        <ItemDescription>
-          {scheduleLabel(rule)} · {postingModeLabel(rule.postingMode)}
-        </ItemDescription>
+        <ItemTitle className="w-full min-w-0 flex-wrap">
+          <span className="min-w-0 truncate">{rule.name}</span>
+          <Badge variant="outline">{postingModeLabel(rule.postingMode)}</Badge>
+        </ItemTitle>
+        {rule.memberName ? (
+          <ItemDescription className="truncate">{rule.memberName}</ItemDescription>
+        ) : null}
       </ItemContent>
       <ItemContent className="min-w-0 flex-none items-end text-right">
         <ItemTitle
@@ -358,12 +362,6 @@ function RecurringEmptyState({ label }: { label: string }) {
   );
 }
 
-function scheduleLabel(rule: RecurringRule): string {
-  return rule.scheduleAnchor === "month_end"
-    ? "每月底"
-    : `每月 ${rule.scheduleDay} 號`;
-}
-
 function postingModeLabel(mode: PostingMode): string {
   return mode === "immediate" ? "馬上入帳" : "提醒入帳";
 }
@@ -376,18 +374,39 @@ function formatCurrency(amount: number): string {
   }).format(amount / 100);
 }
 
-function toRecurringRule(event: RecurringEventSettingsItem): RecurringRule {
+function toRecurringRule(
+  event: RecurringEventSettingsItem,
+  memberNameById: Record<string, string>,
+): RecurringRule {
+  const memberName = recurringRuleMemberName(event, memberNameById);
+
   return {
     amountCents: event.amountCents,
     categoryId: event.categoryId,
     id: event.id,
+    ...(memberName ? { memberName } : {}),
     name: event.name,
     nextOccurrenceLabel: event.nextOccurrenceLabel,
     postingMode: event.postingMode,
-    scheduleAnchor: event.schedule.anchor,
-    ...(event.schedule.anchor === "fixed_day"
-      ? { scheduleDay: event.schedule.dayOfMonth }
-      : {}),
     type: event.type,
   };
+}
+
+function recurringRuleMemberName(
+  event: RecurringEventSettingsItem,
+  memberNameById: Record<string, string>,
+): string | null {
+  if (event.type === "income") {
+    return event.sourceMemberId
+      ? memberNameById[event.sourceMemberId] ?? "成員"
+      : null;
+  }
+
+  if (event.paymentSource === "fund") {
+    return "基金";
+  }
+
+  return event.payerMemberId
+    ? memberNameById[event.payerMemberId] ?? "成員"
+    : null;
 }
