@@ -5,9 +5,11 @@ import {
   type RecurringEventPostingJobPrismaClient,
 } from "@/modules/recurring/recurring-event-command";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const authorization = request.headers.get("authorization");
-  const secret = process.env.RECURRING_POSTING_CRON_SECRET || process.env.CRON_SECRET;
+  const secret = process.env.CRON_SECRET;
 
   if (process.env.NODE_ENV === "production" && !secret) {
     return NextResponse.json(
@@ -27,6 +29,17 @@ export async function GET(request: Request) {
     const result = await runRecurringPostingJob({
       prisma: getPrismaClient() as unknown as RecurringEventPostingJobPrismaClient,
       targetDate: new Date(),
+    });
+
+    console.info("Recurring posting cron completed", {
+      alreadyPostedCount: result.alreadyPostedCount,
+      householdCount: result.householdCount,
+      pendingCount: result.pendingCount,
+      postedCount: result.postedCount,
+      schedule: request.headers.get("x-vercel-cron-schedule"),
+      skippedCount: result.skippedCount,
+      skippedHouseholdCount: result.skippedHouseholdCount,
+      targetMonth: result.targetMonth,
     });
 
     return NextResponse.json({

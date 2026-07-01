@@ -66,11 +66,11 @@ CSV_IMPORT_PREVIEW_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-RECURRING_POSTING_CRON_SECRET
+CRON_SECRET
 ```
 
 `DATABASE_URL` 使用 Neon pooled connection string。`DATABASE_URL_UNPOOLED` 只給 GitHub Actions migration 用，預設不需要放到 Vercel runtime。
-`RECURRING_POSTING_CRON_SECRET` 用於保護週期事件自動入帳 cron route。若使用 Vercel Cron 的自動 Authorization header，也可在 Vercel 設定同值的 `CRON_SECRET`。
+`CRON_SECRET` 用於保護 Vercel Cron 觸發的週期事件自動入帳 route。Vercel 會自動把它放進 cron request 的 `Authorization: Bearer ...` header。
 
 `vercel.json` 會每天 16:15 UTC 呼叫 `/api/cron/recurring-posting`，也就是台灣時間 00:15。這個 route 只處理台灣時區當月且已到期的週期事件，並以 idempotent command 避免重複入帳。
 
@@ -125,12 +125,12 @@ CSV_IMPORT_PREVIEW_SECRET
 MEMBER_BINDING_TOKEN_ENCRYPTION_KEY
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
-RECURRING_POSTING_CRON_SECRET
+CRON_SECRET
 ```
 
 `DATABASE_URL` 使用 pooled connection string。`DATABASE_URL_UNPOOLED` 使用 unpooled/direct connection string。
 `CSV_IMPORT_PREVIEW_SECRET` 用來簽署 CSV 匯入預覽 token，production 必須設定，不能共用 `BETTER_AUTH_SECRET`。
-`RECURRING_POSTING_CRON_SECRET` 必須和 Vercel Production runtime 的同名變數一致；若使用 Vercel Cron 自動 Bearer header，Vercel runtime 也要設定同值的 `CRON_SECRET`。
+`CRON_SECRET` 必須和 Vercel Production runtime 的同名變數一致；舊的 `RECURRING_POSTING_CRON_SECRET` 已不再使用。
 
 ## PR CI 流程
 

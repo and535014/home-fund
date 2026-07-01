@@ -14,7 +14,7 @@ vi.mock("@/modules/recurring/recurring-event-command", () => ({
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-06-30T16:30:00.000Z"));
-  vi.stubEnv("RECURRING_POSTING_CRON_SECRET", "cron-secret");
+  vi.stubEnv("CRON_SECRET", "cron-secret");
   vi.mocked(getPrismaClient).mockReturnValue({ client: "prisma" } as never);
   vi.mocked(runRecurringPostingJob).mockResolvedValue({
     alreadyPostedCount: 1,
@@ -68,15 +68,15 @@ describe("GET /api/cron/recurring-posting", () => {
     });
   });
 
-  it("accepts Vercel CRON_SECRET when the recurring-specific secret is absent", async () => {
-    vi.stubEnv("RECURRING_POSTING_CRON_SECRET", "");
-    vi.stubEnv("CRON_SECRET", "vercel-cron-secret");
+  it("does not accept the deprecated recurring-specific secret", async () => {
+    vi.stubEnv("CRON_SECRET", "cron-secret");
+    vi.stubEnv("RECURRING_POSTING_CRON_SECRET", "deprecated-secret");
 
     const response = await GET(new Request("https://example.com/api/cron/recurring-posting", {
-      headers: { authorization: "Bearer vercel-cron-secret" },
+      headers: { authorization: "Bearer deprecated-secret" },
     }));
 
-    expect(response.status).toBe(200);
-    expect(runRecurringPostingJob).toHaveBeenCalled();
+    expect(response.status).toBe(401);
+    expect(runRecurringPostingJob).not.toHaveBeenCalled();
   });
 });
