@@ -12,9 +12,11 @@ describe("readMonthParam", () => {
   });
 
   it("falls back to the default month when the query is missing or invalid", () => {
-    expect(readMonthParam(undefined)).toBe("2026-06");
-    expect(readMonthParam("2026-13")).toBe("2026-06");
-    expect(readMonthParam("June 2026")).toBe("2026-06");
+    const now = new Date("2026-07-01T01:00:00.000+08:00");
+
+    expect(readMonthParam(undefined, now)).toBe("2026-07");
+    expect(readMonthParam("2026-13", now)).toBe("2026-07");
+    expect(readMonthParam("June 2026", now)).toBe("2026-07");
   });
 
   it("uses the first value when Next search params provide an array", () => {
@@ -33,6 +35,12 @@ describe("readMonthParam", () => {
   it("reads the current month from a date", () => {
     expect(getCurrentMonth(new Date(Date.UTC(2026, 5, 7)))).toBe(
       "2026-06",
+    );
+  });
+
+  it("reads the current month in Taiwan time", () => {
+    expect(getCurrentMonth(new Date("2026-06-30T16:30:00.000Z"))).toBe(
+      "2026-07",
     );
   });
 });
