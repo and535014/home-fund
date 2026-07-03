@@ -91,7 +91,7 @@ reviewed_at: 2026-06-27
 - integrations: Google OAuth through Better Auth, Prisma PostgreSQL adapter, local Playwright browser automation.
 - test commands: `corepack pnpm test`, `corepack pnpm type-check`, `corepack pnpm lint`, `pnpm test:e2e`.
 - build commands: `corepack pnpm build`.
-- deploy commands: production deployment is documented in `docs/deployment.md` and implemented by `.github/workflows/deploy-production.yml`; `corepack pnpm db:deploy` runs inside the production workflow before Vercel deploy.
+- deploy commands: production deployment setup is documented in `docs/deployment.md`, recurring release operation is documented in `docs/release-runbook.md`, and production deploy is implemented by `.github/workflows/deploy-production.yml`; `corepack pnpm db:deploy` runs inside the production workflow before Vercel deploy.
 
 ## Code Understanding Tools
 
