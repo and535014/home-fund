@@ -1,5 +1,0 @@
-version: 1
-interfaces:
-  display_name: "Artifact Compression"
-  short_description: "Summarize completed DDD workflow artifacts without deleting files."
-  default_prompt: "Use $artifact-compression to write an archive summary, preserve traceability, and identify optional prune candidates without deleting files."

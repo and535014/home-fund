@@ -1,6 +1,0 @@
-interface:
-  display_name: "Release Execution"
-  short_description: "Execute or record production deployment"
-  default_prompt: "Use $release-execution to execute or record this approved production deployment."
-policy:
-  allow_implicit_invocation: true

@@ -1,6 +1,0 @@
-interface:
-  display_name: "Target-Aware Release"
-  short_description: "Assess release readiness for one target"
-  default_prompt: "Use $target-aware-release to assess whether this verified work is ready to release."
-policy:
-  allow_implicit_invocation: true

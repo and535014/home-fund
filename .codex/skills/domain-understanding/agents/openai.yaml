@@ -1,0 +1,6 @@
+interface:
+  display_name: "Domain Understanding"
+  short_description: "Update durable domain models and domain impact"
+  default_prompt: "Use $domain-understanding to update domain artifacts for this intent."
+policy:
+  allow_implicit_invocation: true

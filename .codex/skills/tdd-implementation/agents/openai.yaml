@@ -1,6 +1,0 @@
-interface:
-  display_name: "TDD Implementation"
-  short_description: "Implement one behavior slice tests-first"
-  default_prompt: "Use $tdd-implementation to implement this behavior through TDD."
-policy:
-  allow_implicit_invocation: true

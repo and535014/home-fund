@@ -1,6 +1,0 @@
-interface:
-  display_name: "Workflow Migration"
-  short_description: "Adopt latest workflow without restarting"
-  default_prompt: "Use $workflow-migration to migrate this in-progress project to the latest DDD website workflow and recommend the smallest backfill path."
-policy:
-  allow_implicit_invocation: true

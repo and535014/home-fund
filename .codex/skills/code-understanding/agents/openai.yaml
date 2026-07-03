@@ -1,6 +1,0 @@
-interface:
-  display_name: "Code Understanding"
-  short_description: "Map current repo reality before stories"
-  default_prompt: "Use $code-understanding to understand this repo before impact analysis."
-policy:
-  allow_implicit_invocation: true

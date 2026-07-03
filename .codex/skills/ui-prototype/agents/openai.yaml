@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI Prototype"
+  short_description: "Build the real frontend slice for UX review"
+  default_prompt: "Use $ui-prototype to design and implement the real route/page/component slice for review."
+policy:
+  allow_implicit_invocation: true

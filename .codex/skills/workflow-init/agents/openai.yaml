@@ -1,6 +1,0 @@
-interface:
-  display_name: "Workflow Init"
-  short_description: "Bootstrap the DDD harness in a repo"
-  default_prompt: "Use $workflow-init to initialize this project for the DDD harness workflow and recommend the next step."
-policy:
-  allow_implicit_invocation: true

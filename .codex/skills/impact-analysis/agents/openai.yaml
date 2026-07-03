@@ -1,6 +1,0 @@
-interface:
-  display_name: "Impact Analysis"
-  short_description: "Compare domain intent with code impact"
-  default_prompt: "Use $impact-analysis to analyze impact before slicing stories."
-policy:
-  allow_implicit_invocation: true
