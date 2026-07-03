@@ -1,27 +1,27 @@
 ---
 name: ai-domain-curation
-description: Use when consolidating or pruning .ai/domain artifacts into long-lived domain knowledge, especially when old DDD, event storming, domain-impact, workflow, or requirement-level notes need to become concise bounded-context files.
+description: Use when retiring a project-local DDD workflow and consolidating .ai/domain, event storming, or domain-impact artifacts into durable bounded-context domain files.
 ---
 
 # AI Domain Curation
 
-## Core Principle
+## 定位
 
-Keep `.ai/domain/` as durable product knowledge, not a history log. Preserve language, rules, lifecycle, ownership, invariants, and unresolved domain questions that should still shape future work.
+這個 skill 只用於收尾曾套用 DDD workflow 的專案。目標是把舊 `.ai/domain/`、event storming、`.ai/domain-impact/` 裡真正長期有效的 domain 知識留下來，整理成少量穩定檔案。
 
-## Inputs
+這不是日常需求流程，也不是新的 DDD lifecycle。完成後，後續一般工作應回到使用者層級的 superpowers skills。
 
-- Existing `.ai/domain/` files.
-- Legacy `.ai/ddd/`, `.ai/domain-impact/`, `.ai/intent/`, or archived requirement files when needed for source material.
-- Current code or product behavior only when domain truth is unclear.
+## 產出內容契約
 
-## Output Shape
+產出的 domain markdown 內容不得包含任何 `.ai/` 檔案路徑、舊 artifact 檔名、source 參照或「整理自某某 `.ai` 檔」的文字。輸出檔只能保留產品長期語言與規則；來源追蹤留在 git diff、commit、PR 說明或工作回報，不寫進 domain 檔內容。
 
-Use one overview plus stable bounded-context files when the domain is large enough:
+## 輸出結構
+
+建議輸出為一個總覽檔加多個 bounded context 檔：
 
 ```text
 .ai/domain/
-  project-or-product.md
+  <product>.md
   identity-access.md
   fund-ledger.md
   categorization.md
@@ -30,42 +30,67 @@ Use one overview plus stable bounded-context files when the domain is large enou
   reporting.md
 ```
 
-Use different context names when the product language calls for them. Do not create one domain file per feature, request, ticket, or session.
+實際檔名依產品語言調整。只有當語言、ownership、lifecycle、policy 或 invariants 明顯不同時，才拆成新的 bounded context。
 
-## Procedure
+## 總覽檔格式
 
-1. Read existing domain artifacts and identify repeated terms, rules, roles, lifecycle states, and open questions.
-2. Separate long-lived domain knowledge from delivery history.
-3. Choose bounded contexts only when language, ownership, lifecycle, or invariants differ meaningfully.
-4. Write concise context files with these sections:
-   - `核心概念`
-   - `Lifecycle` when state changes matter
-   - `Invariants`
-   - `開放問題`
-5. Keep the overview file focused on context map, cross-context rules, and shared vocabulary.
-6. Remove workflow metadata, review gates, acceptance criteria, implementation logs, release notes, and one-off task evidence from domain files.
-7. If a detail is historical but still useful, move or leave it in `.ai/requirements/` instead of `.ai/domain/`.
+```markdown
+# <Product> Domain
 
-## Keep
+## 用途
 
-- Ubiquitous language that future users, tests, UI copy, or code naming should reuse.
-- Role and permission boundaries.
-- State transitions and lifecycle policies.
-- Ownership rules between contexts.
-- Financial, authorization, audit, or no-double-count invariants.
-- Open questions that affect future product or implementation decisions.
+## Bounded Contexts
 
-## Remove
+## 跨 Context 核心規則
 
-- Frontmatter from old workflows unless it still carries domain meaning.
-- Event storming timelines after their durable rules are extracted.
-- Review gates, acceptance signals, and next-step workflow notes.
-- Implementation details, test logs, release evidence, and commit notes.
-- Per-requirement deltas that do not change the long-term model.
+## 重要詞彙
 
-## Verification
+## 開放問題
+```
 
-- Run `find .ai/domain -maxdepth 1 -type f | sort`.
-- Run `rg -n "workflow_version|release_target|Review Gate|Event Timeline|Visual Model|current-task|project-context|workflow\\.md" .ai/domain`.
-- Run `git diff --check`.
-- Summarize which durable rules were preserved and which delivery-history material was removed or moved.
+## Context 檔格式
+
+```markdown
+# <Context> Domain
+
+## 核心概念
+
+## Lifecycle
+
+## Invariants
+
+## 開放問題
+```
+
+沒有 lifecycle 的 context 可以省略 `Lifecycle`。
+
+## 保留
+
+- Ubiquitous language 與未來 UI copy、測試、程式命名仍會使用的詞彙。
+- Role、permission、authorization boundary。
+- Lifecycle、狀態轉移、eligibility、audit policy。
+- 跨 context ownership，例如 Reporting 只能讀取，Ledger 才是財務事實來源。
+- 財務、權限、no-double-count、idempotency 等 invariants。
+- 仍影響未來產品或實作的開放問題。
+
+## 移除
+
+- 舊 workflow frontmatter：`workflow_version`、`release_target`、`stage`、`trace_links`。
+- Delivery profile、review gate、acceptance signals、next step。
+- Event timeline 原稿；只保留抽出的規則與語言。
+- Per-requirement domain delta；歷史需求放 `.ai/requirements/`。
+- Implementation log、verification log、release evidence、commit notes。
+
+## 分工
+
+- `.ai/domain/`：長期 domain model。
+- `.ai/requirements/`：已完成或曾執行需求的歷史紀錄。
+- `.ai/workflow.md`、`.ai/project-context.md`、`.ai/current-task.*`：DDD workflow 退場後不再作為入口。
+
+## 驗證
+
+- Run `find .ai/domain -maxdepth 1 -type f | sort`。
+- Run `rg -n "\\.ai/" .ai/domain`，預期沒有任何輸出內容參照 `.ai` 檔案。
+- Run `rg -n "workflow_version|release_target|Review Gate|Event Timeline|Visual Model|current-task|project-context|workflow\\.md" .ai/domain`，預期沒有舊 workflow 殘留。
+- Run `git diff --check`。
+- 回報保留了哪些長期 domain 規則，以及哪些 workflow / delivery history 已移出或刪除。
