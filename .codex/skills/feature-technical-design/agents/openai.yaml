@@ -1,0 +1,6 @@
+interface:
+  display_name: "Feature Technical Design"
+  short_description: "Plan feature boundaries, contracts, and test mapping"
+  default_prompt: "Use $feature-technical-design to design feature boundaries after prototype and behavior spec."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Behavior Spec"
+  short_description: "Define AC, BDD scenarios, E2E design, and test plan"
+  default_prompt: "Use $behavior-spec to create AC, BDD scenarios, and a test plan before implementation."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Learning Loop"
+  short_description: "Plan release learning signals and follow-up decisions"
+  default_prompt: "Use $learning-loop to define post-release learning signals and follow-up criteria for this feature or release."
+policy:
+  allow_implicit_invocation: true

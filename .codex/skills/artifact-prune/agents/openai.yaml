@@ -1,0 +1,5 @@
+version: 1
+interfaces:
+  display_name: "Artifact Prune"
+  short_description: "Manually prune completed DDD workflow artifacts with git safety checks."
+  default_prompt: "Use $artifact-prune to delete completed intermediate .ai artifacts after verifying git safety and archive summaries."

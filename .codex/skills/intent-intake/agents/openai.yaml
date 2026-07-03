@@ -1,0 +1,6 @@
+interface:
+  display_name: "Intent Intake"
+  short_description: "Route ideas and website changes into the lifecycle"
+  default_prompt: "Use $intent-intake to turn this idea or website change into a lifecycle-ready intent."
+policy:
+  allow_implicit_invocation: true

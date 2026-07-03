@@ -1,0 +1,6 @@
+interface:
+  display_name: "Verification"
+  short_description: "Run tests, review, and lifecycle alignment checks"
+  default_prompt: "Use $verification to verify this implemented story against tests and domain rules."
+policy:
+  allow_implicit_invocation: true

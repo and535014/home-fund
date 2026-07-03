@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Foundation Architecture"
+  short_description: "Decide site-wide stack, tooling, tests, and foundation"
+  default_prompt: "Use $project-foundation-architecture to decide the site-wide foundation before init."
+policy:
+  allow_implicit_invocation: true
