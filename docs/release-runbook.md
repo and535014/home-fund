@@ -125,8 +125,10 @@ Automated smoke 包含：
 
 如果 preflight 失敗：
 
-- 不核准 production deploy。
-- 修正問題後重新走 release PR 流程。
+- 不會進入 production approval；不要手動繞過 preflight。
+- 若是暫時性 CI 或服務問題，且 tag/package/main 檢查無誤，可以重新執行同一個 tag 的 deploy workflow。
+- 若需要修改 code、migration、文件或版號，因為 tag 已建立，不要移動或重打既有 tag；修正後用下一個 patch 版本重新走 release PR 流程。
+- 若失敗原因是 tag/package/main 不一致，停止發版並檢查 tag 建立來源；不要用手動 deploy 去部署不一致的 tag。
 
 如果 production deploy 失敗但 tag 已建立：
 
