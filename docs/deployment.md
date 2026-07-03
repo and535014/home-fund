@@ -145,25 +145,85 @@ CRON_SECRET
 3. PR 不會部署到 Vercel。
 4. PR 不會執行 hosted database migration。
 
+## 版號與 Release PR 流程
+
+Production 版號由 `Prepare Release Version` workflow 建立 release PR，不在
+deploy workflow 裡自動修改。
+
+1. 到 GitHub Actions。
+2. 選擇 `Prepare Release Version` workflow。
+3. 輸入目標版號，例如：
+
+```text
+v1.2.3
+```
+
+4. workflow 會確認輸入符合 `vX.Y.Z`、大於目前 `package.json.version`，
+   建立 `release/vX.Y.Z` 分支，更新 `package.json`，並開 release PR。
+5. release PR 必須通過一般 PR CI，且 merge 只代表版號準備完成，不代表
+   production 已部署。
+
+版號選擇原則：
+
+- `patch` 等級，例如 `v0.1.9` 到 `v0.1.10`：bug fix、部署流程強化、文件修正、小型 UI 調整、cron 修正。
+- `minor` 等級，例如 `v0.1.10` 到 `v0.2.0`：新的使用者功能、重要流程能力、支援新行為的 schema 擴充。
+- `major` 等級，例如 `v0.9.0` 到 `v1.0.0`：保留到專案準備宣告穩定 `1.0.0` 操作契約時使用。
+
+`Prepare Release Version` 需要 repository secret：
+
+```text
+RELEASE_BOT_TOKEN
+```
+
+`RELEASE_BOT_TOKEN` 應使用 fine-grained GitHub personal access token 或
+GitHub App token，只授權此 repository，權限限縮為：
+
+- Contents: Read and write
+- Pull requests: Read and write
+
+不要把 production secrets 放進 `RELEASE_BOT_TOKEN`；它只用於建立 release 分支和 PR。
+
+## 建立 Production Tag
+
+release PR merge 到 `main` 後，再手動建立 production tag。
+
+1. 到 GitHub Actions。
+2. 選擇 `Create Release Tag` workflow。
+3. 按 `Run workflow`。
+4. workflow 會 checkout `main`，讀取 `package.json.version`，建立對應的
+   `vX.Y.Z` annotated tag，並 push tag。
+5. push tag 會觸發 `Deploy Production` workflow。
+
+`Create Release Tag` 不輸入版號，避免輸入值和 `package.json` 不一致。
+如果 tag 已存在，或 `package.json.version` 沒有大於目前最新 `vX.Y.Z` tag，
+workflow 會失敗。
+
 ## Production tag 部署流程
 
-1. 確認 main branch 已包含要發布的 commit。
-2. 建立 semver tag，例如：
+1. 確認 release PR 已 merge 到 `main`。
+2. 使用 `Create Release Tag` workflow 建立 semver tag，例如：
 
-```sh
-git tag v1.2.3
-git push origin v1.2.3
+```text
+v1.2.3
 ```
 
 3. GitHub Actions 觸發 `deploy-production.yml`。
-4. GitHub Environment `production` 等待 reviewer 核准。
-5. 核准後 workflow 會：
+4. workflow 會先跑 production preflight：
    - checkout `v1.2.3`
+   - 確認 tag 版本和 `package.json.version` 一致
+   - 確認 tag commit 包含在 `main`
    - 跑完整 CI
-   - 對 production database 跑 `corepack pnpm db:deploy`
+5. preflight 通過後，GitHub Environment `production` 等待 reviewer 核准。
+6. 核准後 workflow 會：
+   - checkout `v1.2.3`
    - 建置 Vercel production artifact
+   - 對 production database 跑 `corepack pnpm db:deploy`
    - 部署到 Vercel production
-6. 到 workflow summary 查看 production URL 和 smoke checklist。
+   - smoke `/login`、`/favicon.ico`、cron invalid-token `401`
+7. 到 workflow summary 查看 production URL 和 smoke checklist。
+
+不要手動移動或重打已 push 的 production tag。若 tag push 後 deploy 失敗，
+修正後用下一個 patch 版號，例如 `v1.2.4`。
 
 ## 手動部署指定 Production 版本
 
@@ -178,7 +238,8 @@ v1.2.3
 
 5. workflow 只接受 `vX.X.X` 格式。
 6. workflow 會 checkout `refs/tags/v1.2.3`，不是 branch。
-7. 等待 `production` environment reviewer 核准。
+7. workflow 會先確認 tag/package/main 一致並跑 preflight。
+8. 等待 `production` environment reviewer 核准。
 
 手動部署是重新部署既有 tag，不是從目前 branch 部署。
 
@@ -245,6 +306,13 @@ Production rollback：
 - 主要記帳列表可讀取資料。
 - `/api/cron/recurring-posting` 使用錯誤 Bearer token 會回 401；使用正確 cron secret 可回傳週期事件入帳 summary counts。
 - Vercel runtime logs 沒有持續錯誤。
+
+`Deploy Production` workflow 會自動檢查錯誤 Bearer token 回 `401`。
+正確 cron secret smoke 仍維持手動，因為它可能觸發 production 週期事件入帳。
+
+每次 production deploy 後，應新增或更新
+`.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`，記錄 GitHub Actions run、
+Vercel URL、migration、smoke 結果、rollback path 和未解風險。
 
 ## Troubleshooting
 
