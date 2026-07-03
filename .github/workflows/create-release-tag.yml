@@ -1,0 +1,110 @@
+name: Create Release Tag
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: create-release-tag
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release-tag:
+    name: Create release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve package tag
+        id: version
+        run: |
+          git fetch origin --tags --force
+
+          node <<'NODE'
+          const { execFileSync } = require("node:child_process");
+          const fs = require("node:fs");
+
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const version = packageJson.version;
+          const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+
+          if (!match) {
+            console.error(`package.json version must be strict SemVer X.Y.Z, received: ${version}`);
+            process.exit(1);
+          }
+
+          const tag = `v${version}`;
+          const tags = execFileSync("git", ["tag", "--list"], { encoding: "utf8" })
+            .split("\n")
+            .filter((value) => /^v\d+\.\d+\.\d+$/.test(value));
+
+          if (tags.includes(tag)) {
+            console.error(`Release tag already exists: ${tag}`);
+            process.exit(1);
+          }
+
+          const parse = (value) => value
+            .slice(1)
+            .split(".")
+            .map((part) => Number(part));
+
+          const compare = (left, right) => {
+            for (let index = 0; index < 3; index += 1) {
+              if (left[index] !== right[index]) {
+                return left[index] - right[index];
+              }
+            }
+
+            return 0;
+          };
+
+          const current = parse(tag);
+          const latest = tags
+            .map((value) => ({ value, parts: parse(value) }))
+            .sort((left, right) => compare(right.parts, left.parts))[0];
+
+          if (latest && compare(current, latest.parts) <= 0) {
+            console.error(`package.json version ${version} must be greater than latest tag ${latest.value}.`);
+            process.exit(1);
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`);
+          NODE
+
+      - name: Create and push tag
+        env:
+          TAG_NAME: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      - name: Summarize release tag
+        env:
+          TAG_NAME: ${{ steps.version.outputs.tag }}
+        run: |
+          {
+            echo "## Release tag created"
+            echo
+            echo "- Tag: \`$TAG_NAME\`"
+            echo "- Source: \`main\`"
+            echo
+            echo "Pushing this tag triggers the production deploy workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
