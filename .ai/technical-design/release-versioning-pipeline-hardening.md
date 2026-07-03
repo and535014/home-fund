@@ -47,6 +47,7 @@ Keep production deployment as an immutable-tag deployer. Add release preparation
 | `.github/workflows/deploy-production.yml` | Production deployment | Add preflight job, tag/package/main checks, approval sequencing, Vercel CLI pinning, and cron invalid-token smoke. |
 | `package.json` | Tooling manifest | Pin Vercel CLI in `devDependencies` so deploy uses a stable CLI version. |
 | `docs/deployment.md` | Release operations | Document version prep, tag creation, deploy guardrails, version bump policy, and smoke evidence. |
+| `docs/release-runbook.md` | Release operations | Provide the recurring release checklist without first-deploy or secret setup SOP. |
 | `.ai/implementation/release-versioning-pipeline-hardening.md` | Workflow evidence | Record implementation decisions, changed files, and command evidence. |
 | `.ai/verification/release-versioning-pipeline-hardening.md` | Verification evidence | Record static workflow validation and remaining live GitHub/Vercel checks. |
 
@@ -230,6 +231,8 @@ Update `docs/deployment.md` to describe:
 - Versioning policy.
 - Failed deploy follow-up rule.
 - Deployment evidence expectation: create or update `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md` after each production deployment.
+
+Add `docs/release-runbook.md` for recurring release execution only. The runbook must not duplicate first-deployment setup, service account setup, OAuth callback setup, or secret setup SOPs.
 
 ## Auth And Permission Boundary
 

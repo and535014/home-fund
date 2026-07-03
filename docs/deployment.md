@@ -2,6 +2,8 @@
 
 這份文件說明 Home Family Fund 的 GitHub Actions、Vercel、Neon PostgreSQL、Google OAuth 部署設定。此專案目前**不使用 preview 環境**。
 
+例行發版操作請看 [Release Runbook](release-runbook.md)。本文件保留部署架構、首次設定、環境和 troubleshooting 說明。
+
 部署策略：
 
 - PR 只跑 CI，不部署。

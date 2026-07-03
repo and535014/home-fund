@@ -18,6 +18,7 @@ outputs:
   - deploy_preflight_hardening
   - vercel_cli_pinning
   - deployment_docs_update
+  - release_runbook
 trace_links:
   - .ai/intent/release-versioning-pipeline-hardening.md
   - .ai/technical-design/release-versioning-pipeline-hardening.md
@@ -41,6 +42,8 @@ reviewed_at: 2026-07-03
   - automated cron invalid-token smoke expecting HTTP `401`
 - Added pinned `vercel` devDependency and lockfile entries.
 - Updated `docs/deployment.md` with release PR, tag creation, versioning policy, deploy guardrails, cron smoke, and deployment evidence guidance.
+- Added `docs/release-runbook.md` for recurring release execution without first-deploy or secret setup SOPs.
+- Linked the runbook from `README.md` and `docs/deployment.md`.
 
 ## Implementation Notes
 
