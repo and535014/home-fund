@@ -67,7 +67,7 @@ The production deploy workflow should remain a deployer of immutable tags. It sh
 - documentation: deployment guide and release operating instructions.
 - CI/CD governance: semver bump rules, tag/package consistency, main-line containment, production approval sequencing.
 - backend/API smoke: cron invalid-token smoke for `/api/cron/recurring-posting`.
-- operational evidence: future deployment records should identify whether version-prep and tag workflows were used.
+- operational evidence: release PRs and GitHub Actions runs should identify whether version-prep and tag workflows were used.
 
 ## Scope
 

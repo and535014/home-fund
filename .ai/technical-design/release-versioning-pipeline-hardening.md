@@ -230,7 +230,7 @@ Update `docs/deployment.md` to describe:
 - Production deploy workflow guardrails.
 - Versioning policy.
 - Failed deploy follow-up rule.
-- Deployment evidence expectation: create or update `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md` after each production deployment.
+- Release evidence expectation: do not create new `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md` records for routine releases; keep release evidence in the release PR, PR comments, GitHub Actions runs, and Vercel deployment pages.
 
 Add `docs/release-runbook.md` for recurring release execution only. The runbook must not duplicate first-deployment setup, service account setup, OAuth callback setup, or secret setup SOPs.
 

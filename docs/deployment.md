@@ -312,9 +312,9 @@ Production rollback：
 `Deploy Production` workflow 會自動檢查錯誤 Bearer token 回 `401`。
 正確 cron secret smoke 仍維持手動，因為它可能觸發 production 週期事件入帳。
 
-每次 production deploy 後，應新增或更新
-`.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`，記錄 GitHub Actions run、
-Vercel URL、migration、smoke 結果、rollback path 和未解風險。
+每次 production deploy 後，不再新增 `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`。
+發版 PR、GitHub Actions run、Vercel deployment 頁面和 PR comment 是 release
+evidence 的主要紀錄來源；必要時在 PR 補充 smoke 結果、rollback path 和未解風險。
 
 ## Troubleshooting
 

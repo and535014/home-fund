@@ -101,15 +101,12 @@ Automated smoke 包含：
 - Vercel runtime logs 沒有持續錯誤。
 - 若本次涉及 recurring cron，手動用正確 cron secret 驗證 summary response，並確認不會暴露家庭財務明細。
 
-## 部署紀錄
+## Release Evidence
 
-每次 production deploy 後，新增或更新：
+每次 production deploy 後，不再新增 `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`。
+發版證據集中在 release PR 和平台紀錄。
 
-```text
-.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md
-```
-
-紀錄至少包含：
+PR 或 PR comment 至少應保留：
 
 - deployed version。
 - tag commit。
@@ -140,7 +137,7 @@ Automated smoke 包含：
 
 - 不要把 Vercel rollback 當作 database rollback。
 - 優先使用 forward fix。
-- 需要資料庫還原時，依 production database 的備份/還原機制處理，並在 deployment record 記錄決策。
+- 需要資料庫還原時，依 production database 的備份/還原機制處理，並在 release PR 記錄決策。
 
 ## 完成條件
 
@@ -148,5 +145,5 @@ Automated smoke 包含：
 
 - `Deploy Production` workflow 成功。
 - 必要的 post-deploy smoke 已完成。
-- deployment record 已補齊。
+- release PR 或 PR comment 已補齊 release evidence。
 - 已知風險有明確 owner 或下一步。

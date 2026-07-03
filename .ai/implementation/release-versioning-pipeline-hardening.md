@@ -41,7 +41,7 @@ reviewed_at: 2026-07-03
   - Vercel artifact build before production database migration
   - automated cron invalid-token smoke expecting HTTP `401`
 - Added pinned `vercel` devDependency and lockfile entries.
-- Updated `docs/deployment.md` with release PR, tag creation, versioning policy, deploy guardrails, cron smoke, and deployment evidence guidance.
+- Updated `docs/deployment.md` with release PR, tag creation, versioning policy, deploy guardrails, cron smoke, and PR-centered release evidence guidance.
 - Added `docs/release-runbook.md` for recurring release execution without first-deploy or secret setup SOPs.
 - Linked the runbook from `README.md` and `docs/deployment.md`.
 
