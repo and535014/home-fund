@@ -1,63 +1,58 @@
 # Repository Agent Notes
 
-<!-- DDD-WEBSITE-WORKFLOW:START -->
-## DDD Website Harness Workflow
+## 專案定位
 
-Use `.ai/` artifacts as the source of truth for product intent, domain behavior, foundation decisions, production-stack interactive prototype, behavior spec, technical design, TDD implementation, verification, target-aware release, learning, and artifact compression. This repository is governed by the DDD Website Harness Workflow for all non-trivial changes.
+Home Family Fund 是家庭共用金管理工具，主要介面語言為繁體中文。
 
-### Lifecycle
+技術棧與本機開發方式以 `README.md` 為準；部署、migration、rollback 與 production smoke 流程以 `docs/deployment.md` 為準。不要在此文件複製那些操作步驟。
 
-Intent Intake -> Domain Discovery -> Project Foundation Architecture -> Project Foundation Implementation / Init -> Experience Prototype -> Behavior Spec / BDD / E2E -> Feature Technical Design -> TDD Implementation -> Verification -> Target-Aware Release -> Learning Loop -> Artifact Compression.
+## 修改原則
 
-### Workflow Enforcement
+- 修改前先閱讀相關程式碼、測試與領域文件，不要只根據檔名推測行為。
+- 保持變更範圍聚焦；不要順便重構、重新命名或移動不相關檔案。
+- 工作樹若有既存變更，視為使用者所有；不要覆蓋、還原或混入目前任務。
 
-- All non-trivial product, design, frontend, backend, test, release, migration, or artifact-cleanup changes must use this lifecycle.
-- Do not skip directly to coding, scaffolding, prototype work, tests, release, or prune cleanup unless the current lifecycle gate explicitly allows it.
-- Every lifecycle gate must end with a `Review Gate` decision and a recommended next gate.
-- After completing any gate, stop and wait for explicit user approval before starting the next gate. Do not continue automatically.
-- Do not start implementation just because a plan exists; implementation starts only after Behavior Spec / BDD / E2E and Feature Technical Design are approved or explicitly accepted as risk.
-- If the user asks for work that belongs to a later gate, complete only the missing current gate and ask for confirmation before moving forward.
+## 架構邊界
 
-### Entry and Upgrade
+- `src/app/` 是 Next.js App Router 與畫面組合層，負責 route、server action、UI orchestration 與 framework adapter。
+- 長期業務規則、commands、queries 與 read models 放在對應的 `src/modules/<bounded-context>/`。
+- `src/modules/` 與 `src/auth/` 不得依賴 `src/app/` 的 route-local helper。
+- 只被單一路由使用的 UI、action 或 helper，放在該 route 的 `_components`、`_actions` 或 `_lib`。
+- 多個路由共用的 app-layer 功能，可以放在 `src/app/_*` 私有共享目錄；真正的業務邏輯仍應下沉至 `src/modules/`。
+- 優先延續現有 bounded contexts：Identity and Access、Fund Ledger、Categorization、Recurring Schedule、Reimbursement、Reporting。
+- 不要手動修改 `src/generated/prisma/`；它由 Prisma generate 產生。
 
-- Start with `.ai/workflow.md` and `.ai/project-context.md`.
-- Use `ddd-workflow-init` for new or adopted projects.
-- Use `ddd-workflow-update` when an existing `.ai/` workflow must migrate to `ddd-website-lifecycle-v2`.
-- Use the smallest lifecycle path that captures the missing decision, proof, or release gate. Do not restart completed work unless the user asks.
+## 領域與權限
 
-### Domain Rules
+- `.ai/domain/` 保存目前仍有效的長期領域語言、規則與 invariants。
+- 涉及角色、權限、款項流動、狀態轉換或跨 bounded context 行為時，先閱讀並同步更新相關領域文件。
+- `.ai/requirements/` 保存已完成或曾規劃需求的歷史摘要；它可以提供背景，但現行行為仍以程式碼、測試與 `.ai/domain/` 為準。
+- mutation 必須在 server boundary 重新驗證登入狀態、household scope、角色／capability 與目標資料狀態；不要信任 client 傳入的 IDs 或 UI state。
+- Reporting 與 search 是 read models，不得成為財務事實或 mutation 授權來源。
+- Ledger、reimbursement 與 recurring posting 的狀態更新若需一致完成，應維持 transaction 邊界。
 
-- Maintain durable project/domain knowledge in `.ai/domain/project.md` or `.ai/domain/<bounded-context>.md`.
-- Do not create one domain model artifact per feature, requirement, story, or request.
-- Put per-intent domain deltas, change impact, affected flows, risks, and downstream implications in `.ai/domain-impact/<intent-id>.md`.
-- Treat domain-impact artifacts as change-level evidence that can be summarized by Artifact Compression and later removed by explicit manual Artifact Prune.
-- Create a separate bounded-context domain file only when the language, ownership, lifecycle, policies, invariants, or state transitions are meaningfully distinct.
+## 資料庫與環境安全
 
-### Foundation Rules
+- Prisma schema 變更必須附 migration；不要只修改 `schema.prisma`。
+- 不得對 production 執行 `prisma migrate reset`、清空資料、重建資料庫或 destructive seed。
+- `db:seed` 只負責 production-safe bootstrap baseline；E2E fixtures 使用獨立的 E2E database 與 seed。
+- 不提交 `.env`、OAuth credentials、database URLs、tokens 或其他 secrets。
+- 不把本機測試結果描述成 production 驗證；production 狀態必須有 `main`、release tag 與 deployment evidence。
 
-- New projects, migrations, rewrites, unknown stacks, or missing frontend/test foundations require Project Foundation Architecture.
-- After Project Foundation Architecture, run Project Foundation Implementation / Init before production-stack prototype.
-- Foundation init must establish scaffold, app shell, routing baseline, lint/format/test/e2e config, selected component library, foundation components/tokens, prototype host, and runnable dev/build/test commands.
-- Existing projects normally reuse observed foundation instead of reselecting React/Vue/etc., unless the change is a migration or rewrite.
+## 驗證
 
-### Prototype and Behavior Rules
+依變更風險執行最相關的檢查：
 
-- User-facing website work requires an interactive production-stack prototype unless explicitly skipped with accepted risk.
-- Prototype artifacts must include path, component paths, frontend stack, component library, run command, review URL, states covered, mock/fixture data, responsive baseline, accessibility/focus baseline, and known gaps.
-- Standalone HTML files, static mockups, screenshots, Figma-only designs, and throwaway pages that do not use the selected project stack are not valid Experience Prototype outputs.
-- Behavior Spec / BDD / E2E must be complete before Feature Technical Design.
-- Implementation must be TDD: write or enable the test first, implement the minimum behavior, then refactor.
+- 純 domain／utility 變更：相關 Vitest tests。
+- TypeScript 或跨模組變更：相關 tests 加上 `corepack pnpm type-check`。
+- UI 或 route flow 變更：相關 component tests；涉及主要使用流程時補跑對應 Playwright spec。
+- Prisma 變更：`corepack pnpm db:validate`、相關 tests，並確認 migration。
+- 交付前的完整檢查依 `README.md` 執行。
 
-### Release Rules
+不要平行執行多個會呼叫 `prisma generate` 的命令，避免同時寫入 `src/generated/prisma/`。
 
-- Release is target-aware: `local_dev`, `internal_demo`, `preview`, `staging`, or `production`.
-- Passing preview/staging readiness does not imply production readiness.
-- Production readiness must address secrets/config, migrations, auth/permissions, rollback, observability, monitoring, smoke checks, and learning signals where relevant.
+## 文件同步
 
-### Migration Rules
-
-- Move legacy artifacts into v2 directories during workflow migration; use git history as the old-path record.
-- New v2 artifacts must be created in v2 directories only; do not add new files to legacy `.ai/idea/`, `.ai/change/`, `.ai/ddd/`, `.ai/stories/`, `.ai/experience-design/`, `.ai/architecture/`, `.ai/verification-design/`, `.ai/deploy/`, or `.ai/post-release/`.
-- Classify old artifacts as `complete`, `usable_with_gaps`, `needs_backfill`, `obsolete`, or `not_applicable`.
-- Backfill only the minimum missing gate needed to continue safely.
-<!-- DDD-WEBSITE-WORKFLOW:END -->
+- 開發與環境設定改變時更新 `README.md`。
+- CI/CD、production、migration、seed、rollback 或 smoke 流程改變時更新 `docs/deployment.md`。
+- 長期領域語言或 invariant 改變時更新 `.ai/domain/`。
