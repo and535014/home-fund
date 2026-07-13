@@ -2,6 +2,8 @@
 
 import { HandCoins, Save, Trash2, X } from "lucide-react";
 import {
+  startTransition,
+  type FormEvent,
   useActionState,
   useCallback,
   useEffect,
@@ -32,6 +34,12 @@ import {
   LedgerRecordMemberSelectField,
   LedgerRecordNoteField,
 } from "@/app/ledger-record-form-fields";
+import {
+  ledgerRecordEntryKindForRecord,
+  ledgerRecordFieldsForEntryKind,
+  type LedgerRecordEntryKind,
+} from "@/app/ledger-record-entry-kind";
+import { LedgerRecordEntryKindTabs } from "@/app/ledger-record-entry-kind-tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -333,7 +341,11 @@ function EditRecordDialog({
   onSuccess: () => void;
   record: LedgerRecord;
 }) {
-  const paymentSource = record.type === "expense" ? record.paymentSource : null;
+  const initialEntryKind = ledgerRecordEntryKindForRecord(record);
+  const [entryKind, setEntryKind] = useState(initialEntryKind);
+  const [hasChangedEntryKind, setHasChangedEntryKind] = useState(false);
+  const [hasCrossedTypeBoundary, setHasCrossedTypeBoundary] = useState(false);
+  const { paymentSource, recordType } = ledgerRecordFieldsForEntryKind(entryKind);
   const [actionState, formAction, isPending] = useActionState(
     updateLedgerRecordAction,
     initialActionState() as UpdateLedgerRecordActionState,
@@ -352,32 +364,62 @@ function EditRecordDialog({
       }
     }, [onSuccess]),
   );
-  const editableCategories = categories
-    .filter(
-      (category) =>
-        category.type === record.type &&
-        (category.status === "active" || category.id === record.categoryId),
-    );
+  function changeEntryKind(nextEntryKind: LedgerRecordEntryKind) {
+    if (nextEntryKind === entryKind) {
+      return;
+    }
+
+    const nextType = ledgerRecordFieldsForEntryKind(nextEntryKind).recordType;
+    if (nextType !== recordType) {
+      setHasCrossedTypeBoundary(true);
+    }
+    setHasChangedEntryKind(true);
+    setEntryKind(nextEntryKind);
+  }
+
+  function submitEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
+
+  const editableCategories = categories.filter(
+    (category) =>
+      category.type === recordType &&
+      (category.status === "active" ||
+        (!hasCrossedTypeBoundary && category.id === record.categoryId)),
+  );
   const members = Object.entries(memberNames).map(([id, displayName]) => ({
     id,
     displayName,
   }));
-  const payerField =
-    record.type === "income" ? (
-      <LedgerRecordMemberSelectField
-        defaultMemberId={record.sourceMemberId}
-        label="支付者"
-        members={members}
-        name="sourceMemberId"
-      />
-    ) : paymentSource === "member" ? (
-      <LedgerRecordMemberSelectField
-        defaultMemberId={record.payerMemberId ?? ""}
-        label="支付者"
-        members={members}
-        name="payerMemberId"
-      />
-    ) : null;
+  const memberDefaultId = !hasChangedEntryKind
+    ? record.type === "income"
+      ? record.sourceMemberId
+      : record.payerMemberId ?? ""
+    : "";
+  const payerField = recordType === "income" ? (
+    <LedgerRecordMemberSelectField
+      defaultMemberId={memberDefaultId}
+      key={entryKind}
+      label="支付者"
+      members={members}
+      name="sourceMemberId"
+      placeholder={hasChangedEntryKind ? "請選擇成員" : undefined}
+    />
+  ) : paymentSource === "member" ? (
+    <LedgerRecordMemberSelectField
+      defaultMemberId={memberDefaultId}
+      key={entryKind}
+      label="支付者"
+      members={members}
+      name="payerMemberId"
+      placeholder={hasChangedEntryKind ? "請選擇成員" : undefined}
+    />
+  ) : null;
 
   return (
     <DialogContent aria-describedby={undefined} className="max-w-lg">
@@ -386,7 +428,6 @@ function EditRecordDialog({
       </DialogHeader>
 
       <LedgerRecordFormShell
-        action={formAction}
         ariaLabel="編輯紀錄表單"
         feedbackMessage={
           actionState.status === "error" && actionState.message
@@ -396,13 +437,14 @@ function EditRecordDialog({
         hiddenFields={
           <>
             <input name="recordId" type="hidden" value={record.id} />
-            <input name="recordType" type="hidden" value={record.type} />
+            <input name="recordType" type="hidden" value={recordType} />
             {paymentSource ? (
               <input name="paymentSource" type="hidden" value={paymentSource} />
             ) : null}
           </>
         }
         isPending={isPending}
+        onSubmit={submitEdit}
         footer={
           <>
             <LedgerRecordCancelButton
@@ -424,9 +466,23 @@ function EditRecordDialog({
           </>
         }
       >
+        <LedgerRecordEntryKindTabs
+          disabled={isPending}
+          entryKind={entryKind}
+          onEntryKindChange={changeEntryKind}
+        />
+        {hasChangedEntryKind ? (
+          <p className="text-caption text-muted-foreground">
+            {hasCrossedTypeBoundary
+              ? "切換類型後，請重新選擇分類與付款資訊。"
+              : "切換付款來源後，請重新確認付款資訊。"}
+          </p>
+        ) : null}
         <LedgerRecordCategoryField
           categories={editableCategories}
-          defaultCategoryId={record.categoryId}
+          defaultCategoryId={
+            hasCrossedTypeBoundary ? undefined : record.categoryId
+          }
         />
 
         <LedgerRecordAmountNameFields
