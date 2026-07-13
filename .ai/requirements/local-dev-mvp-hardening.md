@@ -10,7 +10,7 @@ Home Family Fund is a Traditional Chinese, dark-theme, single-household MVP for 
 
 ## 執行方式
 
-The project uses Next.js, React, TypeScript, Prisma/PostgreSQL, Better Auth, Vitest, Playwright, Tailwind CSS, and shadcn-style UI primitives. DDD workflow artifacts now live in v2 directories. New workflow artifacts must be written only to v2 directories and agents must stop after each lifecycle gate for user approval.
+The project uses Next.js, React, TypeScript, Prisma/PostgreSQL, Better Auth, Vitest, Playwright, Tailwind CSS, and shadcn-style UI primitives. At the time of this requirement, delivery used versioned workflow artifacts and stopped at lifecycle gates for user approval.
 
 Recurring confirmation uses a dashboard-local panel and server action, a Prisma transaction wrapper around recurring occurrence confirmation and ledger record creation, DB-backed dashboard reload as proof of persistence, and controlled auth headers only outside production. DB-backed E2E uses dedicated port `3100`, `.next-e2e`, and per-test DB reset.
 
