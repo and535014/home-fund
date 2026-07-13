@@ -55,6 +55,7 @@
     "prisma": "latest",
     "tailwindcss": "latest",
     "typescript": "latest",
+    "vercel": "54.20.0",
     "vitest": "latest"
   }
 }

@@ -47,37 +47,55 @@ jobs:
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  deploy-production:
-    name: Deploy Production
+  preflight:
+    name: Production Preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 25
     needs:
       - resolve-version
-    environment: production
 
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-      BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-      CSV_IMPORT_PREVIEW_SECRET: ${{ secrets.CSV_IMPORT_PREVIEW_SECRET }}
-      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: ${{ secrets.MEMBER_BINDING_TOKEN_ENCRYPTION_KEY }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/home_fund_ci
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-placeholder-secret
+      CSV_IMPORT_PREVIEW_SECRET: ci-only-placeholder-secret
+      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
 
     steps:
       - name: Checkout version tag
         uses: actions/checkout@v4
         with:
           ref: refs/tags/${{ needs.resolve-version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Fetch main and tags
+        run: git fetch origin main:refs/remotes/origin/main --tags --force
+
+      - name: Verify release source
+        env:
+          VERSION_TAG: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          tag_version="${VERSION_TAG#v}"
+
+          if [ "$package_version" != "$tag_version" ]; then
+            echo "Version mismatch: tag $VERSION_TAG expects package.json version $tag_version, found $package_version." >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "Tag $VERSION_TAG is not contained in origin/main." >&2
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Enable Corepack
         run: corepack enable
@@ -100,25 +118,68 @@ jobs:
       - name: Build
         run: corepack pnpm build
 
-      - name: Apply production database migrations
-        run: corepack pnpm db:deploy
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs:
+      - resolve-version
+      - preflight
+    environment: production
+
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      CSV_IMPORT_PREVIEW_SECRET: ${{ secrets.CSV_IMPORT_PREVIEW_SECRET }}
+      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: ${{ secrets.MEMBER_BINDING_TOKEN_ENCRYPTION_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout version tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.resolve-version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
 
       - name: Pull Vercel production environment
-        run: corepack pnpm dlx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: corepack pnpm vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build Vercel production artifact
-        run: corepack pnpm dlx vercel build --prod --token="$VERCEL_TOKEN"
+        run: corepack pnpm vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Apply production database migrations
+        run: corepack pnpm db:deploy
 
       - name: Deploy Vercel production artifact
         id: deploy
         run: |
-          deployment_url="$(corepack pnpm dlx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          deployment_url="$(corepack pnpm vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
           {
             echo "## Production deployment"
             echo
             echo "- Version: ${{ needs.resolve-version.outputs.version }}"
             echo "- URL: $deployment_url"
+            echo "- Vercel artifact build completed before migration"
             echo "- Database migration: \`corepack pnpm db:deploy\` completed before deploy"
             echo
             echo "### Smoke checklist"
@@ -134,5 +195,27 @@ jobs:
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          curl --fail --location --max-time 30 "$DEPLOYMENT_URL/login" >/dev/null
-          curl --fail --location --max-time 30 "$DEPLOYMENT_URL/favicon.ico" >/dev/null
+          smoke_base_url="${BETTER_AUTH_URL:-$DEPLOYMENT_URL}"
+          smoke_base_url="${smoke_base_url%/}"
+
+          curl --fail --location --max-time 30 "$smoke_base_url/login" >/dev/null
+          curl --fail --location --max-time 30 "$smoke_base_url/favicon.ico" >/dev/null
+
+          cron_body="$(mktemp)"
+          cron_status="$(
+            curl \
+              --silent \
+              --show-error \
+              --location \
+              --max-time 30 \
+              --output "$cron_body" \
+              --write-out "%{http_code}" \
+              --header "Authorization: Bearer invalid-token" \
+              "$smoke_base_url/api/cron/recurring-posting"
+          )"
+
+          if [ "$cron_status" != "401" ]; then
+            echo "Expected cron invalid-token smoke to return HTTP 401, received $cron_status." >&2
+            cat "$cron_body" >&2
+            exit 1
+          fi
