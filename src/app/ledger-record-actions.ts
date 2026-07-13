@@ -54,7 +54,9 @@ export type UpdateLedgerRecordActionCode =
   | "record_not_found"
   | "record_voided"
   | "reimbursed_expense_blocked"
-  | "missing_income_source_member";
+  | "missing_income_source_member"
+  | "income_source_outside_household"
+  | "expense_payer_outside_household";
 
 export type UpdateLedgerRecordActionField =
   | CreateLedgerRecordActionField
@@ -278,6 +280,8 @@ function updateLedgerRecordError(
     invalid_date: "日期格式不正確。",
     invalid_payment_source: "支出類型不正確。",
     invalid_record_type: "紀錄類型不正確。",
+    income_source_outside_household: "收入來源不屬於目前家庭。",
+    expense_payer_outside_household: "代墊成員不屬於目前家庭。",
     missing_category: "請選擇分類。",
     missing_income_source_member: "請選擇收入來源。",
     missing_member_payer: "請選擇代墊成員。",
@@ -409,6 +413,14 @@ function fieldForUpdateError(
 
   if (code === "missing_income_source_member") {
     return "sourceMemberId";
+  }
+
+  if (code === "income_source_outside_household") {
+    return "sourceMemberId";
+  }
+
+  if (code === "expense_payer_outside_household") {
+    return "payerMemberId";
   }
 
   return fieldForError(code);

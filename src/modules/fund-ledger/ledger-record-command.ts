@@ -55,6 +55,12 @@ export type LedgerRecordMutationPrismaClient = {
 
 type LedgerRecordMutationTransaction = {
   category: CategoryLookupQueryPrismaClient["category"];
+  member: {
+    findMany(args: {
+      where: { householdId: string; status: "active" };
+      select: { id: true };
+    }): Promise<{ id: string }[]>;
+  };
   ledgerRecord: {
     findFirst(args: {
       where: {
@@ -132,7 +138,7 @@ export async function updateLedgerRecordInDatabase(
   const householdId = context.householdId;
 
   return context.prisma.$transaction(async (tx) => {
-    const [record, categories] = await Promise.all([
+    const [record, categories, members] = await Promise.all([
       tx.ledgerRecord.findFirst({
         where: {
           householdId,
@@ -142,6 +148,10 @@ export async function updateLedgerRecordInDatabase(
         select: ledgerRecordSelect(),
       }),
       loadCategoryLookups({ householdId, prisma: tx }),
+      tx.member.findMany({
+        where: { householdId, status: "active" },
+        select: { id: true },
+      }),
     ]);
 
     if (!record) {
@@ -152,7 +162,10 @@ export async function updateLedgerRecordInDatabase(
       actor,
       mapPrismaLedgerRecordToLedgerRecord(record),
       command,
-      { categories },
+      {
+        categories,
+        householdMemberIds: new Set(members.map((member) => member.id)),
+      },
     );
 
     if (!result.ok) {
