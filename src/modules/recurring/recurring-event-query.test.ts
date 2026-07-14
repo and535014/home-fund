@@ -118,7 +118,11 @@ describe("loadRecurringEventsForSettings", () => {
         now: new Date(now),
       })).resolves.toBe(expectedLabel);
     } finally {
-      process.env.TZ = previousTimeZone;
+      if (previousTimeZone === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = previousTimeZone;
+      }
     }
   });
 });
