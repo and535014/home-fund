@@ -1,6 +1,6 @@
 # 編輯收支記錄類型
 
-- status: proposed
+- status: done
 - date: 2026-07-13
 
 ## 需求
@@ -81,3 +81,10 @@
 - 連動修改週期事件規則或未來月份。
 - 回寫原始 CSV 或匯入批次結果。
 - 新增完整 correction / audit history。
+
+## 最終結果
+
+- 單筆編輯流程已可在成員支出、收入、基金支出間切換，並依目標類型重設分類、成員欄位與退款資格。
+- 首頁與搜尋共用的 record detail flow 均使用相同編輯行為；已退款支出仍維持不可編輯。
+- Prisma schema 與來源關聯未變更；更新維持既有 transaction 與同一 record ID。
+- 本機驗證：`corepack pnpm test` 348/348 tests 通過；`corepack pnpm type-check`、`corepack pnpm lint`、`corepack pnpm build` 均 exit 0；feature-focused Playwright 4/4 通過。完整 `corepack pnpm test:e2e` 為 62 passed、5 failed、3 did not run；5 個失敗已在不含本需求實作的 pre-implementation checkout 完全重現，確認為既存 baseline，不是本變更引入。以上皆為本機驗證，不是 production evidence。
