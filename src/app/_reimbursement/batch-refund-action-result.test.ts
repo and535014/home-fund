@@ -28,6 +28,9 @@ describe("batch refund action result messages", () => {
     expect(messageForBatchRefundError("cross_member_batch")).toBe(
       "請一次退款同一位代墊成員的紀錄。",
     );
+    expect(messageForBatchRefundError("record_changed")).toBe(
+      "部分紀錄剛被其他操作更新，請重新載入後再試。",
+    );
     expect(messageForBatchRefundError("no_eligible_records")).toBe(
       "沒有符合退款條件的紀錄。",
     );

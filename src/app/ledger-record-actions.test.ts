@@ -78,6 +78,11 @@ describe("updateLedgerRecordAction", () => {
       "代墊成員不屬於目前家庭。",
       "payerMemberId",
     ],
+    [
+      "record_changed",
+      "這筆紀錄剛被其他操作更新，請重新載入後再試。",
+      "recordId",
+    ],
   ] as const)("maps %s to the target member field", async (code, message, field) => {
     vi.mocked(updateLedgerRecordInDatabase).mockResolvedValueOnce({
       ok: false,

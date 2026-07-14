@@ -51,7 +51,8 @@ export type BatchRefundPageActionCode =
   | "empty_selection"
   | "mutation_failed"
   | "no_eligible_records"
-  | "permission_denied";
+  | "permission_denied"
+  | "record_changed";
 
 export type BatchRefundPageActionField =
   | "recordIds"

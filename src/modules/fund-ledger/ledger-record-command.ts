@@ -19,8 +19,8 @@ import {
 } from "./ledger-record-corrections";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
-  prismaLedgerRecordSelect,
-  type PrismaLedgerRecordRow,
+  versionedPrismaLedgerRecordSelect,
+  type VersionedPrismaLedgerRecordRow,
 } from "./ledger-record-prisma-adapter";
 
 export type LedgerRecordCommandPrismaClient = {
@@ -71,14 +71,17 @@ type LedgerRecordMutationTransaction = {
         id: string;
         status: "active";
       };
-      select: typeof prismaLedgerRecordSelect;
-    }): Promise<PrismaLedgerRecordRow | null>;
-    update(args: {
+      select: typeof versionedPrismaLedgerRecordSelect;
+    }): Promise<VersionedPrismaLedgerRecordRow | null>;
+    updateMany(args: {
       where: {
+        householdId: string;
         id: string;
+        status: "active";
+        updatedAt: Date;
       };
       data: Record<string, unknown>;
-    }): Promise<unknown>;
+    }): Promise<{ count: number }>;
   };
 };
 
@@ -128,7 +131,18 @@ export type LedgerRecordPersistenceFailure =
   | {
       ok: false;
       reason: "record_not_found";
+    }
+  | {
+      ok: false;
+      reason: "record_changed";
     };
+
+export class LedgerRecordMutationConflictError extends Error {
+  constructor() {
+    super("Ledger record changed during mutation");
+    this.name = "LedgerRecordMutationConflictError";
+  }
+}
 
 export async function updateLedgerRecordInDatabase(
   actor: AuthenticatedMember,
@@ -148,7 +162,7 @@ export async function updateLedgerRecordInDatabase(
           id: command.recordId,
           status: "active",
         },
-        select: ledgerRecordSelect(),
+        select: versionedPrismaLedgerRecordSelect,
       }),
       loadCategoryLookups({ householdId, prisma: tx }),
       tx.member.findMany({
@@ -178,10 +192,19 @@ export async function updateLedgerRecordInDatabase(
       return result;
     }
 
-    await tx.ledgerRecord.update({
-      where: { id: command.recordId },
+    const update = await tx.ledgerRecord.updateMany({
+      where: {
+        householdId,
+        id: command.recordId,
+        status: "active",
+        updatedAt: record.updatedAt,
+      },
       data: toLedgerRecordUpdateData(result.record),
     });
+
+    if (update.count !== 1) {
+      return { ok: false, reason: "record_changed" };
+    }
 
     return result;
   });
@@ -204,7 +227,7 @@ export async function voidLedgerRecordInDatabase(
         id: command.recordId,
         status: "active",
       },
-      select: ledgerRecordSelect(),
+      select: versionedPrismaLedgerRecordSelect,
     });
 
     if (!record) {
@@ -220,10 +243,19 @@ export async function voidLedgerRecordInDatabase(
       return result;
     }
 
-    await tx.ledgerRecord.update({
-      where: { id: command.recordId },
+    const update = await tx.ledgerRecord.updateMany({
+      where: {
+        householdId,
+        id: command.recordId,
+        status: "active",
+        updatedAt: record.updatedAt,
+      },
       data: { status: "voided" },
     });
+
+    if (update.count !== 1) {
+      return { ok: false, reason: "record_changed" };
+    }
 
     return result;
   });
@@ -262,8 +294,4 @@ function toLedgerRecordUpdateData(record: LedgerRecord) {
     status: record.status,
     note: record.note ?? null,
   };
-}
-
-function ledgerRecordSelect(): typeof prismaLedgerRecordSelect {
-  return prismaLedgerRecordSelect;
 }

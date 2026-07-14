@@ -9,8 +9,11 @@ import { actionSuccessWithRevalidation } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
-  prismaLedgerRecordSelect,
+  versionedPrismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
+import {
+  LedgerRecordMutationConflictError,
+} from "@/modules/fund-ledger/ledger-record-command";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
   batchDeleteLedgerRecords,
@@ -97,7 +100,8 @@ export type BatchSearchRecordActionCode =
   | "empty_selection"
   | "mutation_failed"
   | "no_eligible_records"
-  | "permission_denied";
+  | "permission_denied"
+  | "record_changed";
 
 export type BatchSearchRecordActionField =
   | "recordIds"
@@ -206,7 +210,7 @@ export async function batchDeleteSearchRecordsAction(
             in: selectedRecordIds,
           },
         },
-        select: prismaLedgerRecordSelect,
+        select: versionedPrismaLedgerRecordSelect,
       });
       const domainResult = batchDeleteLedgerRecords(
         session.access.member,
@@ -218,17 +222,25 @@ export async function batchDeleteSearchRecordsAction(
         return domainResult;
       }
 
-      await tx.ledgerRecord.updateMany({
+      const processedIds = new Set(
+        domainResult.processedRecords.map((record) => record.id),
+      );
+      const update = await tx.ledgerRecord.updateMany({
         where: {
           householdId: session.access.member.householdId,
-          id: {
-            in: domainResult.processedRecords.map((record) => record.id),
-          },
+          status: "active",
+          OR: rows
+            .filter((row) => processedIds.has(row.id))
+            .map((row) => ({ id: row.id, updatedAt: row.updatedAt })),
         },
         data: {
           status: "voided",
         },
       });
+
+      if (update.count !== domainResult.processedRecords.length) {
+        throw new LedgerRecordMutationConflictError();
+      }
 
       return domainResult;
     });
@@ -255,7 +267,14 @@ export async function batchDeleteSearchRecordsAction(
       ["/", "/search"],
     );
   } catch (error) {
-    console.error("Batch refund failed", error);
+    if (error instanceof LedgerRecordMutationConflictError) {
+      return batchSearchRecordActionError(
+        "record_changed",
+        "部分紀錄剛被其他操作更新，請重新載入後再試。",
+      );
+    }
+
+    console.error("Batch delete failed", error);
 
     return batchSearchRecordActionError(
       "mutation_failed",

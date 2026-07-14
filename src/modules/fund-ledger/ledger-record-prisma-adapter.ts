@@ -35,6 +35,15 @@ export type PrismaExpenseLedgerRecordRow = Omit<
   "sourceMemberId"
 >;
 
+export type VersionedPrismaLedgerRecordRow = PrismaLedgerRecordRow & {
+  updatedAt: Date;
+};
+
+export type VersionedPrismaExpenseLedgerRecordRow =
+  PrismaExpenseLedgerRecordRow & {
+    updatedAt: Date;
+  };
+
 export const prismaLedgerRecordSelect = {
   id: true,
   type: true,
@@ -75,6 +84,16 @@ export const prismaExpenseLedgerRecordSelect = {
   reimbursementStatus: true,
   status: true,
   note: true,
+} as const;
+
+export const versionedPrismaLedgerRecordSelect = {
+  ...prismaLedgerRecordSelect,
+  updatedAt: true,
+} as const;
+
+export const versionedPrismaExpenseLedgerRecordSelect = {
+  ...prismaExpenseLedgerRecordSelect,
+  updatedAt: true,
 } as const;
 
 export function mapPrismaLedgerRecordToLedgerRecord(

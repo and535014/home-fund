@@ -25,6 +25,10 @@ export function messageForPaymentError(
 }
 
 export function messageForBatchRefundError(reason: string): string {
+  if (reason === "record_changed") {
+    return "部分紀錄剛被其他操作更新，請重新載入後再試。";
+  }
+
   if (reason === "permission_denied") {
     return "目前帳號沒有批次退款權限。";
   }

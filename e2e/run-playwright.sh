@@ -20,4 +20,9 @@ restore_next_managed_files() {
 
 trap restore_next_managed_files EXIT INT TERM
 
+DATABASE_URL="${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/home_fund_e2e}" \
+RUN_DATABASE_INTEGRATION=1 \
+corepack pnpm exec vitest run \
+  src/modules/reimbursement/reimbursement-command.integration.test.ts
+
 corepack pnpm exec playwright test "$@"

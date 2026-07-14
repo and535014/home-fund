@@ -30,6 +30,7 @@ describe("markExpensesReimbursedInDatabase", () => {
             reimbursementStatus: "refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
           },
           {
             id: "expense-2",
@@ -44,9 +45,10 @@ describe("markExpensesReimbursedInDatabase", () => {
             reimbursementStatus: "refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
           },
         ]),
-        updateMany: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 2 })),
       },
       reimbursementBatch: {
         create: vi.fn(async () => undefined),
@@ -113,15 +115,95 @@ describe("markExpensesReimbursedInDatabase", () => {
     expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
       where: {
         householdId: "household-demo",
-        id: {
-          in: ["expense-1", "expense-2"],
-        },
+        type: "expense",
+        paymentSource: "member",
+        reimbursementStatus: "refundable",
         status: "active",
+        OR: [
+          {
+            id: "expense-1",
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+          },
+          {
+            id: "expense-2",
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
+          },
+        ],
       },
       data: {
         reimbursementStatus: "reimbursed",
       },
     });
+    expect(tx.ledgerRecord.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.reimbursementBatch.create.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("rolls back before writing payment evidence when any record version changed", async () => {
+    const tx = {
+      ledgerRecord: {
+        findMany: vi.fn(async () => [
+          {
+            id: "expense-1",
+            type: "expense" as const,
+            name: "日用品代墊",
+            amountCents: 3_200,
+            occurredOn: new Date("2026-06-09T00:00:00.000Z"),
+            categoryId: "expense-grocery",
+            createdByMemberId: "member-mei",
+            paymentSource: "member" as const,
+            payerMemberId: "member-mei",
+            reimbursementStatus: "refundable" as const,
+            status: "active" as const,
+            note: null,
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+          },
+          {
+            id: "expense-2",
+            type: "expense" as const,
+            name: "停車費代墊",
+            amountCents: 800,
+            occurredOn: new Date("2026-06-10T00:00:00.000Z"),
+            categoryId: "expense-transport",
+            createdByMemberId: "member-mei",
+            paymentSource: "member" as const,
+            payerMemberId: "member-mei",
+            reimbursementStatus: "refundable" as const,
+            status: "active" as const,
+            note: null,
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
+          },
+        ]),
+        updateMany: vi.fn(async () => ({ count: 1 })),
+      },
+      reimbursementBatch: {
+        create: vi.fn(async () => undefined),
+      },
+      reimbursementPayment: {
+        create: vi.fn(async () => undefined),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+
+    await expect(markExpensesReimbursedInDatabase(financeManager, {
+      selectedExpenseIds: ["expense-1", "expense-2"],
+    }, {
+      householdId: "household-demo",
+      prisma: prisma as never,
+      payment: {
+        method: "cash",
+        paidOn: "2026-06-24",
+      },
+    })).resolves.toEqual({
+      ok: false,
+      reason: "record_changed",
+    });
+    expect(tx.reimbursementBatch.create).not.toHaveBeenCalled();
+    expect(tx.reimbursementPayment.create).not.toHaveBeenCalled();
   });
 });
 
@@ -145,6 +227,7 @@ describe("batchMarkLedgerRecordsReimbursedInDatabase", () => {
             reimbursementStatus: "refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
           },
           {
             id: "expense-fund",
@@ -160,9 +243,10 @@ describe("batchMarkLedgerRecordsReimbursedInDatabase", () => {
             reimbursementStatus: "not_refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
           },
         ]),
-        updateMany: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 1 })),
       },
       reimbursementBatch: {
         create: vi.fn(async () => undefined),
@@ -219,10 +303,16 @@ describe("batchMarkLedgerRecordsReimbursedInDatabase", () => {
     expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
       where: {
         householdId: "household-demo",
-        id: {
-          in: ["expense-1"],
-        },
+        type: "expense",
+        paymentSource: "member",
+        reimbursementStatus: "refundable",
         status: "active",
+        OR: [
+          {
+            id: "expense-1",
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+          },
+        ],
       },
       data: {
         reimbursementStatus: "reimbursed",

@@ -98,6 +98,44 @@ describe("createLedgerRecordInDatabase", () => {
 });
 
 describe("updateLedgerRecordInDatabase", () => {
+  it("rejects an update when the record version changed after validation", async () => {
+    const tx = ledgerRecordUpdateTransaction(vi.fn(async () => [
+      { id: "member-mei" },
+    ]));
+    tx.ledgerRecord.updateMany.mockResolvedValueOnce({ count: 0 });
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(updateLedgerRecordInDatabase(actor, {
+      recordId: "expense-1",
+      type: "income",
+      name: "競爭更新",
+      amountCents: 3_500,
+      occurredOn: "2026-06-10",
+      categoryId: "income-rent",
+      sourceMemberId: "member-mei",
+    }, {
+      householdId: "household-demo",
+      prisma,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "record_changed",
+    });
+    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+        id: "expense-1",
+        status: "active",
+        updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+      },
+      data: expect.objectContaining({
+        type: "income",
+        reimbursementStatus: "not_applicable",
+      }),
+    });
+  });
+
   it.each([
     [
       "income source",
@@ -163,7 +201,7 @@ describe("updateLedgerRecordInDatabase", () => {
       },
       select: { id: true },
     });
-    expect(tx.ledgerRecord.update).toHaveBeenCalledOnce();
+    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledOnce();
   });
 
   it("converts an active expense to income inside one transaction", async () => {
@@ -197,8 +235,9 @@ describe("updateLedgerRecordInDatabase", () => {
           reimbursementStatus: "refundable" as const,
           status: "active" as const,
           note: null,
+          updatedAt: new Date("2026-06-09T01:00:00.000Z"),
         })),
-        update: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 1 })),
       },
       recurringOccurrence: {
         update: vi.fn(async () => undefined),
@@ -236,8 +275,13 @@ describe("updateLedgerRecordInDatabase", () => {
       },
       select: { id: true },
     });
-    expect(tx.ledgerRecord.update).toHaveBeenCalledWith({
-      where: { id: "expense-1" },
+    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+        id: "expense-1",
+        status: "active",
+        updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+      },
       data: {
         type: "income",
         name: "支出誤記改收入",
@@ -262,7 +306,7 @@ describe("updateLedgerRecordInDatabase", () => {
       member: { findMany: vi.fn(async () => [{ id: "member-mei" }]) },
       ledgerRecord: {
         findFirst: vi.fn(async () => null),
-        update: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 0 })),
       },
     };
     const prisma = {
@@ -281,7 +325,7 @@ describe("updateLedgerRecordInDatabase", () => {
       ok: false,
       reason: "record_not_found",
     });
-    expect(tx.ledgerRecord.update).not.toHaveBeenCalled();
+    expect(tx.ledgerRecord.updateMany).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -335,8 +379,9 @@ describe("updateLedgerRecordInDatabase", () => {
           reimbursementStatus: "refundable" as const,
           status: "active" as const,
           note: null,
+          updatedAt: new Date("2026-06-09T01:00:00.000Z"),
         })),
-        update: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 1 })),
       },
     };
     const prisma = {
@@ -347,7 +392,7 @@ describe("updateLedgerRecordInDatabase", () => {
       householdId: "household-demo",
       prisma,
     })).resolves.toEqual({ ok: false, reason });
-    expect(tx.ledgerRecord.update).not.toHaveBeenCalled();
+    expect(tx.ledgerRecord.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects a disabled household member as update attribution", async () => {
@@ -374,11 +419,28 @@ describe("updateLedgerRecordInDatabase", () => {
       ok: false,
       reason: "income_source_outside_household",
     });
-    expect(tx.ledgerRecord.update).not.toHaveBeenCalled();
+    expect(tx.ledgerRecord.updateMany).not.toHaveBeenCalled();
   });
 });
 
 describe("voidLedgerRecordInDatabase", () => {
+  it("rejects a void when the record version changed after validation", async () => {
+    const tx = ledgerRecordUpdateTransaction(vi.fn(async () => [
+      { id: "member-mei" },
+    ]));
+    tx.ledgerRecord.updateMany.mockResolvedValueOnce({ count: 0 });
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(voidLedgerRecordInDatabase(actor, {
+      recordId: "expense-1",
+    }, { householdId: "household-demo", prisma })).resolves.toEqual({
+      ok: false,
+      reason: "record_changed",
+    });
+  });
+
   it("marks an active record voided without deleting it", async () => {
     const tx = {
       category: { findMany: vi.fn(async () => []) },
@@ -399,8 +461,9 @@ describe("voidLedgerRecordInDatabase", () => {
           reimbursementStatus: "refundable" as const,
           status: "active" as const,
           note: null,
+          updatedAt: new Date("2026-06-09T01:00:00.000Z"),
         })),
-        update: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 1 })),
       },
     };
     const prisma = {
@@ -417,8 +480,13 @@ describe("voidLedgerRecordInDatabase", () => {
       },
       events: ["Ledger record voided"],
     });
-    expect(tx.ledgerRecord.update).toHaveBeenCalledWith({
-      where: { id: "expense-1" },
+    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+        id: "expense-1",
+        status: "active",
+        updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+      },
       data: { status: "voided" },
     });
   });
@@ -459,8 +527,9 @@ function ledgerRecordUpdateTransaction(
         reimbursementStatus: "refundable" as const,
         status: "active" as const,
         note: null,
+        updatedAt: new Date("2026-06-09T01:00:00.000Z"),
       })),
-      update: vi.fn(async () => undefined),
+      updateMany: vi.fn(async () => ({ count: 1 })),
     },
   };
 }
