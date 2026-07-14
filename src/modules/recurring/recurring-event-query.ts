@@ -4,6 +4,12 @@ import {
   type RecurringRecordType,
   type RecurringSchedule,
 } from "./recurring-event";
+import {
+  formatDateInTimeZone,
+  formatMonthInTimeZone,
+} from "./recurring-date";
+
+const RECURRING_TIME_ZONE = "Asia/Taipei";
 
 type RecurringEventSettingsRow = {
   amountCents: number;
@@ -107,21 +113,17 @@ function mapSchedule(row: RecurringEventSettingsRow): RecurringSchedule {
 }
 
 function formatNextOccurrenceLabel(schedule: RecurringSchedule, now: Date): string {
-  const currentMonth = formatYearMonth(now.getFullYear(), now.getMonth() + 1);
+  const currentMonth = formatMonthInTimeZone(now, RECURRING_TIME_ZONE);
   const currentTargetDate = resolveRecurringTargetDate(schedule, currentMonth);
 
   if (
     typeof currentTargetDate === "string" &&
-    currentTargetDate >= formatDateOnly(now)
+    currentTargetDate >= formatDateInTimeZone(now, RECURRING_TIME_ZONE)
   ) {
     return formatDisplayDate(currentTargetDate);
   }
 
-  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const nextMonth = formatYearMonth(
-    nextMonthDate.getFullYear(),
-    nextMonthDate.getMonth() + 1,
-  );
+  const nextMonth = followingMonth(currentMonth);
   const nextTargetDate = resolveRecurringTargetDate(schedule, nextMonth);
 
   return typeof nextTargetDate === "string"
@@ -129,16 +131,12 @@ function formatNextOccurrenceLabel(schedule: RecurringSchedule, now: Date): stri
     : "";
 }
 
-function formatYearMonth(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
+function followingMonth(month: string): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
 
-function formatDateOnly(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
 }
 
 function formatDisplayDate(date: string): string {

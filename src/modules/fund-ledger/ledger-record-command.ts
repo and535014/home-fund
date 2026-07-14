@@ -57,7 +57,10 @@ type LedgerRecordMutationTransaction = {
   category: CategoryLookupQueryPrismaClient["category"];
   member: {
     findMany(args: {
-      where: { householdId: string; status: "active" };
+      where: {
+        householdId: string;
+        status: { in: ["active", "invited"] };
+      };
       select: { id: true };
     }): Promise<{ id: string }[]>;
   };
@@ -149,7 +152,10 @@ export async function updateLedgerRecordInDatabase(
       }),
       loadCategoryLookups({ householdId, prisma: tx }),
       tx.member.findMany({
-        where: { householdId, status: "active" },
+        where: {
+          householdId,
+          status: { in: ["active", "invited"] },
+        },
         select: { id: true },
       }),
     ]);

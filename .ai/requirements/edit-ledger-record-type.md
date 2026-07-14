@@ -87,4 +87,5 @@
 - 單筆編輯流程已可在成員支出、收入、基金支出間切換，並依目標類型重設分類、成員欄位與退款資格。
 - 首頁與搜尋共用的 record detail flow 均使用相同編輯行為；已退款支出仍維持不可編輯。
 - Prisma schema 與來源關聯未變更；更新維持既有 transaction 與同一 record ID。
-- 本機驗證：`corepack pnpm test` 348/348 tests 通過；`corepack pnpm type-check`、`corepack pnpm lint`、`corepack pnpm build` 均 exit 0；feature-focused Playwright 4/4 通過。完整 `corepack pnpm test:e2e` 為 62 passed、5 failed、3 did not run；5 個失敗已在不含本需求實作的 pre-implementation checkout 完全重現，確認為既存 baseline，不是本變更引入。以上皆為本機驗證，不是 production evidence。
+- Final re-review 補正兩個跨流程一致性問題：ledger update 的 household attribution lookup 納入 active 與 invited member、仍排除 disabled member；recurring settings 的下次日期明確依 Asia/Taipei 計算，不受 process local timezone 影響。
+- 最新本機驗證：`corepack pnpm test` 354/354 tests 通過；`corepack pnpm type-check`、`corepack pnpm lint`、`corepack pnpm build` 均 exit 0；affected Playwright 16/16 通過；完整 `corepack pnpm test:e2e` 70/70 通過。以上皆為本機驗證，不是 production evidence。

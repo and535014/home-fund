@@ -88,4 +88,71 @@ describe("loadRecurringEventsForSettings", () => {
       },
     });
   });
+
+  it.each([
+    [
+      "uses the Taipei calendar date when UTC is still on the previous day",
+      "2026-07-14T16:30:00.000Z",
+      14,
+      "2026/08/14",
+    ],
+    [
+      "rolls a fixed day after the 28th into the next month",
+      "2026-07-28T16:30:00.000Z",
+      28,
+      "2026/08/28",
+    ],
+    [
+      "rolls December into the next year",
+      "2026-12-28T16:30:00.000Z",
+      28,
+      "2027/01/28",
+    ],
+  ] as const)("%s", async (_case, now, dayOfMonth, expectedLabel) => {
+    const previousTimeZone = process.env.TZ;
+    process.env.TZ = "UTC";
+
+    try {
+      await expect(nextFixedDayLabel({
+        dayOfMonth,
+        now: new Date(now),
+      })).resolves.toBe(expectedLabel);
+    } finally {
+      process.env.TZ = previousTimeZone;
+    }
+  });
 });
+
+async function nextFixedDayLabel({
+  dayOfMonth,
+  now,
+}: {
+  dayOfMonth: number;
+  now: Date;
+}) {
+  const items = await loadRecurringEventsForSettings({
+    householdId: "household-demo",
+    now,
+    prisma: {
+      recurringRule: {
+        findMany: vi.fn(async () => [
+          {
+            amountCents: 1_000,
+            categoryId: "income-living",
+            dayOfMonth,
+            id: "event-fixed-day",
+            name: "固定日期收入",
+            payerMemberId: null,
+            paymentSource: null,
+            postingMode: "reminder" as const,
+            scheduleAnchor: "fixed_day" as const,
+            sourceMemberId: "member-mei",
+            type: "income" as const,
+          },
+        ]),
+      },
+    },
+  });
+
+  return items[0]?.nextOccurrenceLabel;
+}

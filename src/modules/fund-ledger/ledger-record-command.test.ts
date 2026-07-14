@@ -98,6 +98,74 @@ describe("createLedgerRecordInDatabase", () => {
 });
 
 describe("updateLedgerRecordInDatabase", () => {
+  it.each([
+    [
+      "income source",
+      {
+        recordId: "expense-1",
+        type: "income" as const,
+        name: "邀請中成員收入",
+        amountCents: 3_500,
+        occurredOn: "2026-06-10",
+        categoryId: "income-rent",
+        sourceMemberId: "member-invited",
+      },
+    ],
+    [
+      "member-paid expense payer",
+      {
+        recordId: "expense-1",
+        type: "expense" as const,
+        name: "邀請中成員代墊",
+        amountCents: 3_500,
+        occurredOn: "2026-06-10",
+        categoryId: "expense-grocery",
+        paymentSource: "member" as const,
+        payerMemberId: "member-invited",
+      },
+    ],
+  ] as const)("allows an invited household member as the %s", async (
+    _attribution,
+    command,
+  ) => {
+    const memberFindMany = vi.fn(async ({
+      where,
+    }: {
+      where: {
+        householdId: string;
+        status: "active" | { in: Array<"active" | "invited"> };
+      };
+    }) => {
+      const statuses = typeof where.status === "string"
+        ? [where.status]
+        : where.status.in;
+
+      return [
+        { id: "member-mei" },
+        ...(statuses.includes("invited")
+          ? [{ id: "member-invited" }]
+          : []),
+      ];
+    });
+    const tx = ledgerRecordUpdateTransaction(memberFindMany);
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(updateLedgerRecordInDatabase(actor, command, {
+      householdId: "household-demo",
+      prisma,
+    })).resolves.toMatchObject({ ok: true });
+    expect(memberFindMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+        status: { in: ["active", "invited"] },
+      },
+      select: { id: true },
+    });
+    expect(tx.ledgerRecord.update).toHaveBeenCalledOnce();
+  });
+
   it("converts an active expense to income inside one transaction", async () => {
     const tx = {
       category: {
@@ -162,7 +230,10 @@ describe("updateLedgerRecordInDatabase", () => {
     });
     expect(prisma.$transaction).toHaveBeenCalledOnce();
     expect(tx.member.findMany).toHaveBeenCalledWith({
-      where: { householdId: "household-demo", status: "active" },
+      where: {
+        householdId: "household-demo",
+        status: { in: ["active", "invited"] },
+      },
       select: { id: true },
     });
     expect(tx.ledgerRecord.update).toHaveBeenCalledWith({
@@ -278,6 +349,33 @@ describe("updateLedgerRecordInDatabase", () => {
     })).resolves.toEqual({ ok: false, reason });
     expect(tx.ledgerRecord.update).not.toHaveBeenCalled();
   });
+
+  it("rejects a disabled household member as update attribution", async () => {
+    const tx = ledgerRecordUpdateTransaction(vi.fn(async () => [
+      { id: "member-mei" },
+      { id: "member-invited" },
+    ]));
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx)),
+    };
+
+    await expect(updateLedgerRecordInDatabase(actor, {
+      recordId: "expense-1",
+      type: "income",
+      name: "停用成員收入",
+      amountCents: 3_500,
+      occurredOn: "2026-06-10",
+      categoryId: "income-rent",
+      sourceMemberId: "member-disabled",
+    }, {
+      householdId: "household-demo",
+      prisma,
+    })).resolves.toEqual({
+      ok: false,
+      reason: "income_source_outside_household",
+    });
+    expect(tx.ledgerRecord.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("voidLedgerRecordInDatabase", () => {
@@ -325,3 +423,44 @@ describe("voidLedgerRecordInDatabase", () => {
     });
   });
 });
+
+function ledgerRecordUpdateTransaction(
+  memberFindMany: ReturnType<typeof vi.fn>,
+) {
+  return {
+    category: {
+      findMany: vi.fn(async () => [
+        {
+          id: "expense-grocery",
+          type: "expense" as const,
+          status: "active" as const,
+        },
+        {
+          id: "income-rent",
+          type: "income" as const,
+          status: "active" as const,
+        },
+      ]),
+    },
+    member: { findMany: memberFindMany },
+    ledgerRecord: {
+      findFirst: vi.fn(async () => ({
+        id: "expense-1",
+        householdId: "household-demo",
+        type: "expense" as const,
+        name: "日用品",
+        amountCents: 3_200,
+        occurredOn: new Date("2026-06-09T00:00:00.000Z"),
+        categoryId: "expense-grocery",
+        createdByMemberId: "member-mei",
+        sourceMemberId: null,
+        paymentSource: "member" as const,
+        payerMemberId: "member-mei",
+        reimbursementStatus: "refundable" as const,
+        status: "active" as const,
+        note: null,
+      })),
+      update: vi.fn(async () => undefined),
+    },
+  };
+}
