@@ -62,17 +62,16 @@ test("converts income to a refundable member expense", async ({ page }) => {
   await dialog.getByRole("button", { name: "儲存變更" }).click();
 
   await expect(page.getByText("紀錄已更新", { exact: true })).toBeVisible();
-  const summary = page.getByRole("region", { name: "月報摘要" });
-  await expect(summary).toContainText("-$38,643");
-  await expect(summary).toContainText("$129,199");
-  await expect(summary).toContainText("$90,556");
-  await expect(page.getByRole("region", { name: "支出分類" }))
-    .toContainText("$128,300");
+  await expect(summaryMetric(page, "餘額")).toContainText("-$38,643");
+  await expect(summaryMetric(page, "支出")).toContainText("$129,199");
+  await expect(summaryMetric(page, "收入")).toContainText("$90,556");
+  await expect(expenseCategoryRow(page, "日用品")).toContainText("$128,300");
 
-  await page.getByRole("tab", { name: "收入紀錄" }).click();
-  await expect(page.getByText("六月房租", { exact: true })).toHaveCount(0);
-  await page.getByRole("tab", { name: "支出紀錄" }).click();
-  await expect(page.getByText("六月房租", { exact: true })).toBeVisible();
+  const records = page.getByRole("region", { name: "紀錄" });
+  await records.getByRole("tab", { name: "收入紀錄" }).click();
+  await expect(records.getByText("六月房租", { exact: true })).toHaveCount(0);
+  await records.getByRole("tab", { name: "支出紀錄" }).click();
+  await expect(records.getByText("六月房租", { exact: true })).toBeVisible();
 
   await page.goto("/refunds?month=2026-06");
   await expect(page.getByRole("region", { name: "未退款支出紀錄" }))
@@ -100,12 +99,16 @@ test("converts a refundable member expense to income", async ({ page }) => {
   await dialog.getByRole("button", { name: "儲存變更" }).click();
 
   await expect(page.getByText("紀錄已更新", { exact: true })).toBeVisible();
-  const summary = page.getByRole("region", { name: "月報摘要" });
-  await expect(summary).toContainText("$214,197");
-  await expect(summary).toContainText("$2,779");
-  await expect(summary).toContainText("$216,976");
-  await expect(page.getByRole("region", { name: "支出分類" }))
-    .toContainText("$1,880");
+  await expect(summaryMetric(page, "餘額")).toContainText("$214,197");
+  await expect(summaryMetric(page, "支出")).toContainText("$2,779");
+  await expect(summaryMetric(page, "收入")).toContainText("$216,976");
+  await expect(expenseCategoryRow(page, "日用品")).toContainText("$1,880");
+
+  const records = page.getByRole("region", { name: "紀錄" });
+  await records.getByRole("tab", { name: "收入紀錄" }).click();
+  await expect(records.getByText("日用品代墊", { exact: true })).toBeVisible();
+  await records.getByRole("tab", { name: "支出紀錄" }).click();
+  await expect(records.getByText("日用品代墊", { exact: true })).toHaveCount(0);
 
   await page.goto("/refunds?month=2026-06");
   await expect(page.getByRole("region", { name: "未退款支出紀錄" }))
@@ -155,6 +158,20 @@ async function applyRecordTypeFilter(
   const filterDialog = page.getByRole("dialog");
   await filterDialog.getByLabel("依類型篩選").selectOption(type);
   await filterDialog.getByRole("button", { name: "套用" }).click();
+}
+
+function summaryMetric(page: Page, label: "餘額" | "支出" | "收入") {
+  return page
+    .getByRole("region", { name: "月報摘要" })
+    .getByText(label, { exact: true })
+    .locator('xpath=ancestor::*[@data-slot="card"][1]');
+}
+
+function expenseCategoryRow(page: Page, categoryName: string) {
+  return page
+    .getByRole("region", { name: "支出分類" })
+    .getByText(categoryName, { exact: true })
+    .locator("xpath=ancestor::div[1]");
 }
 
 async function selectCategory(locator: Locator, name: string) {
