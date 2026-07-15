@@ -83,7 +83,11 @@ test("admin duplicate category names are rejected with toast feedback", async ({
   await dialog.getByLabel("分類名稱").fill("日用品");
   await dialog.getByRole("button", { name: "新增分類" }).click();
 
-  await expect(page.getByText("同類型已有啟用中的相同分類名稱。")).toBeVisible();
+  await expect(
+    page
+      .getByLabel("Notifications alt+T")
+      .getByText("同類型已有啟用中的相同分類名稱。", { exact: true }),
+  ).toBeVisible();
 });
 
 test("admin can reveal archived categories below active categories", async ({ page }) => {

@@ -2,9 +2,12 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import {
   mapPrismaExpenseLedgerRecordToExpenseLedgerRecord,
   mapPrismaLedgerRecordToLedgerRecord,
-  prismaExpenseLedgerRecordSelect,
-  prismaLedgerRecordSelect,
+  versionedPrismaExpenseLedgerRecordSelect,
+  versionedPrismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
+import {
+  LedgerRecordMutationConflictError,
+} from "@/modules/fund-ledger/ledger-record-command";
 import type {
   ExpenseLedgerRecord,
 } from "@/modules/fund-ledger/ledger-records";
@@ -34,11 +37,22 @@ export type MarkExpensesReimbursedInDatabaseContext = {
   payment: ReimbursementPaymentEvidenceInput;
 };
 
+export type MarkExpensesReimbursedInDatabaseResult =
+  | MarkExpensesReimbursedResult
+  | {
+      ok: false;
+      reason: "record_changed";
+    };
+
 export type WriteReimbursementPaymentSettlementContext = {
   tx: Prisma.TransactionClient;
   householdId: string;
   actorId: string;
   reimbursedRecords: ExpenseLedgerRecord[];
+  expectedRecordVersions: Array<{
+    id: string;
+    updatedAt: Date;
+  }>;
   payment: ReimbursementPaymentEvidenceInput;
   generateBatchId?: () => string;
   generatePaymentId?: () => string;
@@ -63,55 +77,73 @@ export type BatchMarkLedgerRecordsReimbursedInDatabaseResult =
   | {
       ok: false;
       reason: ReimbursementPaymentEvidenceRejectionReason;
+    }
+  | {
+      ok: false;
+      reason: "record_changed";
     };
 
 export async function markExpensesReimbursedInDatabase(
   actor: AuthenticatedMember,
   command: MarkExpensesReimbursedCommand,
   context: MarkExpensesReimbursedInDatabaseContext,
-): Promise<MarkExpensesReimbursedResult> {
+): Promise<MarkExpensesReimbursedInDatabaseResult> {
   const householdId = context.householdId;
   const selectedExpenseIds = [...new Set(command.selectedExpenseIds)];
 
-  return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const records = await tx.ledgerRecord.findMany({
-      where: {
-        householdId,
-        id: {
-          in: selectedExpenseIds,
-        },
-        type: "expense",
-        status: "active",
+  try {
+    return await context.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const records = await tx.ledgerRecord.findMany({
+          where: {
+            householdId,
+            id: {
+              in: selectedExpenseIds,
+            },
+            type: "expense",
+            status: "active",
+          },
+          select: versionedPrismaExpenseLedgerRecordSelect,
+        });
+        const result = markExpensesReimbursed(
+          actor,
+          records.map(mapPrismaExpenseLedgerRecordToExpenseLedgerRecord),
+          { selectedExpenseIds },
+        );
+
+        if (!result.ok) {
+          return result;
+        }
+
+        const settlement = await writeReimbursementPaymentSettlement({
+          tx,
+          householdId,
+          actorId: actor.id,
+          reimbursedRecords: result.reimbursedExpenses,
+          expectedRecordVersions: versionsForRecords(
+            records,
+            result.reimbursedExpenses,
+          ),
+          payment: context.payment,
+          generateBatchId: context.generateBatchId,
+          generatePaymentId: context.generatePaymentId,
+          reimbursedAt: context.reimbursedAt,
+        });
+
+        if (!settlement.ok) {
+          return { ok: false as const, reason: "not_refundable" as const };
+        }
+
+        return result;
       },
-      select: prismaExpenseLedgerRecordSelect,
-    });
-    const result = markExpensesReimbursed(
-      actor,
-      records.map(mapPrismaExpenseLedgerRecordToExpenseLedgerRecord),
-      { selectedExpenseIds },
     );
-
-    if (!result.ok) {
-      return result;
+  } catch (error) {
+    if (error instanceof LedgerRecordMutationConflictError) {
+      return { ok: false, reason: "record_changed" };
     }
 
-    const settlement = await writeReimbursementPaymentSettlement({
-      tx,
-      householdId,
-      actorId: actor.id,
-      reimbursedRecords: result.reimbursedExpenses,
-      payment: context.payment,
-      generateBatchId: context.generateBatchId,
-      generatePaymentId: context.generatePaymentId,
-      reimbursedAt: context.reimbursedAt,
-    });
-
-    if (!settlement.ok) {
-      return { ok: false as const, reason: "not_refundable" as const };
-    }
-
-    return result;
-  });
+    throw error;
+  }
 }
 
 export async function batchMarkLedgerRecordsReimbursedInDatabase(
@@ -128,47 +160,61 @@ export async function batchMarkLedgerRecordsReimbursedInDatabase(
   const householdId = context.householdId;
   const selectedRecordIds = [...new Set(command.selectedRecordIds)];
 
-  return context.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const rows = await tx.ledgerRecord.findMany({
-      where: {
-        householdId,
-        id: {
-          in: selectedRecordIds,
-        },
+  try {
+    return await context.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const rows = await tx.ledgerRecord.findMany({
+          where: {
+            householdId,
+            id: {
+              in: selectedRecordIds,
+            },
+          },
+          select: versionedPrismaLedgerRecordSelect,
+        });
+        const result = batchMarkLedgerRecordsReimbursed(
+          actor,
+          rows.map(mapPrismaLedgerRecordToLedgerRecord),
+          command,
+        );
+
+        if (!result.ok) {
+          return result;
+        }
+
+        const settlement = await writeReimbursementPaymentSettlement({
+          tx,
+          householdId,
+          actorId: actor.id,
+          reimbursedRecords: result.reimbursedRecords,
+          expectedRecordVersions: versionsForRecords(
+            rows,
+            result.reimbursedRecords,
+          ),
+          payment: payment.payment,
+          generateBatchId: context.generateBatchId,
+          generatePaymentId: context.generatePaymentId,
+          reimbursedAt: context.reimbursedAt,
+        });
+
+        if (!settlement.ok) {
+          return {
+            ok: false as const,
+            reason: "cross_member_batch" as const,
+            skippedRecords: result.skippedRecords,
+          };
+        }
+
+        return result;
       },
-      select: prismaLedgerRecordSelect,
-    });
-    const result = batchMarkLedgerRecordsReimbursed(
-      actor,
-      rows.map(mapPrismaLedgerRecordToLedgerRecord),
-      command,
     );
-
-    if (!result.ok) {
-      return result;
+  } catch (error) {
+    if (error instanceof LedgerRecordMutationConflictError) {
+      return { ok: false, reason: "record_changed" };
     }
 
-    const settlement = await writeReimbursementPaymentSettlement({
-      tx,
-      householdId,
-      actorId: actor.id,
-      reimbursedRecords: result.reimbursedRecords,
-      payment: payment.payment,
-      generateBatchId: context.generateBatchId,
-      generatePaymentId: context.generatePaymentId,
-      reimbursedAt: context.reimbursedAt,
-    });
-
-    if (!settlement.ok) {
-      return {
-        ok: false as const,
-        reason: "cross_member_batch" as const,
-        skippedRecords: result.skippedRecords,
-      };
-    }
-
-    return result;
-  });
+    throw error;
+  }
 }
 
 export async function writeReimbursementPaymentSettlement(
@@ -187,6 +233,27 @@ export async function writeReimbursementPaymentSettlement(
   }
 
   const batchId = context.generateBatchId?.() ?? crypto.randomUUID();
+
+  const transition = await context.tx.ledgerRecord.updateMany({
+    where: {
+      householdId: context.householdId,
+      type: "expense",
+      paymentSource: "member",
+      reimbursementStatus: "refundable",
+      status: "active",
+      OR: context.expectedRecordVersions.map((record) => ({
+        id: record.id,
+        updatedAt: record.updatedAt,
+      })),
+    },
+    data: {
+      reimbursementStatus: "reimbursed",
+    },
+  });
+
+  if (transition.count !== context.reimbursedRecords.length) {
+    throw new LedgerRecordMutationConflictError();
+  }
 
   await context.tx.reimbursementBatch.create({
     data: {
@@ -218,20 +285,34 @@ export async function writeReimbursementPaymentSettlement(
       recordedByMemberId: context.actorId,
     },
   });
-  await context.tx.ledgerRecord.updateMany({
-    where: {
-      householdId: context.householdId,
-      id: {
-        in: context.reimbursedRecords.map((expense) => expense.id),
-      },
-      status: "active",
-    },
-    data: {
-      reimbursementStatus: "reimbursed",
-    },
-  });
-
   return { ok: true, batchId };
+}
+
+function versionsForRecords(
+  rows: Array<{ id: string; updatedAt: Date }>,
+  records: ExpenseLedgerRecord[],
+) {
+  const versionsById = new Map(
+    rows.map((row) => [row.id, row.updatedAt] as const),
+  );
+
+  return records.map((record) => ({
+    id: record.id,
+    updatedAt: versionForRecord(record.id, versionsById),
+  }));
+}
+
+function versionForRecord(
+  recordId: string,
+  versionsById: Map<string, Date>,
+): Date {
+  const updatedAt = versionsById.get(recordId);
+
+  if (!updatedAt) {
+    throw new LedgerRecordMutationConflictError();
+  }
+
+  return updatedAt;
 }
 
 function dateOnlyToDate(value: string): Date {

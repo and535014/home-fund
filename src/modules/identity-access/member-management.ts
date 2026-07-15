@@ -103,7 +103,7 @@ export function createMember(
       ...(googleAccountEmail ? { googleAccountEmail } : {}),
       roles: [command.role ?? "general_member"],
       capabilities: [],
-      status: "active",
+      status: "invited",
     },
     events: ["Member created"],
   };

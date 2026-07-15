@@ -2,6 +2,9 @@ import type {
   CreateLedgerRecordCommand,
 } from "@/modules/fund-ledger/ledger-records";
 import type {
+  UpdateLedgerRecordCommand,
+} from "@/modules/fund-ledger/ledger-record-corrections";
+import type {
   UpdateLedgerRecordInDatabaseCommand,
   VoidLedgerRecordInDatabaseCommand,
 } from "@/modules/fund-ledger/ledger-record-command";
@@ -13,10 +16,13 @@ import {
   type ReimbursementPaymentEvidenceInput,
 } from "@/modules/reimbursement/reimbursement-payment";
 
+type ParsedLedgerRecordFormCommand =
+  CreateLedgerRecordCommand & UpdateLedgerRecordCommand;
+
 export type ParseCreateLedgerRecordFormResult =
   | {
       ok: true;
-      command: CreateLedgerRecordCommand;
+      command: ParsedLedgerRecordFormCommand;
     }
   | {
       ok: false;
@@ -179,34 +185,11 @@ export function parseUpdateLedgerRecordForm(
     return parsedCreate;
   }
 
-  const command = parsedCreate.command;
-
-  if (command.type === "income") {
-    return {
-      ok: true,
-      command: {
-        recordId,
-        name: command.name,
-        amountCents: command.amountCents,
-        occurredOn: command.occurredOn,
-        categoryId: command.categoryId,
-        sourceMemberId: command.sourceMemberId,
-        ...(command.note ? { note: command.note } : {}),
-      },
-    };
-  }
-
   return {
     ok: true,
     command: {
       recordId,
-      name: command.name,
-      amountCents: command.amountCents,
-      occurredOn: command.occurredOn,
-      categoryId: command.categoryId,
-      paymentSource: command.paymentSource,
-      ...(command.payerMemberId ? { payerMemberId: command.payerMemberId } : {}),
-      ...(command.note ? { note: command.note } : {}),
+      ...parsedCreate.command,
     },
   };
 }

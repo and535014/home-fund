@@ -4,25 +4,37 @@ import {
   type AuthorizationResult,
 } from "../identity-access/authorization";
 import type {
-  ExpenseLedgerRecord,
-  IncomeLedgerRecord,
   LedgerCategory,
   LedgerRecord,
 } from "./ledger-records";
 
-export type UpdateLedgerRecordCommand = {
-  name?: string;
-  amountCents?: number;
-  occurredOn?: string;
-  categoryId?: string;
+type UpdateLedgerRecordCommonFields = {
+  name: string;
+  amountCents: number;
+  occurredOn: string;
+  categoryId: string;
   note?: string;
-  sourceMemberId?: string;
-  paymentSource?: "fund" | "member";
-  payerMemberId?: string;
 };
+
+export type UpdateLedgerRecordCommand = UpdateLedgerRecordCommonFields & (
+  | {
+      type: "income";
+      sourceMemberId: string;
+    }
+  | {
+      type: "expense";
+      paymentSource: "fund";
+    }
+  | {
+      type: "expense";
+      paymentSource: "member";
+      payerMemberId: string;
+    }
+);
 
 export type UpdateLedgerRecordContext = {
   categories: LedgerCategory[];
+  householdMemberIds: ReadonlySet<string>;
 };
 
 export type UpdateLedgerRecordResult =
@@ -51,7 +63,9 @@ export type LedgerRecordCorrectionFailure = {
     | "archived_category"
     | "category_type_mismatch"
     | "missing_income_source_member"
+    | "income_source_outside_household"
     | "missing_member_payer"
+    | "expense_payer_outside_household"
     | "fund_paid_expense_cannot_have_member_payer"
     | "record_voided"
     | "reimbursed_expense_blocked";
@@ -84,7 +98,7 @@ export function updateLedgerRecord(
   }
 
   const nextRecord = mergeRecord(record, command);
-  const validation = validateUpdatedRecord(nextRecord, context.categories);
+  const validation = validateUpdatedRecord(nextRecord, context);
 
   if (validation.ok === false) {
     return validation;
@@ -149,40 +163,52 @@ function mergeRecord(
   command: UpdateLedgerRecordCommand,
 ): LedgerRecord {
   const base = {
-    ...record,
-    name: command.name ?? record.name,
-    amountCents: command.amountCents ?? record.amountCents,
-    occurredOn: command.occurredOn ?? record.occurredOn,
-    categoryId: command.categoryId ?? record.categoryId,
-    note: command.note ?? record.note,
+    id: record.id,
+    name: command.name,
+    amountCents: command.amountCents,
+    occurredOn: command.occurredOn,
+    categoryId: command.categoryId,
+    createdByMemberId: record.createdByMemberId,
+    ...(command.note ? { note: command.note } : {}),
+    ...(record.recurringEventLabel
+      ? { recurringEventLabel: record.recurringEventLabel }
+      : {}),
+    status: record.status,
   };
 
-  if (record.type === "income") {
+  if (command.type === "income") {
     return {
       ...base,
-      sourceMemberId: command.sourceMemberId ?? record.sourceMemberId,
-    } as IncomeLedgerRecord;
+      type: "income",
+      sourceMemberId: command.sourceMemberId,
+      reimbursementStatus: "not_applicable",
+    };
   }
 
-  const paymentSource = command.paymentSource ?? record.paymentSource;
-  const payerMemberId =
-    command.paymentSource === "fund"
-      ? command.payerMemberId
-      : command.payerMemberId ?? record.payerMemberId;
+  if (command.paymentSource === "fund") {
+    return {
+      ...base,
+      type: "expense",
+      paymentSource: "fund",
+      reimbursementStatus: "not_refundable",
+    };
+  }
 
   return {
     ...base,
-    paymentSource,
-    payerMemberId,
-    reimbursementStatus:
-      paymentSource === "member" ? "refundable" : "not_refundable",
-  } as ExpenseLedgerRecord;
+    type: "expense",
+    paymentSource: "member",
+    payerMemberId: command.payerMemberId,
+    reimbursementStatus: "refundable",
+  };
 }
 
 function validateUpdatedRecord(
   record: LedgerRecord,
-  categories: LedgerCategory[],
+  context: UpdateLedgerRecordContext,
 ): { ok: true } | LedgerRecordCorrectionFailure {
+  const { categories, householdMemberIds } = context;
+
   if (!Number.isInteger(record.amountCents) || record.amountCents <= 0) {
     return { ok: false, reason: "invalid_amount" };
   }
@@ -209,9 +235,24 @@ function validateUpdatedRecord(
     return { ok: false, reason: "missing_income_source_member" };
   }
 
+  if (
+    record.type === "income" &&
+    !householdMemberIds.has(record.sourceMemberId)
+  ) {
+    return { ok: false, reason: "income_source_outside_household" };
+  }
+
   if (record.type === "expense") {
-    if (record.paymentSource === "member" && !record.payerMemberId) {
-      return { ok: false, reason: "missing_member_payer" };
+    if (record.paymentSource === "member") {
+      const payerMemberId = record.payerMemberId;
+
+      if (!payerMemberId) {
+        return { ok: false, reason: "missing_member_payer" };
+      }
+
+      if (!householdMemberIds.has(payerMemberId)) {
+        return { ok: false, reason: "expense_payer_outside_household" };
+      }
     }
 
     if (record.paymentSource === "fund" && record.payerMemberId) {

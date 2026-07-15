@@ -41,7 +41,7 @@ const members: HouseholdMemberAccount[] = [
 ];
 
 describe("member management", () => {
-  it("allows admins to create active household members", () => {
+  it("allows admins to create invited household members before Google binding", () => {
     expect(createMember(admin, {
       displayName: "Kai",
       role: "finance_manager",
@@ -57,7 +57,7 @@ describe("member management", () => {
         displayName: "Kai",
         roles: ["finance_manager"],
         capabilities: [],
-        status: "active",
+        status: "invited",
       },
       events: ["Member created"],
     });

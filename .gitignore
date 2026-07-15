@@ -11,5 +11,7 @@ dist/
 tsconfig.tsbuildinfo
 src/generated/
 .vscode/
+.worktrees/
+.superpowers/
 __pycache__/
 *.pyc

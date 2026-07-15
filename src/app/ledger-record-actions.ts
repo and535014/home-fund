@@ -52,9 +52,12 @@ export type UpdateLedgerRecordActionCode =
   | CreateLedgerRecordActionCode
   | "missing_record_id"
   | "record_not_found"
+  | "record_changed"
   | "record_voided"
   | "reimbursed_expense_blocked"
-  | "missing_income_source_member";
+  | "missing_income_source_member"
+  | "income_source_outside_household"
+  | "expense_payer_outside_household";
 
 export type UpdateLedgerRecordActionField =
   | CreateLedgerRecordActionField
@@ -65,6 +68,7 @@ export type VoidLedgerRecordActionCode =
   | "missing_record_id"
   | "permission_denied"
   | "record_not_found"
+  | "record_changed"
   | "record_voided"
   | "reimbursed_expense_blocked";
 
@@ -79,6 +83,7 @@ export type ReimburseLedgerRecordActionCode =
   | "missing_record_id"
   | "not_refundable"
   | "permission_denied"
+  | "record_changed"
   | "record_not_found";
 
 export type ReimburseLedgerRecordActionField =
@@ -278,6 +283,8 @@ function updateLedgerRecordError(
     invalid_date: "日期格式不正確。",
     invalid_payment_source: "支出類型不正確。",
     invalid_record_type: "紀錄類型不正確。",
+    income_source_outside_household: "收入來源不屬於目前家庭。",
+    expense_payer_outside_household: "代墊成員不屬於目前家庭。",
     missing_category: "請選擇分類。",
     missing_income_source_member: "請選擇收入來源。",
     missing_member_payer: "請選擇代墊成員。",
@@ -286,6 +293,7 @@ function updateLedgerRecordError(
     missing_record_id: "找不到要修改的紀錄。",
     missing_source_member: "請選擇收入來源。",
     permission_denied: "目前帳號沒有修改這筆紀錄的權限。",
+    record_changed: "這筆紀錄剛被其他操作更新，請重新載入後再試。",
     record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
     record_voided: "這筆紀錄已刪除，無法再次修改。",
     reimbursed_expense_blocked:
@@ -304,6 +312,7 @@ function voidLedgerRecordError(
   const messages: Record<VoidLedgerRecordActionCode, string> = {
     missing_record_id: "找不到要刪除的紀錄。",
     permission_denied: "目前帳號沒有刪除這筆紀錄的權限。",
+    record_changed: "這筆紀錄剛被其他操作更新，請重新載入後再試。",
     record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
     record_voided: "這筆紀錄已刪除，無法再次修改。",
     reimbursed_expense_blocked:
@@ -328,6 +337,7 @@ function reimburseLedgerRecordError(
     missing_record_id: "找不到要退款的紀錄。",
     not_refundable: "這筆紀錄無法退款。",
     permission_denied: "目前帳號沒有退款這筆紀錄的權限。",
+    record_changed: "這筆紀錄剛被其他操作更新，請重新載入後再試。",
     record_not_found: "找不到這筆紀錄，可能已被更新或刪除。",
   };
 
@@ -343,7 +353,8 @@ function reimbursementErrorCodeForResult(
     | "empty_selection"
     | "expense_not_found"
     | "not_refundable"
-    | "already_reimbursed",
+    | "already_reimbursed"
+    | "record_changed",
 ): ReimburseLedgerRecordActionCode {
   if (reason === "empty_selection") {
     return "missing_record_id";
@@ -400,6 +411,7 @@ function fieldForUpdateError(
 ): UpdateLedgerRecordActionField {
   if (
     code === "missing_record_id" ||
+    code === "record_changed" ||
     code === "record_not_found" ||
     code === "record_voided" ||
     code === "reimbursed_expense_blocked"
@@ -409,6 +421,14 @@ function fieldForUpdateError(
 
   if (code === "missing_income_source_member") {
     return "sourceMemberId";
+  }
+
+  if (code === "income_source_outside_household") {
+    return "sourceMemberId";
+  }
+
+  if (code === "expense_payer_outside_household") {
+    return "payerMemberId";
   }
 
   return fieldForError(code);

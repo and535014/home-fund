@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
 import {
+  batchDeleteSearchRecordsAction,
   batchRefundSearchRecordsAction,
   loadRecordSearchPageAction,
   loadReimbursementPaymentSearchPageAction,
@@ -112,6 +113,60 @@ describe("loadRecordSearchPageAction", () => {
   });
 });
 
+describe("batchDeleteSearchRecordsAction", () => {
+  it("rejects the whole batch when a record version changed after validation", async () => {
+    const tx = {
+      ledgerRecord: {
+        findMany: vi.fn(async () => [
+          {
+            ...ledgerRecordRow({ id: "expense-1", type: "expense" }),
+            updatedAt: new Date("2026-07-02T01:00:00.000Z"),
+          },
+          {
+            ...ledgerRecordRow({ id: "expense-2", type: "expense" }),
+            updatedAt: new Date("2026-07-02T02:00:00.000Z"),
+          },
+        ]),
+        updateMany: vi.fn(async () => ({ count: 1 })),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+      ),
+    };
+    vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+
+    await expect(batchDeleteSearchRecordsAction([
+      "expense-1",
+      "expense-2",
+    ])).resolves.toMatchObject({
+        ok: false,
+        code: "record_changed",
+      });
+    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
+      where: {
+        householdId: "household-demo",
+        status: "active",
+        OR: [
+          {
+            id: "expense-1",
+            updatedAt: new Date("2026-07-02T01:00:00.000Z"),
+          },
+          {
+            id: "expense-2",
+            updatedAt: new Date("2026-07-02T02:00:00.000Z"),
+          },
+        ],
+      },
+      data: {
+        status: "voided",
+      },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
 describe("batchRefundSearchRecordsAction", () => {
   it("writes payment evidence for the reimbursed batch", async () => {
     type BatchCreateArgs = {
@@ -139,6 +194,7 @@ describe("batchRefundSearchRecordsAction", () => {
             reimbursementStatus: "refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
           },
           {
             id: "expense-2",
@@ -154,9 +210,10 @@ describe("batchRefundSearchRecordsAction", () => {
             reimbursementStatus: "refundable" as const,
             status: "active" as const,
             note: null,
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
           },
         ]),
-        updateMany: vi.fn(async () => undefined),
+        updateMany: vi.fn(async () => ({ count: 2 })),
       },
       reimbursementBatch: {
         create: reimbursementBatchCreate,
@@ -225,10 +282,20 @@ describe("batchRefundSearchRecordsAction", () => {
     expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
       where: {
         householdId: "household-demo",
-        id: {
-          in: ["expense-1", "expense-2"],
-        },
+        type: "expense",
+        paymentSource: "member",
+        reimbursementStatus: "refundable",
         status: "active",
+        OR: [
+          {
+            id: "expense-1",
+            updatedAt: new Date("2026-06-09T01:00:00.000Z"),
+          },
+          {
+            id: "expense-2",
+            updatedAt: new Date("2026-06-10T01:00:00.000Z"),
+          },
+        ],
       },
       data: {
         reimbursementStatus: "reimbursed",

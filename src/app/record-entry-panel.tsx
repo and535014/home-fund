@@ -34,33 +34,13 @@ import {
 } from "./ledger-record-form-fields";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useActionStateEffect } from "./use-action-state-effect";
-
-const RECORD_ENTRY_MODE = {
-  expense: "expense",
-  income: "income",
-} as const;
-
-type RecordEntryMode =
-  (typeof RECORD_ENTRY_MODE)[keyof typeof RECORD_ENTRY_MODE] &
-    RecordCreateMode;
-
-const PAYMENT_SOURCE = {
-  fund: "fund",
-  member: "member",
-} as const;
-
-type PaymentSource = (typeof PAYMENT_SOURCE)[keyof typeof PAYMENT_SOURCE];
-
-const RECORD_ENTRY_KIND = {
-  fundExpense: "fund-expense",
-  income: "income",
-  memberExpense: "member-expense",
-} as const;
-
-type RecordEntryKind =
-  (typeof RECORD_ENTRY_KIND)[keyof typeof RECORD_ENTRY_KIND];
+import {
+  LEDGER_RECORD_ENTRY_KIND,
+  ledgerRecordFieldsForEntryKind,
+  type LedgerRecordEntryKind,
+} from "./ledger-record-entry-kind";
+import { LedgerRecordEntryKindTabs } from "./ledger-record-entry-kind-tabs";
 
 type Profile = RecordCreateData["profile"];
 type RecurrenceSchedule = "fixed_day" | "month_end" | "none";
@@ -114,20 +94,16 @@ function RecordEntryForm({
   onRecordCreated: () => void;
   setCreatePending: (pending: boolean) => void;
 }) {
-  const [entryKind, setEntryKind] = useState<RecordEntryKind>(
-    initialMode === RECORD_ENTRY_MODE.income
-      ? RECORD_ENTRY_KIND.income
-      : RECORD_ENTRY_KIND.memberExpense,
+  const [entryKind, setEntryKind] = useState<LedgerRecordEntryKind>(
+    initialMode === "income"
+      ? LEDGER_RECORD_ENTRY_KIND.income
+      : LEDGER_RECORD_ENTRY_KIND.memberExpense,
   );
   const [recurrenceSchedule, setRecurrenceSchedule] =
     useState<RecurrenceSchedule>("none");
-  const recordType = entryKind === RECORD_ENTRY_KIND.income
-    ? RECORD_ENTRY_MODE.income
-    : RECORD_ENTRY_MODE.expense;
-  const paymentSource = entryKind === RECORD_ENTRY_KIND.fundExpense
-    ? PAYMENT_SOURCE.fund
-    : PAYMENT_SOURCE.member;
-  const memberFieldName = recordType === RECORD_ENTRY_MODE.income
+  const { paymentSource, recordType } =
+    ledgerRecordFieldsForEntryKind(entryKind);
+  const memberFieldName = recordType === "income"
     ? "sourceMemberId"
     : "payerMemberId";
   const memberFieldLabel = "支付者";
@@ -153,7 +129,7 @@ function RecordEntryForm({
       <LedgerRecordCategoryField categories={activeCategories} />
       <LedgerRecordAmountNameFields
         namePlaceholder={
-          recordType === RECORD_ENTRY_MODE.income ? "例如 六月房租" : "例如 晚餐食材"
+          recordType === "income" ? "例如 六月房租" : "例如 晚餐食材"
         }
       />
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -161,7 +137,7 @@ function RecordEntryForm({
           canSelectOthers={canSelectOthers}
           defaultMemberId={profile.id}
           disabledDisplayValue={
-            entryKind === RECORD_ENTRY_KIND.fundExpense ? "基金" : undefined
+            entryKind === LEDGER_RECORD_ENTRY_KIND.fundExpense ? "基金" : undefined
           }
           label={memberFieldLabel}
           members={members}
@@ -198,14 +174,14 @@ function RecordEntryFormShell({
 }: {
   children: ReactNode;
   close: () => void;
-  entryKind: RecordEntryKind;
+  entryKind: LedgerRecordEntryKind;
   hasCategories: boolean;
-  onEntryKindChange: (entryKind: RecordEntryKind) => void;
+  onEntryKindChange: (entryKind: LedgerRecordEntryKind) => void;
   onRecordCreated: () => void;
   onRecurringEventCreated: () => void;
-  paymentSource: PaymentSource;
+  paymentSource: "fund" | "member" | null;
   recurrenceSchedule: RecurrenceSchedule;
-  recordType: RecordEntryMode;
+  recordType: RecordCreateMode;
   setCreatePending: (pending: boolean) => void;
   submitLabel: string;
 }) {
@@ -263,7 +239,9 @@ function RecordEntryFormShell({
       hiddenFields={
         <>
           <input name="recordType" type="hidden" value={recordType} />
-          <input name="paymentSource" type="hidden" value={paymentSource} />
+          {paymentSource ? (
+            <input name="paymentSource" type="hidden" value={paymentSource} />
+          ) : null}
           <input
             name="recurrenceSchedule"
             type="hidden"
@@ -285,7 +263,7 @@ function RecordEntryFormShell({
         </>
       }
     >
-      <RecordKindTabs
+      <LedgerRecordEntryKindTabs
         disabled={isPending}
         entryKind={entryKind}
         onEntryKindChange={onEntryKindChange}
@@ -368,43 +346,9 @@ function RecurringEventFields({
   );
 }
 
-function RecordKindTabs({
-  disabled = false,
-  entryKind,
-  onEntryKindChange,
-}: {
-  disabled?: boolean;
-  entryKind: RecordEntryKind;
-  onEntryKindChange: (entryKind: RecordEntryKind) => void;
-}) {
-  return (
-    <Tabs
-      className="gap-0"
-      onValueChange={(nextValue) => onEntryKindChange(nextValue as RecordEntryKind)}
-      value={entryKind}
-    >
-      <TabsList
-        aria-label="紀錄類型"
-        className="w-full"
-        variant="line"
-      >
-        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.memberExpense}>
-          成員支出
-        </TabsTrigger>
-        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.income}>
-          收入
-        </TabsTrigger>
-        <TabsTrigger disabled={disabled} value={RECORD_ENTRY_KIND.fundExpense}>
-          基金支出
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
-}
-
 function useActiveCategories(
   categories: RecordCreateData["categories"],
-  type: RecordEntryMode,
+  type: RecordCreateMode,
 ) {
   return useMemo(
     () =>

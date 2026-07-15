@@ -24,15 +24,24 @@ export type LedgerRecordFormMember = {
   id: string;
 };
 
+type LedgerRecordFormSubmissionProps =
+  | {
+      action: ComponentProps<"form">["action"];
+      onSubmit?: never;
+    }
+  | {
+      action?: never;
+      onSubmit: ComponentProps<"form">["onSubmit"];
+    };
+
 type LedgerRecordFormShellProps = {
-  action: ComponentProps<"form">["action"];
   ariaLabel: string;
   children: ReactNode;
   feedbackMessage?: LedgerRecordFormFeedback;
   footer: ReactNode;
   isPending: boolean;
   hiddenFields?: ReactNode;
-};
+} & LedgerRecordFormSubmissionProps;
 
 export function LedgerRecordFormShell({
   action,
@@ -42,6 +51,7 @@ export function LedgerRecordFormShell({
   footer,
   hiddenFields,
   isPending,
+  onSubmit,
 }: LedgerRecordFormShellProps) {
   return (
     <section
@@ -58,7 +68,11 @@ export function LedgerRecordFormShell({
         </Alert>
       ) : null}
 
-      <form action={action} className="flex min-h-0 flex-1 flex-col">
+      <form
+        action={action}
+        className="flex min-h-0 flex-1 flex-col"
+        onSubmit={onSubmit}
+      >
         {hiddenFields}
         <DialogBody>
           <FieldSet
@@ -153,6 +167,7 @@ export function LedgerRecordMemberSelectField({
   label,
   members,
   name,
+  placeholder,
 }: {
   canSelectOthers?: boolean;
   defaultMemberId: string;
@@ -160,6 +175,7 @@ export function LedgerRecordMemberSelectField({
   label: string;
   members: LedgerRecordFormMember[];
   name: "payerMemberId" | "sourceMemberId";
+  placeholder?: string;
 }) {
   if (disabledDisplayValue) {
     return (
@@ -183,6 +199,7 @@ export function LedgerRecordMemberSelectField({
         name={name}
         required
       >
+        {placeholder ? <option value="">{placeholder}</option> : null}
         {members.map((member) => (
           <option key={member.id} value={member.id}>
             {member.displayName}

@@ -62,6 +62,22 @@ describe("RecordEntryPanel", () => {
     });
     expect(createLedgerRecordAction).not.toHaveBeenCalled();
   });
+
+  it("submits the shared entry kind fields without changing recurrence behavior", async () => {
+    await renderRecordEntryPanel();
+    fillExpenseForm();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "基金支出" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    fireEvent.submit(getRecordEntryForm());
+
+    await waitFor(() => expect(createLedgerRecordAction).toHaveBeenCalled());
+    const formData = vi.mocked(createLedgerRecordAction).mock.calls[0]?.[1];
+    expect(formData).toBeInstanceOf(FormData);
+    expect(formData?.get("recordType")).toBe("expense");
+    expect(formData?.get("paymentSource")).toBe("fund");
+  });
 });
 
 function fillExpenseForm() {

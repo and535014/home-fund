@@ -85,29 +85,56 @@ describe("parseCreateLedgerRecordForm", () => {
 });
 
 describe("parseUpdateLedgerRecordForm", () => {
-  it("parses an expense edit form into a ledger correction command", () => {
-    const formData = new FormData();
-    formData.set("recordId", "expense-1");
-    formData.set("recordType", "expense");
-    formData.set("name", "日用品補正");
-    formData.set("paymentSource", "member");
-    formData.set("amountTwd", "350");
-    formData.set("occurredOn", "2026-06-10");
-    formData.set("categoryId", "expense-grocery");
-    formData.set("payerMemberId", "member-mei");
-    formData.set("note", "補正");
-
-    expect(parseUpdateLedgerRecordForm(formData)).toEqual({
-      ok: true,
-      command: {
-        recordId: "expense-1",
-        name: "日用品補正",
-        amountCents: 35_000,
-        occurredOn: "2026-06-10",
-        categoryId: "expense-grocery",
+  it.each([
+    [
+      { recordType: "income", sourceMemberId: "member-mei" },
+      { type: "income", sourceMemberId: "member-mei" },
+    ],
+    [
+      { recordType: "expense", paymentSource: "fund" },
+      { type: "expense", paymentSource: "fund" },
+    ],
+    [
+      {
+        recordType: "expense",
         paymentSource: "member",
         payerMemberId: "member-mei",
-        note: "補正",
+      },
+      {
+        type: "expense",
+        paymentSource: "member",
+        payerMemberId: "member-mei",
+      },
+    ],
+  ] as const)("parses a target-type update command", (fields, targetFields) => {
+    const formData = new FormData();
+    formData.set("recordId", "record-1");
+    formData.set("recordType", fields.recordType);
+    formData.set("name", "修正後紀錄");
+    formData.set("amountTwd", "350");
+    formData.set("occurredOn", "2026-06-10");
+    formData.set(
+      "categoryId",
+      fields.recordType === "income" ? "income-rent" : "expense-grocery",
+    );
+    if ("sourceMemberId" in fields) {
+      formData.set("sourceMemberId", fields.sourceMemberId);
+    }
+    if ("paymentSource" in fields) {
+      formData.set("paymentSource", fields.paymentSource);
+    }
+    if ("payerMemberId" in fields) {
+      formData.set("payerMemberId", fields.payerMemberId);
+    }
+
+    expect(parseUpdateLedgerRecordForm(formData)).toMatchObject({
+      ok: true,
+      command: {
+        recordId: "record-1",
+        name: "修正後紀錄",
+        amountCents: 35_000,
+        occurredOn: "2026-06-10",
+        ...targetFields,
       },
     });
   });
