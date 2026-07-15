@@ -57,6 +57,9 @@ describe("RecordDetailDialog", () => {
     expect(screen.getByRole("radio", { name: "房租" })).toBeChecked();
 
     selectEntryKind("成員支出");
+    expect(screen.queryByText(
+      "切換類型後，請重新選擇分類與付款資訊。",
+    )).not.toBeInTheDocument();
     for (const radio of screen.getAllByRole("radio")) {
       expect(radio).not.toBeChecked();
     }
@@ -75,6 +78,9 @@ describe("RecordDetailDialog", () => {
     expect(screen.getByRole("radio", { name: "日用品" })).toBeChecked();
 
     selectEntryKind("基金支出");
+    expect(screen.queryByText(
+      "切換付款來源後，請重新確認付款資訊。",
+    )).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "日用品" })).toBeChecked();
     selectEntryKind("成員支出");
     expect(screen.getByRole("radio", { name: "日用品" })).toBeChecked();

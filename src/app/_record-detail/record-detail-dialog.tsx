@@ -471,13 +471,6 @@ function EditRecordDialog({
           entryKind={entryKind}
           onEntryKindChange={changeEntryKind}
         />
-        {hasChangedEntryKind ? (
-          <p className="text-caption text-muted-foreground">
-            {hasCrossedTypeBoundary
-              ? "切換類型後，請重新選擇分類與付款資訊。"
-              : "切換付款來源後，請重新確認付款資訊。"}
-          </p>
-        ) : null}
         <LedgerRecordCategoryField
           categories={editableCategories}
           defaultCategoryId={
