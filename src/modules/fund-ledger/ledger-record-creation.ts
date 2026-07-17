@@ -182,7 +182,7 @@ export async function confirmCsvRows(
   }
 
   try {
-    const rows = await Promise.all([
+    const outcomes = await Promise.all([
       ...input.rows.map((row) => confirmActiveCsvRow(
         prisma,
         actor,
@@ -202,12 +202,19 @@ export async function confirmCsvRows(
     if (skipped.some((result) => !result.ok)) {
       return { ok: false, reason: "unavailable" };
     }
+    outcomes.push(...skipped.flatMap((result) =>
+      result.ok ? [result.outcome] : []
+    ));
 
     return {
       ok: true,
       batchId: acquired.batch.id,
-      rows,
-      skippedRows: skipped.flatMap((result) => result.ok ? [result.row] : []),
+      rows: outcomes.flatMap((outcome) =>
+        outcome.collection === "rows" ? [outcome.row] : []
+      ),
+      skippedRows: outcomes.flatMap((outcome) =>
+        outcome.collection === "skippedRows" ? [outcome.row] : []
+      ),
     };
   } catch {
     return { ok: false, reason: "unavailable" };
@@ -216,6 +223,9 @@ export async function confirmCsvRows(
 
 type PrismaClient = ReturnType<typeof getPrismaClient>;
 type CsvBatch = { id: string; fileFingerprint: string };
+type ConfirmedCsvRowOutcome =
+  | { collection: "rows"; row: ConfirmCsvRowResult }
+  | { collection: "skippedRows"; row: ConfirmCsvSkippedRowResult };
 
 async function acquireCsvBatch(
   prisma: PrismaClient,
@@ -274,12 +284,12 @@ async function confirmActiveCsvRow(
   actor: LedgerCreationMemberActor,
   batchId: string,
   row: ConfirmCsvRowsInput["rows"][number],
-): Promise<ConfirmCsvRowResult> {
+): Promise<ConfirmedCsvRowOutcome> {
   try {
     return await prisma.$transaction(async (tx) => {
       const existing = await findCsvRow(tx, batchId, row.rowIdentity);
       if (existing) {
-        return activeResultFromExisting(row, existing);
+        return outcomeFromExisting(row, existing);
       }
 
       const result = await createLedgerRecordWithinTransaction(tx, {
@@ -311,7 +321,7 @@ async function confirmActiveCsvRow(
           where: { id: batchId },
           data: { failedRowCount: { increment: 1 } },
         });
-        return rejectedCsvRow(row, result.reason, false);
+        return confirmedCsvRow(rejectedCsvRow(row, result.reason, false));
       }
 
       await tx.ledgerImportRow.create({
@@ -329,21 +339,21 @@ async function confirmActiveCsvRow(
         where: { id: batchId },
         data: { importedRowCount: { increment: 1 } },
       });
-      return {
+      return confirmedCsvRow({
         rowIdentity: row.rowIdentity,
         csvRowNumber: row.csvRowNumber,
         status: "created",
         recordId: result.recordId,
-      };
+      });
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       const existing = await reloadCsvRow(prisma, batchId, row.rowIdentity);
       if (existing) {
-        return activeResultFromExisting(row, existing);
+        return outcomeFromExisting(row, existing);
       }
     }
-    return rejectedCsvRow(row, "unavailable", true);
+    return confirmedCsvRow(rejectedCsvRow(row, "unavailable", true));
   }
 }
 
@@ -351,12 +361,12 @@ async function confirmSourceRejectedCsvRow(
   prisma: PrismaClient,
   batchId: string,
   row: ConfirmCsvRowsInput["sourceRejectedRows"][number],
-): Promise<ConfirmCsvRowResult> {
+): Promise<ConfirmedCsvRowOutcome> {
   try {
     return await prisma.$transaction(async (tx) => {
       const existing = await findCsvRow(tx, batchId, row.rowIdentity);
       if (existing) {
-        return activeResultFromExisting(row, existing);
+        return outcomeFromExisting(row, existing);
       }
 
       await tx.ledgerImportRow.create({
@@ -374,16 +384,16 @@ async function confirmSourceRejectedCsvRow(
         where: { id: batchId },
         data: { failedRowCount: { increment: 1 } },
       });
-      return rejectedCsvRow(row, row.reason, false);
+      return confirmedCsvRow(rejectedCsvRow(row, row.reason, false));
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       const existing = await reloadCsvRow(prisma, batchId, row.rowIdentity);
       if (existing) {
-        return activeResultFromExisting(row, existing);
+        return outcomeFromExisting(row, existing);
       }
     }
-    return rejectedCsvRow(row, "unavailable", true);
+    return confirmedCsvRow(rejectedCsvRow(row, "unavailable", true));
   }
 }
 
@@ -392,36 +402,38 @@ async function confirmSkippedCsvRow(
   batchId: string,
   row: ConfirmCsvRowsInput["skippedRows"][number],
 ): Promise<
-  | { ok: true; row: ConfirmCsvSkippedRowResult }
+  | { ok: true; outcome: ConfirmedCsvRowOutcome }
   | { ok: false }
 > {
   try {
     return await prisma.$transaction(async (tx) => {
       const existing = await findCsvRow(tx, batchId, row.rowIdentity);
-      if (!existing) {
-        await tx.ledgerImportRow.create({
-          data: {
-            batchId,
-            rowIdentity: row.rowIdentity,
-            csvRowNumber: row.csvRowNumber,
-            rowFingerprint: row.rowFingerprint,
-            status: "skipped",
-            ledgerRecordId: null,
-            failureReason: null,
-          },
-        });
-        await tx.ledgerImportBatch.update({
-          where: { id: batchId },
-          data: { skippedRowCount: { increment: 1 } },
-        });
+      if (existing) {
+        return { ok: true as const, outcome: outcomeFromExisting(row, existing) };
       }
-      return { ok: true as const, row: skippedCsvRow(row) };
+
+      await tx.ledgerImportRow.create({
+        data: {
+          batchId,
+          rowIdentity: row.rowIdentity,
+          csvRowNumber: row.csvRowNumber,
+          rowFingerprint: row.rowFingerprint,
+          status: "skipped",
+          ledgerRecordId: null,
+          failureReason: null,
+        },
+      });
+      await tx.ledgerImportBatch.update({
+        where: { id: batchId },
+        data: { skippedRowCount: { increment: 1 } },
+      });
+      return { ok: true as const, outcome: skippedCsvRow(skippedCsvRowResult(row)) };
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       const existing = await reloadCsvRow(prisma, batchId, row.rowIdentity);
       if (existing) {
-        return { ok: true, row: skippedCsvRow(row) };
+        return { ok: true, outcome: outcomeFromExisting(row, existing) };
       }
     }
     return { ok: false };
@@ -456,24 +468,39 @@ function reloadCsvRow(
   });
 }
 
-function activeResultFromExisting(
+function outcomeFromExisting(
   row: { rowIdentity: string; csvRowNumber: number },
   existing: ExistingCsvRow,
-): ConfirmCsvRowResult {
-  if (existing.ledgerRecordId) {
-    return {
+): ConfirmedCsvRowOutcome {
+  if (existing.status === "imported" && existing.ledgerRecordId) {
+    return confirmedCsvRow({
       rowIdentity: row.rowIdentity,
       csvRowNumber: row.csvRowNumber,
       status: "already_imported",
       recordId: existing.ledgerRecordId,
-    };
+    });
   }
-  return rejectedCsvRow(
-    row,
-    (existing.failureReason as CsvTerminalRejectionReason | null) ??
-      "legacy_rejection",
-    false,
+  if (existing.status === "skipped") {
+    return skippedCsvRow(skippedCsvRowResult(row));
+  }
+  return confirmedCsvRow(
+    rejectedCsvRow(
+      row,
+      (existing.failureReason as CsvTerminalRejectionReason | null) ??
+        "legacy_rejection",
+      false,
+    ),
   );
+}
+
+function confirmedCsvRow(row: ConfirmCsvRowResult): ConfirmedCsvRowOutcome {
+  return { collection: "rows", row };
+}
+
+function skippedCsvRow(
+  row: ConfirmCsvSkippedRowResult,
+): ConfirmedCsvRowOutcome {
+  return { collection: "skippedRows", row };
 }
 
 function rejectedCsvRow(
@@ -490,7 +517,7 @@ function rejectedCsvRow(
   };
 }
 
-function skippedCsvRow(
+function skippedCsvRowResult(
   row: { rowIdentity: string; csvRowNumber: number },
 ): ConfirmCsvSkippedRowResult {
   return {

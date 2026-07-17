@@ -656,6 +656,202 @@ integrationDescribe("ledger record creation persistence contract", () => {
       where: { name: "終端失敗列已修正" },
     })).resolves.toBe(0);
   });
+
+  it("replays a persisted imported row into rows when the handoff later marks it skipped", async () => {
+    const input = csvConfirmation({
+      batchIdentity: "csv-imported-to-skipped-replay",
+      rows: [csvRow({ csvRowNumber: 2, name: "匯入後改為略過" })],
+    });
+
+    const first = await confirmCsvRows(csvActor, input);
+    const replay = await confirmCsvRows(csvActor, {
+      ...input,
+      rows: [],
+      skippedRows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        rowFingerprint: "changed-skipped-fingerprint",
+      }],
+    });
+
+    expect(first.ok && first.rows).toEqual([
+      expect.objectContaining({ status: "created" }),
+    ]);
+    expect(replay).toMatchObject({
+      ok: true,
+      rows: [expect.objectContaining({
+        rowIdentity: "csv-row:2",
+        status: "already_imported",
+      })],
+      skippedRows: [],
+    });
+    await expect(csvBatch("csv-imported-to-skipped-replay")).resolves.toMatchObject({
+      importedRowCount: 1,
+      failedRowCount: 0,
+      skippedRowCount: 0,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { name: "匯入後改為略過" },
+    })).resolves.toBe(1);
+    await expect(csvRowTraces("csv-imported-to-skipped-replay")).resolves.toMatchObject([
+      {
+        status: "imported",
+        failureReason: null,
+        rowFingerprint: "fingerprint-2",
+      },
+    ]);
+  });
+
+  it("replays a persisted failed row into rows when the handoff later marks it skipped", async () => {
+    const input = csvConfirmation({
+      batchIdentity: "csv-failed-to-skipped-replay",
+      rows: [csvRow({
+        csvRowNumber: 2,
+        name: "失敗後改為略過",
+        paymentSource: "member",
+        payerMemberId: fixture.disabledMember,
+      })],
+    });
+
+    const first = await confirmCsvRows(csvActor, input);
+    const replay = await confirmCsvRows(csvActor, {
+      ...input,
+      rows: [],
+      skippedRows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        rowFingerprint: "changed-skipped-fingerprint",
+      }],
+    });
+
+    expect(first.ok && first.rows).toMatchObject([{
+      status: "rejected",
+      reason: "disabled_member",
+      retryable: false,
+    }]);
+    expect(replay).toMatchObject({
+      ok: true,
+      rows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        status: "rejected",
+        reason: "disabled_member",
+        retryable: false,
+      }],
+      skippedRows: [],
+    });
+    await expect(csvBatch("csv-failed-to-skipped-replay")).resolves.toMatchObject({
+      importedRowCount: 0,
+      failedRowCount: 1,
+      skippedRowCount: 0,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { name: "失敗後改為略過" },
+    })).resolves.toBe(0);
+    await expect(csvRowTraces("csv-failed-to-skipped-replay")).resolves.toMatchObject([
+      {
+        status: "failed",
+        failureReason: "disabled_member",
+        rowFingerprint: "fingerprint-2",
+      },
+    ]);
+  });
+
+  it("replays a persisted skipped row into skippedRows when the handoff later makes it active", async () => {
+    const input = csvConfirmation({
+      batchIdentity: "csv-skipped-to-active-replay",
+      skippedRows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        rowFingerprint: "initial-skipped-fingerprint",
+      }],
+    });
+
+    const first = await confirmCsvRows(csvActor, input);
+    const replay = await confirmCsvRows(csvActor, {
+      ...input,
+      rows: [csvRow({ csvRowNumber: 2, name: "略過後改為匯入" })],
+      skippedRows: [],
+    });
+
+    expect(first).toMatchObject({
+      ok: true,
+      rows: [],
+      skippedRows: [{ rowIdentity: "csv-row:2", status: "skipped" }],
+    });
+    expect(replay).toMatchObject({
+      ok: true,
+      rows: [],
+      skippedRows: [{ rowIdentity: "csv-row:2", status: "skipped" }],
+    });
+    await expect(csvBatch("csv-skipped-to-active-replay")).resolves.toMatchObject({
+      importedRowCount: 0,
+      failedRowCount: 0,
+      skippedRowCount: 1,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { name: "略過後改為匯入" },
+    })).resolves.toBe(0);
+    await expect(csvRowTraces("csv-skipped-to-active-replay")).resolves.toMatchObject([
+      {
+        status: "skipped",
+        failureReason: null,
+        rowFingerprint: "initial-skipped-fingerprint",
+      },
+    ]);
+  });
+
+  it("replays a persisted skipped row into skippedRows when the handoff later rejects it", async () => {
+    const recordsBefore = await prisma.ledgerRecord.count({
+      where: { householdId: fixture.householdA },
+    });
+    const input = csvConfirmation({
+      batchIdentity: "csv-skipped-to-rejected-replay",
+      skippedRows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        rowFingerprint: "initial-skipped-fingerprint",
+      }],
+    });
+
+    const first = await confirmCsvRows(csvActor, input);
+    const replay = await confirmCsvRows(csvActor, {
+      ...input,
+      sourceRejectedRows: [{
+        rowIdentity: "csv-row:2",
+        csvRowNumber: 2,
+        rowFingerprint: "changed-rejected-fingerprint",
+        reason: "member_not_found",
+      }],
+      skippedRows: [],
+    });
+
+    expect(first).toMatchObject({
+      ok: true,
+      rows: [],
+      skippedRows: [{ rowIdentity: "csv-row:2", status: "skipped" }],
+    });
+    expect(replay).toMatchObject({
+      ok: true,
+      rows: [],
+      skippedRows: [{ rowIdentity: "csv-row:2", status: "skipped" }],
+    });
+    await expect(csvBatch("csv-skipped-to-rejected-replay")).resolves.toMatchObject({
+      importedRowCount: 0,
+      failedRowCount: 0,
+      skippedRowCount: 1,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { householdId: fixture.householdA },
+    })).resolves.toBe(recordsBefore);
+    await expect(csvRowTraces("csv-skipped-to-rejected-replay")).resolves.toMatchObject([
+      {
+        status: "skipped",
+        failureReason: null,
+        rowFingerprint: "initial-skipped-fingerprint",
+      },
+    ]);
+  });
 });
 
 const csvActor = { kind: "member", member: financeMember } as const;
@@ -710,6 +906,15 @@ function csvBatch(batchIdentity: string) {
         batchIdentity,
       },
     },
+  });
+}
+
+async function csvRowTraces(batchIdentity: string) {
+  const batch = await csvBatch(batchIdentity);
+
+  return prisma.ledgerImportRow.findMany({
+    where: { batchId: batch?.id },
+    orderBy: { csvRowNumber: "asc" },
   });
 }
 

@@ -70,7 +70,7 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
   ).length;
   const importableCount = activeRows.length - needsAttentionCount;
   const canImport =
-    Boolean(preview) && importableCount > 0 && !isPending;
+    Boolean(preview) && rows.length > 0 && !isPending;
 
   function resetImportState() {
     setPreview(null);
