@@ -7,6 +7,7 @@ import {
 } from "@/modules/identity-access/household-member-query";
 import type { HouseholdScopedAuthenticatedMember } from "@/modules/identity-access/session-access";
 import type { RecurringPostingSystemActor } from "@/modules/identity-access/system-actor";
+import { formatDateInTimeZone } from "@/modules/recurring/recurring-date";
 import type { LedgerImportIssueCode } from "./ledger-import";
 
 export type LedgerCreationMemberActor = {
@@ -52,6 +53,24 @@ export type CreateManualRecordResult =
         | "member_outside_household"
         | "disabled_member";
     };
+
+export type PostRecurringOccurrenceResult =
+  | { status: "posted"; occurrenceId: string; recordId: string }
+  | { status: "already_posted"; occurrenceId: string; recordId: string }
+  | {
+      status: "blocked";
+      occurrenceId: string;
+      reason: "archived_category" | "disabled_member";
+    }
+  | {
+      status: "rejected";
+      reason:
+        | "occurrence_not_found"
+        | "occurrence_not_due"
+        | "permission_denied"
+        | "invalid_schedule";
+    }
+  | { status: "unavailable"; occurrenceId: string };
 
 type CsvSourceRejectionReason = Exclude<
   LedgerImportIssueCode,
@@ -156,6 +175,153 @@ export async function createManualRecord(
       }),
     }),
   );
+}
+
+export async function postRecurringOccurrence(
+  actor: LedgerCreationMemberActor | RecurringPostingSystemActor,
+  input: { occurrenceId: string },
+): Promise<PostRecurringOccurrenceResult> {
+  const prisma = getPrismaClient();
+  const householdId = householdIdFor(actor);
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const occurrence = await tx.recurringOccurrence.findFirst({
+        where: { id: input.occurrenceId, householdId },
+        include: { recurringRule: true },
+      });
+
+      if (!occurrence) {
+        return { status: "rejected", reason: "occurrence_not_found" };
+      }
+      if (occurrence.status === "posted" && occurrence.ledgerRecordId) {
+        return {
+          status: "already_posted",
+          occurrenceId: occurrence.id,
+          recordId: occurrence.ledgerRecordId,
+        };
+      }
+      if (occurrence.status === "blocked" && occurrence.blockedReason) {
+        return {
+          status: "blocked",
+          occurrenceId: occurrence.id,
+          reason: occurrence.blockedReason,
+        };
+      }
+      if (
+        occurrence.status !== "pending" ||
+        !occurrence.recurringRule.active ||
+        occurrence.recurringRule.deletedAt
+      ) {
+        return { status: "rejected", reason: "invalid_schedule" };
+      }
+
+      const targetDate = occurrence.targetDate.toISOString().slice(0, 10);
+      if (
+        occurrence.recurringRule.postingMode === "immediate" &&
+        targetDate > formatDateInTimeZone(new Date(), "Asia/Taipei")
+      ) {
+        return { status: "rejected", reason: "occurrence_not_due" };
+      }
+
+      const draft = recurringRuleToDraft(occurrence.recurringRule, targetDate);
+      if (!draft) {
+        return { status: "rejected", reason: "invalid_schedule" };
+      }
+      const result = await createLedgerRecordWithinTransaction(tx, {
+        actor,
+        createdByMemberId: occurrence.recurringRule.createdByMemberId,
+        draft,
+        authorize: ({ attributionMemberId }) => actor.kind === "system"
+          ? actor.capability === "post_recurring_occurrence"
+            ? { allowed: true }
+            : { allowed: false, reason: "invalid_system_capability" }
+          : authorize(actor.member, {
+              type: "confirm_recurring_occurrence",
+              targetMemberId: attributionMemberId,
+            }),
+      });
+
+      if (!result.ok) {
+        if (
+          result.reason === "archived_category" ||
+          result.reason === "disabled_member"
+        ) {
+          const transition = await tx.recurringOccurrence.updateMany({
+            where: {
+              id: occurrence.id,
+              householdId,
+              status: "pending",
+            },
+            data: {
+              blockedReason: result.reason,
+              ledgerRecordId: null,
+              postedAt: null,
+              postedByMemberId: null,
+              postingActorKind: null,
+              status: "blocked",
+            },
+          });
+          if (transition.count !== 1) {
+            throw new RecurringOccurrenceTransitionRace();
+          }
+          return {
+            status: "blocked",
+            occurrenceId: occurrence.id,
+            reason: result.reason,
+          };
+        }
+        return {
+          status: "rejected",
+          reason: result.reason === "permission_denied"
+            ? "permission_denied"
+            : "invalid_schedule",
+        };
+      }
+
+      const postingAudit = actor.kind === "system"
+        ? { postingActorKind: "system" as const, postedByMemberId: null }
+        : {
+            postingActorKind: "member" as const,
+            postedByMemberId: actor.member.id,
+          };
+      const transition = await tx.recurringOccurrence.updateMany({
+        where: {
+          id: occurrence.id,
+          householdId,
+          status: "pending",
+        },
+        data: {
+          blockedReason: null,
+          ledgerRecordId: result.recordId,
+          postedAt: new Date(),
+          ...postingAudit,
+          status: "posted",
+        },
+      });
+      if (transition.count !== 1) {
+        throw new RecurringOccurrenceTransitionRace();
+      }
+
+      return {
+        status: "posted",
+        occurrenceId: occurrence.id,
+        recordId: result.recordId,
+      };
+    });
+  } catch (error) {
+    if (error instanceof RecurringOccurrenceTransitionRace) {
+      return reloadRecurringOccurrenceOutcome(
+        prisma,
+        householdId,
+        input.occurrenceId,
+      );
+    }
+    if (isPrismaFailure(error)) {
+      return { status: "unavailable", occurrenceId: input.occurrenceId };
+    }
+    throw error;
+  }
 }
 
 export async function confirmCsvRows(
@@ -709,6 +875,101 @@ function toPrismaLedgerRecordCreateData({
     payerMember: { connect: { id: draft.payerMemberId } },
     reimbursementStatus: "refundable",
   };
+}
+
+class RecurringOccurrenceTransitionRace extends Error {
+  constructor() {
+    super("Recurring occurrence changed during posting");
+    this.name = "RecurringOccurrenceTransitionRace";
+  }
+}
+
+function recurringRuleToDraft(
+  rule: {
+    amountCents: number;
+    categoryId: string;
+    name: string;
+    note: string | null;
+    payerMemberId: string | null;
+    paymentSource: "fund" | "member" | null;
+    sourceMemberId: string | null;
+    type: "income" | "expense";
+  },
+  occurredOn: string,
+): LedgerRecordDraft | null {
+  const base = {
+    name: rule.name,
+    amountCents: rule.amountCents,
+    occurredOn,
+    categoryId: rule.categoryId,
+    ...(rule.note ? { note: rule.note } : {}),
+  };
+
+  if (rule.type === "income") {
+    return rule.sourceMemberId
+      ? { ...base, type: "income", sourceMemberId: rule.sourceMemberId }
+      : null;
+  }
+  if (!rule.paymentSource) {
+    return null;
+  }
+  return {
+    ...base,
+    type: "expense",
+    paymentSource: rule.paymentSource,
+    ...(rule.payerMemberId ? { payerMemberId: rule.payerMemberId } : {}),
+  };
+}
+
+async function reloadRecurringOccurrenceOutcome(
+  prisma: PrismaClient,
+  householdId: string,
+  occurrenceId: string,
+): Promise<PostRecurringOccurrenceResult> {
+  try {
+    const occurrence = await prisma.recurringOccurrence.findFirst({
+      where: { id: occurrenceId, householdId },
+      select: {
+        blockedReason: true,
+        ledgerRecordId: true,
+        status: true,
+      },
+    });
+    if (occurrence?.status === "posted" && occurrence.ledgerRecordId) {
+      return {
+        status: "already_posted",
+        occurrenceId,
+        recordId: occurrence.ledgerRecordId,
+      };
+    }
+    if (occurrence?.status === "blocked" && occurrence.blockedReason) {
+      return {
+        status: "blocked",
+        occurrenceId,
+        reason: occurrence.blockedReason,
+      };
+    }
+    return { status: "unavailable", occurrenceId };
+  } catch (error) {
+    if (isPrismaFailure(error)) {
+      return { status: "unavailable", occurrenceId };
+    }
+    throw error;
+  }
+}
+
+function isPrismaFailure(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const name = "name" in error && typeof error.name === "string"
+    ? error.name
+    : error.constructor.name;
+  return name.startsWith("PrismaClient") || (
+    "code" in error &&
+    typeof error.code === "string" &&
+    /^P\d{4}$/u.test(error.code)
+  );
 }
 
 function isIsoDate(value: string): boolean {

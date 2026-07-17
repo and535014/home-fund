@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { postRecurringOccurrence } from "../fund-ledger/ledger-record-creation";
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
   confirmRecurringOccurrenceInDatabase,
@@ -7,6 +8,10 @@ import {
   ensureRecurringOccurrencesForMonth,
   runRecurringPostingJob,
 } from "./recurring-event-command";
+
+vi.mock("../fund-ledger/ledger-record-creation", () => ({
+  postRecurringOccurrence: vi.fn(),
+}));
 
 const admin: AuthenticatedMember = {
   id: "member-admin",
@@ -25,11 +30,16 @@ const categories = [
   { id: "expense-network", status: "active" as const, type: "expense" as const },
 ];
 
-function createRecurringRuleRow(overrides: Record<string, unknown> = {}) {
+beforeEach(() => {
+  vi.mocked(postRecurringOccurrence).mockReset();
+});
+
+function recurringRule(overrides: Record<string, unknown> = {}) {
   return {
     active: true,
     amountCents: 1_800_000,
     categoryId: "income-rent",
+    createdAt: new Date("2026-06-01T00:00:00.000Z"),
     createdByMemberId: "member-admin",
     dayOfMonth: 1,
     deletedAt: null,
@@ -39,30 +49,53 @@ function createRecurringRuleRow(overrides: Record<string, unknown> = {}) {
     note: null,
     payerMemberId: null,
     paymentSource: null,
-    postingMode: "reminder",
-    scheduleAnchor: "fixed_day",
+    postingMode: "reminder" as const,
+    scheduleAnchor: "fixed_day" as const,
     sourceMemberId: "member-a",
-    type: "income",
+    type: "income" as const,
     ...overrides,
   };
 }
 
+function commandPrisma({
+  rules = [],
+  existingOccurrence = null,
+}: {
+  rules?: ReturnType<typeof recurringRule>[];
+  existingOccurrence?: Record<string, unknown> | null;
+} = {}) {
+  let transactionOpen = false;
+  const tx = {
+    category: { findMany: vi.fn(async () => categories) },
+    recurringOccurrence: {
+      create: vi.fn(async ({ data }) => data),
+      findUnique: vi.fn(async () => existingOccurrence),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+    },
+    recurringRule: {
+      create: vi.fn(async ({ data }) => data),
+      findFirst: vi.fn(async () => rules[0] ?? null),
+      findMany: vi.fn(async () => rules),
+      update: vi.fn(async () => undefined),
+    },
+  };
+  const prisma = {
+    $transaction: vi.fn(async (callback: (value: typeof tx) => unknown) => {
+      transactionOpen = true;
+      try {
+        return await callback(tx);
+      } finally {
+        transactionOpen = false;
+      }
+    }),
+  };
+
+  return { prisma, transactionOpen: () => transactionOpen, tx };
+}
+
 describe("createRecurringEventInDatabase", () => {
-  it("validates, writes, and creates the current-month future occurrence", async () => {
-    const recurringRuleCreate = vi.fn(async ({ data }) => data);
-    const recurringOccurrenceCreate = vi.fn(async ({ data }) => data);
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: recurringOccurrenceCreate,
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: { create: recurringRuleCreate },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
+  it("commits a future reminder event and occurrence without posting", async () => {
+    const { prisma, tx } = commandPrisma();
 
     await expect(createRecurringEventInDatabase(admin, {
       amountCents: 1_800_000,
@@ -77,95 +110,29 @@ describe("createRecurringEventInDatabase", () => {
       generateOccurrenceId: () => "occ-rent-2026-06",
       householdId: "household-demo",
       now: () => new Date("2026-06-16T01:00:00.000Z"),
-      prisma,
+      prisma: prisma as never,
     })).resolves.toMatchObject({
       ok: true,
-      event: {
-        id: "event-rent",
-        schedule: { anchor: "fixed_day", dayOfMonth: 17 },
-      },
+      currentOccurrenceStatus: "pending",
+      event: { id: "event-rent" },
     });
-
-    expect(recurringRuleCreate).toHaveBeenCalledWith({
+    expect(tx.recurringRule.create).toHaveBeenCalledTimes(1);
+    expect(tx.recurringOccurrence.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        amountCents: 1_800_000,
-        categoryId: "income-rent",
-        createdByMemberId: "member-admin",
-        dayOfMonth: 17,
-        householdId: "household-demo",
-        id: "event-rent",
-        name: "成員 A 房租收入",
-        postingMode: "reminder",
-        scheduleAnchor: "fixed_day",
-        sourceMemberId: "member-a",
-        type: "income",
-      }),
-    });
-    expect(recurringOccurrenceCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        householdId: "household-demo",
         id: "occ-rent-2026-06",
-        month: "2026-06",
-        recurringRuleId: "event-rent",
         status: "pending",
         targetDate: new Date("2026-06-17T00:00:00.000Z"),
       }),
     });
-    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
+    expect(postRecurringOccurrence).not.toHaveBeenCalled();
   });
 
-  it("does not create the current-month occurrence when its target date has passed", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: { create: vi.fn(async ({ data }) => data) },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(createRecurringEventInDatabase(admin, {
-      amountCents: 1_800_000,
-      categoryId: "income-rent",
-      name: "成員 A 房租收入",
-      postingMode: "reminder",
-      schedule: { anchor: "fixed_day", dayOfMonth: 1 },
-      sourceMemberId: "member-a",
-      type: "income",
-    }, {
-      generateId: () => "event-rent",
-      householdId: "household-demo",
-      now: () => new Date("2026-06-16T01:00:00.000Z"),
-      prisma,
-    })).resolves.toMatchObject({
-      ok: true,
-      event: {
-        id: "event-rent",
-        schedule: { anchor: "fixed_day", dayOfMonth: 1 },
-      },
+  it("commits an immediate event before posting and reports unavailable separately", async () => {
+    const { prisma, transactionOpen, tx } = commandPrisma();
+    vi.mocked(postRecurringOccurrence).mockImplementation(async (_actor, input) => {
+      expect(transactionOpen()).toBe(false);
+      return { status: "unavailable", occurrenceId: input.occurrenceId };
     });
-
-    expect(tx.recurringRule.create).toHaveBeenCalled();
-    expect(tx.recurringOccurrence.create).not.toHaveBeenCalled();
-  });
-
-  it("posts a current-day immediate occurrence after creating the event", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: { create: vi.fn(async ({ data }) => data) },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
 
     await expect(createRecurringEventInDatabase(admin, {
       amountCents: 129_900,
@@ -178,77 +145,64 @@ describe("createRecurringEventInDatabase", () => {
       type: "expense",
     }, {
       generateId: () => "event-network",
-      generateLedgerRecordId: () => "record-network-2026-06",
       generateOccurrenceId: () => "occ-network-2026-06",
       householdId: "household-demo",
       now: () => new Date("2026-06-16T01:00:00.000Z"),
-      prisma,
+      prisma: prisma as never,
     })).resolves.toMatchObject({
       ok: true,
-      event: {
-        id: "event-network",
-        postingMode: "immediate",
+      currentOccurrenceStatus: "unavailable",
+      event: { id: "event-network" },
+    });
+    expect(tx.recurringRule.create).toHaveBeenCalledTimes(1);
+    expect(tx.recurringOccurrence.create).toHaveBeenCalledTimes(1);
+    expect(postRecurringOccurrence).toHaveBeenCalledWith(
+      {
+        kind: "member",
+        member: { ...admin, householdId: "household-demo" },
       },
-    });
+      { occurrenceId: "occ-network-2026-06" },
+    );
+  });
 
-    expect(tx.recurringOccurrence.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        id: "occ-network-2026-06",
-        month: "2026-06",
-        targetDate: new Date("2026-06-16T00:00:00.000Z"),
-      }),
+  it("does not create a current occurrence whose target date already passed", async () => {
+    const { prisma, tx } = commandPrisma();
+
+    await expect(createRecurringEventInDatabase(admin, {
+      amountCents: 1_800_000,
+      categoryId: "income-rent",
+      name: "已過日期",
+      postingMode: "reminder",
+      schedule: { anchor: "fixed_day", dayOfMonth: 1 },
+      sourceMemberId: "member-a",
+      type: "income",
+    }, {
+      householdId: "household-demo",
+      now: () => new Date("2026-06-16T01:00:00.000Z"),
+      prisma: prisma as never,
+    })).resolves.toMatchObject({
+      ok: true,
+      currentOccurrenceStatus: "not_created",
     });
-    expect(tx.ledgerRecord.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        id: "record-network-2026-06",
-        occurredOn: new Date("2026-06-16T00:00:00.000Z"),
-        paymentSource: "member",
-        type: "expense",
-      }),
-    });
-    expect(tx.recurringOccurrence.update).toHaveBeenCalledWith({
-      where: { id: "occ-network-2026-06" },
-      data: expect.objectContaining({
-        ledgerRecordId: "record-network-2026-06",
-        status: "posted",
-      }),
-    });
+    expect(tx.recurringOccurrence.create).not.toHaveBeenCalled();
+    expect(postRecurringOccurrence).not.toHaveBeenCalled();
   });
 });
 
 describe("deleteRecurringEventInDatabase", () => {
-  it("soft-deletes an active recurring event", async () => {
-    const tx = {
-      recurringOccurrence: {
-        updateMany: vi.fn(async () => ({ count: 1 })),
-      },
-      recurringRule: {
-        findFirst: vi.fn(async () => createRecurringRuleRow()),
-        update: vi.fn(async () => undefined),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
+  it("soft-deletes an active recurring event and skips pending occurrences", async () => {
+    const { prisma, tx } = commandPrisma({ rules: [recurringRule()] });
 
     await expect(deleteRecurringEventInDatabase(admin, {
       recurringEventId: "event-rent",
     }, {
       householdId: "household-demo",
       now: () => new Date("2026-06-28T00:00:00.000Z"),
-      prisma,
+      prisma: prisma as never,
     })).resolves.toEqual({
       ok: true,
       recurringEventId: "event-rent",
       skippedPendingOccurrenceCount: 1,
-    });
-
-    expect(tx.recurringRule.update).toHaveBeenCalledWith({
-      where: { id: "event-rent" },
-      data: {
-        active: false,
-        deletedAt: new Date("2026-06-28T00:00:00.000Z"),
-      },
     });
     expect(tx.recurringOccurrence.updateMany).toHaveBeenCalledWith({
       where: {
@@ -262,379 +216,148 @@ describe("deleteRecurringEventInDatabase", () => {
 });
 
 describe("ensureRecurringOccurrencesForMonth", () => {
-  it("creates a pending reminder occurrence", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        findUnique: vi.fn(async () => null),
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: {
-        findMany: vi.fn(async () => [createRecurringRuleRow()]),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
+  it("commits generation first, then posts each due immediate occurrence once", async () => {
+    const rules = [
+      recurringRule({
+        id: "event-network",
+        categoryId: "expense-network",
+        name: "網路費",
+        postingMode: "immediate",
+        type: "expense",
+        paymentSource: "fund",
+        sourceMemberId: null,
+        dayOfMonth: 15,
+      }),
+      recurringRule({ id: "event-rent", postingMode: "reminder" }),
+    ];
+    const { prisma, transactionOpen } = commandPrisma({ rules });
+    vi.mocked(postRecurringOccurrence).mockImplementation(async (_actor, input) => {
+      expect(transactionOpen()).toBe(false);
+      return {
+        status: "blocked",
+        occurrenceId: input.occurrenceId,
+        reason: "archived_category",
+      };
+    });
 
-    await expect(ensureRecurringOccurrencesForMonth(admin, {
-      month: "2026-07",
-    }, {
-      generateOccurrenceId: () => "occ-rent-2026-07",
-      householdId: "household-demo",
-      prisma,
-    })).resolves.toEqual({
+    await expect(ensureRecurringOccurrencesForMonth(
+      { kind: "system", capability: "post_recurring_occurrence", householdId: "household-demo" },
+      { month: "2026-07" },
+      {
+        householdId: "household-demo",
+        now: () => new Date("2026-07-15T01:00:00.000Z"),
+        prisma: prisma as never,
+      },
+    )).resolves.toEqual({
       alreadyPostedCount: 0,
+      blockedCount: 1,
       pendingCount: 1,
       postedCount: 0,
       skippedCount: 0,
+      unavailableCount: 0,
+    });
+    expect(postRecurringOccurrence).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps future immediate occurrences pending but counts them as skipped for posting", async () => {
+    const { prisma } = commandPrisma({
+      rules: [recurringRule({ postingMode: "immediate", dayOfMonth: 28 })],
     });
 
-    expect(tx.recurringOccurrence.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    await expect(ensureRecurringOccurrencesForMonth(
+      { kind: "system", capability: "post_recurring_occurrence", householdId: "household-demo" },
+      { month: "2026-07" },
+      {
         householdId: "household-demo",
-        id: "occ-rent-2026-07",
-        month: "2026-07",
-        recurringRuleId: "event-rent",
-        status: "pending",
-        targetDate: new Date("2026-07-01T00:00:00.000Z"),
-      }),
-    });
-    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
-  });
-
-  it("posts an immediate occurrence once and links the ledger record", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        findUnique: vi.fn(async () => null),
-        update: vi.fn(async () => undefined),
+        now: () => new Date("2026-07-15T01:00:00.000Z"),
+        prisma: prisma as never,
       },
-      recurringRule: {
-        findMany: vi.fn(async () => [
-          createRecurringRuleRow({
-            amountCents: 129_900,
-            categoryId: "expense-network",
-            dayOfMonth: 15,
-            id: "event-network",
-            name: "網路費",
-            payerMemberId: "member-b",
-            paymentSource: "member",
-            postingMode: "immediate",
-            sourceMemberId: null,
-            type: "expense",
-          }),
-        ]),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(ensureRecurringOccurrencesForMonth(admin, {
-      month: "2026-07",
-    }, {
-      generateLedgerRecordId: () => "record-network-2026-07",
-      generateOccurrenceId: () => "occ-network-2026-07",
-      householdId: "household-demo",
-      now: () => new Date("2026-07-15T01:00:00.000Z"),
-      prisma,
-    })).resolves.toEqual({
-      alreadyPostedCount: 0,
-      pendingCount: 0,
-      postedCount: 1,
-      skippedCount: 0,
-    });
-
-    expect(tx.ledgerRecord.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        id: "record-network-2026-07",
-        name: "網路費",
-        occurredOn: new Date("2026-07-15T00:00:00.000Z"),
-        payerMemberId: "member-b",
-        paymentSource: "member",
-        reimbursementStatus: "refundable",
-        type: "expense",
-      }),
-    });
-    expect(tx.recurringOccurrence.update).toHaveBeenCalledWith({
-      where: { id: "occ-network-2026-07" },
-      data: {
-        ledgerRecordId: "record-network-2026-07",
-        postedAt: new Date("2026-07-15T01:00:00.000Z"),
-        postedByMemberId: "member-admin",
-        status: "posted",
-      },
-    });
-  });
-
-  it("does not post an immediate occurrence before its target date", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        findUnique: vi.fn(async () => null),
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: {
-        findMany: vi.fn(async () => [
-          createRecurringRuleRow({
-            amountCents: 129_900,
-            categoryId: "expense-network",
-            dayOfMonth: 15,
-            id: "event-network",
-            name: "網路費",
-            payerMemberId: "member-b",
-            paymentSource: "member",
-            postingMode: "immediate",
-            sourceMemberId: null,
-            type: "expense",
-          }),
-        ]),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(ensureRecurringOccurrencesForMonth(admin, {
-      month: "2026-07",
-    }, {
-      generateOccurrenceId: () => "occ-network-2026-07",
-      householdId: "household-demo",
-      now: () => new Date("2026-07-01T01:00:00.000Z"),
-      prisma,
-    })).resolves.toEqual({
-      alreadyPostedCount: 0,
-      pendingCount: 0,
+    )).resolves.toMatchObject({
       postedCount: 0,
       skippedCount: 1,
     });
-
-    expect(tx.recurringOccurrence.create).toHaveBeenCalled();
-    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
-    expect(tx.recurringOccurrence.update).not.toHaveBeenCalled();
+    expect(postRecurringOccurrence).not.toHaveBeenCalled();
   });
 });
 
 describe("runRecurringPostingJob", () => {
-  it("runs the current Asia Taipei month for households with a posting actor", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        create: vi.fn(async ({ data }) => data),
-        findUnique: vi.fn(async () => null),
-        update: vi.fn(async () => undefined),
-      },
-      recurringRule: {
-        findMany: vi.fn(async () => [
-          createRecurringRuleRow({
-            amountCents: 129_900,
-            categoryId: "expense-network",
-            dayOfMonth: 1,
-            id: "event-network",
-            name: "網路費",
-            payerMemberId: "member-b",
-            paymentSource: "member",
-            postingMode: "immediate",
-            sourceMemberId: null,
-            type: "expense",
-          }),
-        ]),
-      },
-    };
+  it("constructs a scoped system actor per household without loading a Member", async () => {
+    const { prisma: transactionPrisma } = commandPrisma({
+      rules: [recurringRule({ postingMode: "immediate", dayOfMonth: 1 })],
+    });
     const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
+      ...transactionPrisma,
       household: {
         findMany: vi.fn(async () => [
-          { id: "household-demo" },
-          { id: "household-without-manager" },
+          { id: "household-a" },
+          { id: "household-b" },
         ]),
       },
-      member: {
-        findFirst: vi.fn(async ({ where }) =>
-          where.householdId === "household-demo"
-            ? {
-                id: "member-admin",
-                roles: [{ role: "admin" as const }],
-              }
-            : null,
-        ),
-      },
     };
+    vi.mocked(postRecurringOccurrence).mockImplementation(async (_actor, input) => ({
+      status: "posted",
+      occurrenceId: input.occurrenceId,
+      recordId: `record-${input.occurrenceId}`,
+    }));
 
     await expect(runRecurringPostingJob({
-      prisma,
+      prisma: prisma as never,
       targetDate: new Date("2026-06-30T16:30:00.000Z"),
-    })).resolves.toEqual({
-      alreadyPostedCount: 0,
-      householdCount: 1,
-      pendingCount: 0,
-      postedCount: 1,
-      skippedCount: 0,
-      skippedHouseholdCount: 1,
+    })).resolves.toMatchObject({
+      blockedCount: 0,
+      householdCount: 2,
+      postedCount: 2,
+      skippedHouseholdCount: 0,
       targetMonth: "2026-07",
+      unavailableCount: 0,
     });
-    expect(prisma.member.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        roles: {
-          some: {
-            role: { in: ["admin", "finance_manager"] },
-          },
-        },
-        status: "active",
-      }),
-    }));
-    expect(tx.recurringRule.findMany).toHaveBeenCalledWith({
-      where: {
-        active: true,
-        householdId: "household-demo",
+    expect(postRecurringOccurrence).toHaveBeenNthCalledWith(
+      1,
+      {
+        kind: "system",
+        capability: "post_recurring_occurrence",
+        householdId: "household-a",
       },
-      orderBy: { createdAt: "asc" },
-    });
-    expect(tx.ledgerRecord.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        createdByMemberId: "member-admin",
-        occurredOn: new Date("2026-07-01T00:00:00.000Z"),
-      }),
-    }));
+      expect.any(Object),
+    );
+    expect(postRecurringOccurrence).toHaveBeenNthCalledWith(
+      2,
+      {
+        kind: "system",
+        capability: "post_recurring_occurrence",
+        householdId: "household-b",
+      },
+      expect.any(Object),
+    );
+    expect(prisma).not.toHaveProperty("member");
   });
 });
 
 describe("confirmRecurringOccurrenceInDatabase", () => {
-  it("confirms a pending occurrence through ordinary ledger creation rules", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        findFirst: vi.fn(async () => ({
-          id: "occ-rent-2026-07",
-          ledgerRecordId: null,
-          month: "2026-07",
-          recurringRule: createRecurringRuleRow(),
-          status: "pending",
-          targetDate: new Date("2026-07-01T00:00:00.000Z"),
-        })),
-        update: vi.fn(async () => undefined),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(confirmRecurringOccurrenceInDatabase(generalMember, {
-      occurrenceId: "occ-rent-2026-07",
-    }, {
-      generateLedgerRecordId: () => "record-rent-2026-07",
-      householdId: "household-demo",
-      now: () => new Date("2026-07-01T03:00:00.000Z"),
-      prisma,
-    })).resolves.toEqual({
-      ok: true,
+  it("delegates member confirmation once to the deep external seam", async () => {
+    vi.mocked(postRecurringOccurrence).mockResolvedValue({
+      status: "already_posted",
       occurrenceId: "occ-rent-2026-07",
       recordId: "record-rent-2026-07",
     });
 
-    expect(tx.ledgerRecord.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        id: "record-rent-2026-07",
-        occurredOn: new Date("2026-07-01T00:00:00.000Z"),
-        sourceMemberId: "member-a",
-        type: "income",
-      }),
-    });
-    expect(tx.recurringOccurrence.update).toHaveBeenCalledWith({
-      where: { id: "occ-rent-2026-07" },
-      data: {
-        ledgerRecordId: "record-rent-2026-07",
-        postedAt: new Date("2026-07-01T03:00:00.000Z"),
-        postedByMemberId: "member-a",
-        status: "posted",
-      },
-    });
-  });
-
-  it("does not confirm an immediate occurrence before its target date", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        findFirst: vi.fn(async () => ({
-          id: "occ-network-2026-07",
-          ledgerRecordId: null,
-          month: "2026-07",
-          recurringRule: createRecurringRuleRow({
-            amountCents: 129_900,
-            categoryId: "expense-network",
-            dayOfMonth: 15,
-            id: "event-network",
-            name: "網路費",
-            payerMemberId: "member-b",
-            paymentSource: "member",
-            postingMode: "immediate",
-            sourceMemberId: null,
-            type: "expense",
-          }),
-          status: "pending",
-          targetDate: new Date("2026-07-15T00:00:00.000Z"),
-        })),
-        update: vi.fn(async () => undefined),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(confirmRecurringOccurrenceInDatabase(admin, {
-      occurrenceId: "occ-network-2026-07",
-    }, {
-      householdId: "household-demo",
-      now: () => new Date("2026-07-01T01:00:00.000Z"),
-      prisma,
-    })).resolves.toEqual({
-      ok: false,
-      reason: "occurrence_not_due",
-    });
-    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
-    expect(tx.recurringOccurrence.update).not.toHaveBeenCalled();
-  });
-
-  it("does not duplicate an already posted occurrence", async () => {
-    const tx = {
-      category: { findMany: vi.fn(async () => categories) },
-      ledgerRecord: { create: vi.fn(async () => undefined) },
-      recurringOccurrence: {
-        findFirst: vi.fn(async () => ({
-          id: "occ-rent-2026-07",
-          ledgerRecordId: "record-rent-2026-07",
-          month: "2026-07",
-          recurringRule: createRecurringRuleRow(),
-          status: "posted",
-          targetDate: new Date("2026-07-01T00:00:00.000Z"),
-        })),
-        update: vi.fn(async () => undefined),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback) => callback(tx)),
-    };
-
-    await expect(confirmRecurringOccurrenceInDatabase(admin, {
+    await expect(confirmRecurringOccurrenceInDatabase(generalMember, {
       occurrenceId: "occ-rent-2026-07",
     }, {
       householdId: "household-demo",
-      prisma,
+      prisma: {} as never,
     })).resolves.toEqual({
       ok: false,
       reason: "already_posted",
       recordId: "record-rent-2026-07",
     });
-    expect(tx.ledgerRecord.create).not.toHaveBeenCalled();
+    expect(postRecurringOccurrence).toHaveBeenCalledTimes(1);
+    expect(postRecurringOccurrence).toHaveBeenCalledWith(
+      {
+        kind: "member",
+        member: { ...generalMember, householdId: "household-demo" },
+      },
+      { occurrenceId: "occ-rent-2026-07" },
+    );
   });
 });

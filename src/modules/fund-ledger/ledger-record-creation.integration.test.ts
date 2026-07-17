@@ -3,8 +3,10 @@ import { createPrismaClient } from "@/db/prisma";
 import {
   confirmCsvRows,
   createManualRecord,
+  postRecurringOccurrence,
   type ConfirmCsvRowsInput,
 } from "./ledger-record-creation";
+import { recurringPostingSystemActor } from "@/modules/identity-access/system-actor";
 
 const runIntegration = process.env.RUN_DATABASE_INTEGRATION === "1";
 const integrationDescribe = runIntegration ? describe : describe.skip;
@@ -27,6 +29,8 @@ const fixture = {
     "integration-ledger-creation-archived-expense-category",
   outsideExpenseCategory:
     "integration-ledger-creation-outside-expense-category",
+  recurringFailureName: "Integration recurring transient failure",
+  recurringRaceName: "Integration recurring posted blocked race",
 } as const;
 
 const financeMember = {
@@ -332,6 +336,358 @@ integrationDescribe("ledger record creation persistence contract", () => {
       reimbursementStatus: "not_refundable",
       payerMemberId: null,
     });
+  });
+
+  it("posts through a household-scoped system actor without a posting Member", async () => {
+    const occurrence = await createRecurringOccurrence({
+      householdId: fixture.householdB,
+      categoryId: fixture.outsideExpenseCategory,
+      createdByMemberId: fixture.outsideMember,
+      id: "recurring-system-no-member",
+      name: "系統背景入帳",
+      type: "expense",
+      paymentSource: "fund",
+    });
+
+    const result = await postRecurringOccurrence(
+      recurringPostingSystemActor(fixture.householdB),
+      { occurrenceId: occurrence.id },
+    );
+
+    expect(result).toMatchObject({
+      status: "posted",
+      occurrenceId: occurrence.id,
+    });
+    const persisted = await prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+      include: { ledgerRecord: true },
+    });
+    expect(persisted).toMatchObject({
+      blockedReason: null,
+      postedByMemberId: null,
+      postingActorKind: "system",
+      status: "posted",
+      ledgerRecord: {
+        createdByMemberId: fixture.outsideMember,
+        payerMemberId: null,
+        sourceMemberId: null,
+      },
+    });
+  });
+
+  it("preserves creator and source attribution when only the creator is disabled", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.incomeCategory,
+      createdByMemberId: fixture.disabledMember,
+      id: "recurring-disabled-creator",
+      name: "停用建立者的有效收入",
+      sourceMemberId: fixture.generalMember,
+      type: "income",
+    });
+
+    const result = await postRecurringOccurrence(
+      recurringPostingSystemActor(fixture.householdA),
+      { occurrenceId: occurrence.id },
+    );
+
+    expect(result).toMatchObject({ status: "posted" });
+    await expect(prisma.ledgerRecord.findUnique({
+      where: { id: result.status === "posted" ? result.recordId : "missing" },
+    })).resolves.toMatchObject({
+      createdByMemberId: fixture.disabledMember,
+      sourceMemberId: fixture.generalMember,
+    });
+  });
+
+  it("persists archived category as a blocked occurrence without a Ledger record", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.archivedExpenseCategory,
+      id: "recurring-archived-category",
+      name: "封存分類週期支出",
+      type: "expense",
+      paymentSource: "fund",
+    });
+
+    await expect(postRecurringOccurrence(
+      recurringPostingSystemActor(fixture.householdA),
+      { occurrenceId: occurrence.id },
+    )).resolves.toEqual({
+      status: "blocked",
+      occurrenceId: occurrence.id,
+      reason: "archived_category",
+    });
+    await expect(prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+    })).resolves.toMatchObject({
+      status: "blocked",
+      blockedReason: "archived_category",
+      ledgerRecordId: null,
+      postingActorKind: null,
+      postedByMemberId: null,
+      postedAt: null,
+    });
+  });
+
+  it("persists disabled source as blocked without treating the creator as attribution", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.incomeCategory,
+      id: "recurring-disabled-source",
+      name: "停用收入來源",
+      sourceMemberId: fixture.disabledMember,
+      type: "income",
+    });
+
+    await expect(postRecurringOccurrence(
+      recurringPostingSystemActor(fixture.householdA),
+      { occurrenceId: occurrence.id },
+    )).resolves.toEqual({
+      status: "blocked",
+      occurrenceId: occurrence.id,
+      reason: "disabled_member",
+    });
+    await expect(prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+    })).resolves.toMatchObject({
+      status: "blocked",
+      blockedReason: "disabled_member",
+      ledgerRecordId: null,
+    });
+  });
+
+  it("converges concurrent posts on one trace without an orphan Ledger record", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.expenseCategory,
+      id: "recurring-posted-race",
+      name: "並行入帳",
+      type: "expense",
+      paymentSource: "fund",
+    });
+    const actor = recurringPostingSystemActor(fixture.householdA);
+
+    const results = await Promise.all([
+      postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
+      postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
+    ]);
+
+    expect(results.map(({ status }) => status).sort()).toEqual([
+      "already_posted",
+      "posted",
+    ]);
+    await expect(prisma.ledgerRecord.count({
+      where: { name: "並行入帳" },
+    })).resolves.toBe(1);
+    const persisted = await prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+    });
+    expect(persisted?.ledgerRecordId).toBeTruthy();
+  });
+
+  it("converges concurrent blocked calls on the stored terminal reason", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.archivedExpenseCategory,
+      id: "recurring-blocked-race",
+      name: "並行阻擋",
+      type: "expense",
+      paymentSource: "fund",
+    });
+    const actor = recurringPostingSystemActor(fixture.householdA);
+
+    const results = await Promise.all([
+      postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
+      postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
+    ]);
+
+    expect(results).toEqual([
+      {
+        status: "blocked",
+        occurrenceId: occurrence.id,
+        reason: "archived_category",
+      },
+      {
+        status: "blocked",
+        occurrenceId: occurrence.id,
+        reason: "archived_category",
+      },
+    ]);
+    await expect(prisma.ledgerRecord.count({
+      where: { name: "並行阻擋" },
+    })).resolves.toBe(0);
+  });
+
+  it("rolls a posted attempt back when a blocked transition wins the race", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.expenseCategory,
+      id: "recurring-posted-blocked-race",
+      name: fixture.recurringRaceName,
+      type: "expense",
+      paymentSource: "fund",
+    });
+    const actor = recurringPostingSystemActor(fixture.householdA);
+    const advisoryKey = 4_170_717;
+    let postingPromise: ReturnType<typeof postRecurringOccurrence> | undefined;
+    let results: Awaited<ReturnType<typeof postRecurringOccurrence>>[] = [];
+
+    try {
+      await installRecurringRaceTrigger();
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`
+          SELECT pg_advisory_xact_lock(${advisoryKey}) IS NULL AS acquired
+        `;
+        postingPromise = postRecurringOccurrence(actor, {
+          occurrenceId: occurrence.id,
+        });
+        await waitForAdvisoryWaiter(tx, advisoryKey);
+        await tx.category.update({
+          where: { id: fixture.expenseCategory },
+          data: { status: "archived" },
+        });
+      });
+      results = await Promise.all([
+        postingPromise!,
+        postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
+      ]);
+    } finally {
+      await prisma.category.update({
+        where: { id: fixture.expenseCategory },
+        data: { status: "active" },
+      });
+      await dropRecurringRaceTrigger();
+    }
+
+    expect(results).toEqual([
+      {
+        status: "blocked",
+        occurrenceId: occurrence.id,
+        reason: "archived_category",
+      },
+      {
+        status: "blocked",
+        occurrenceId: occurrence.id,
+        reason: "archived_category",
+      },
+    ]);
+    await expect(prisma.ledgerRecord.count({
+      where: { name: fixture.recurringRaceName },
+    })).resolves.toBe(0);
+    await expect(prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+    })).resolves.toMatchObject({
+      status: "blocked",
+      blockedReason: "archived_category",
+      ledgerRecordId: null,
+    });
+  });
+
+  it("keeps an occurrence pending when PostgreSQL raises a transient posting error", async () => {
+    const occurrence = await createRecurringOccurrence({
+      categoryId: fixture.expenseCategory,
+      id: "recurring-transient-failure",
+      name: fixture.recurringFailureName,
+      type: "expense",
+      paymentSource: "fund",
+    });
+    let result: Awaited<ReturnType<typeof postRecurringOccurrence>>;
+
+    try {
+      await installRecurringFailureTrigger();
+      result = await postRecurringOccurrence(
+        recurringPostingSystemActor(fixture.householdA),
+        { occurrenceId: occurrence.id },
+      );
+    } finally {
+      await dropRecurringFailureTrigger();
+    }
+
+    expect(result!).toEqual({
+      status: "unavailable",
+      occurrenceId: occurrence.id,
+    });
+    expect(await prisma.recurringOccurrence.findUnique({
+      where: { id: occurrence.id },
+    })).toMatchObject({
+      status: "pending",
+      blockedReason: null,
+      ledgerRecordId: null,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { name: fixture.recurringFailureName },
+    })).resolves.toBe(0);
+  });
+
+  it("revalidates member household scope and confirmation capability", async () => {
+    const outside = await createRecurringOccurrence({
+      householdId: fixture.householdB,
+      categoryId: fixture.outsideExpenseCategory,
+      createdByMemberId: fixture.outsideMember,
+      id: "recurring-member-outside-household",
+      name: "跨家庭確認",
+      type: "expense",
+      paymentSource: "fund",
+    });
+    const denied = await createRecurringOccurrence({
+      categoryId: fixture.incomeCategory,
+      id: "recurring-member-capability-denied",
+      name: "替其他成員確認",
+      sourceMemberId: fixture.invitedMember,
+      type: "income",
+    });
+
+    await expect(postRecurringOccurrence(
+      { kind: "member", member: generalMember },
+      { occurrenceId: outside.id },
+    )).resolves.toEqual({ status: "rejected", reason: "occurrence_not_found" });
+    await expect(postRecurringOccurrence(
+      { kind: "member", member: generalMember },
+      { occurrenceId: denied.id },
+    )).resolves.toEqual({ status: "rejected", reason: "permission_denied" });
+    await expect(prisma.recurringOccurrence.findUnique({
+      where: { id: denied.id },
+    })).resolves.toMatchObject({ status: "pending", ledgerRecordId: null });
+  });
+
+  it("allows future reminders but rejects future immediate occurrences in Taipei time", async () => {
+    const reminder = await createRecurringOccurrence({
+      categoryId: fixture.incomeCategory,
+      id: "recurring-future-reminder",
+      name: "未來提醒入帳",
+      postingMode: "reminder",
+      sourceMemberId: fixture.generalMember,
+      targetDate: "2099-07-28",
+      type: "income",
+    });
+    const immediate = await createRecurringOccurrence({
+      categoryId: fixture.incomeCategory,
+      id: "recurring-future-immediate",
+      name: "未來馬上入帳",
+      postingMode: "immediate",
+      sourceMemberId: fixture.generalMember,
+      targetDate: "2099-07-28",
+      type: "income",
+    });
+
+    const reminderResult = await postRecurringOccurrence(
+      { kind: "member", member: generalMember },
+      { occurrenceId: reminder.id },
+    );
+    expect(reminderResult).toMatchObject({ status: "posted" });
+    await expect(prisma.recurringOccurrence.findUnique({
+      where: { id: reminder.id },
+      include: { ledgerRecord: true },
+    })).resolves.toMatchObject({
+      status: "posted",
+      postingActorKind: "member",
+      postedByMemberId: fixture.generalMember,
+      postedAt: expect.any(Date),
+      blockedReason: null,
+      ledgerRecord: {
+        createdByMemberId: fixture.financeMember,
+        sourceMemberId: fixture.generalMember,
+      },
+    });
+    await expect(postRecurringOccurrence(
+      recurringPostingSystemActor(fixture.householdA),
+      { occurrenceId: immediate.id },
+    )).resolves.toEqual({ status: "rejected", reason: "occurrence_not_due" });
   });
 
   it("rejects CSV confirmation without import permission before creating a batch", async () => {
@@ -919,6 +1275,14 @@ async function csvRowTraces(batchIdentity: string) {
 }
 
 async function cleanupCreationFixtures() {
+  await dropRecurringFailureTrigger();
+  await dropRecurringRaceTrigger();
+  await prisma.recurringOccurrence.deleteMany({
+    where: { householdId: { in: [fixture.householdA, fixture.householdB] } },
+  });
+  await prisma.recurringRule.deleteMany({
+    where: { householdId: { in: [fixture.householdA, fixture.householdB] } },
+  });
   await prisma.ledgerImportBatch.deleteMany({
     where: { householdId: { in: [fixture.householdA, fixture.householdB] } },
   });
@@ -947,4 +1311,132 @@ async function cleanupCreationFixtures() {
   await prisma.household.deleteMany({
     where: { id: { in: [fixture.householdA, fixture.householdB] } },
   });
+}
+
+async function createRecurringOccurrence({
+  categoryId,
+  createdByMemberId = fixture.financeMember,
+  householdId = fixture.householdA,
+  id,
+  name,
+  paymentSource,
+  postingMode = "immediate",
+  sourceMemberId,
+  payerMemberId,
+  targetDate = "2026-07-17",
+  type,
+}: {
+  categoryId: string;
+  createdByMemberId?: string;
+  householdId?: string;
+  id: string;
+  name: string;
+  paymentSource?: "fund" | "member";
+  postingMode?: "immediate" | "reminder";
+  sourceMemberId?: string;
+  payerMemberId?: string;
+  targetDate?: string;
+  type: "income" | "expense";
+}) {
+  const recurringRuleId = `rule-${id}`;
+  await prisma.recurringRule.create({
+    data: {
+      id: recurringRuleId,
+      householdId,
+      name,
+      type,
+      amountCents: 12_300,
+      categoryId,
+      sourceMemberId: sourceMemberId ?? null,
+      paymentSource: paymentSource ?? null,
+      payerMemberId: payerMemberId ?? null,
+      postingMode,
+      scheduleAnchor: "fixed_day",
+      dayOfMonth: Number(targetDate.slice(-2)),
+      createdByMemberId,
+    },
+  });
+
+  return prisma.recurringOccurrence.create({
+    data: {
+      id,
+      householdId,
+      recurringRuleId,
+      month: targetDate.slice(0, 7),
+      targetDate: new Date(`${targetDate}T00:00:00.000Z`),
+      status: "pending",
+    },
+  });
+}
+
+async function installRecurringFailureTrigger() {
+  await dropRecurringFailureTrigger();
+  await prisma.$executeRawUnsafe(`
+    CREATE FUNCTION integration_recurring_posting_failure() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."name" = '${fixture.recurringFailureName}' THEN
+        RAISE EXCEPTION 'integration recurring transient failure' USING ERRCODE = '40001';
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    CREATE TRIGGER integration_recurring_posting_failure_trigger
+    BEFORE INSERT ON "LedgerRecord"
+    FOR EACH ROW EXECUTE FUNCTION integration_recurring_posting_failure();
+  `);
+}
+
+async function dropRecurringFailureTrigger() {
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS integration_recurring_posting_failure_trigger ON "LedgerRecord";
+    DROP FUNCTION IF EXISTS integration_recurring_posting_failure();
+  `);
+}
+
+async function installRecurringRaceTrigger() {
+  await dropRecurringRaceTrigger();
+  await prisma.$executeRawUnsafe(`
+    CREATE FUNCTION integration_recurring_posting_race() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."name" = '${fixture.recurringRaceName}' THEN
+        PERFORM pg_advisory_xact_lock(4170717);
+        PERFORM pg_sleep(0.5);
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    CREATE TRIGGER integration_recurring_posting_race_trigger
+    BEFORE INSERT ON "LedgerRecord"
+    FOR EACH ROW EXECUTE FUNCTION integration_recurring_posting_race();
+  `);
+}
+
+async function dropRecurringRaceTrigger() {
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS integration_recurring_posting_race_trigger ON "LedgerRecord";
+    DROP FUNCTION IF EXISTS integration_recurring_posting_race();
+  `);
+}
+
+async function waitForAdvisoryWaiter(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  advisoryKey: number,
+) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const [row] = await tx.$queryRaw<{ waiting: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_locks
+        WHERE locktype = 'advisory'
+          AND granted = false
+          AND classid = 0
+          AND objid = ${advisoryKey}::oid
+      ) AS waiting
+    `;
+    if (row?.waiting) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("Recurring race posting attempt did not reach the advisory gate");
 }

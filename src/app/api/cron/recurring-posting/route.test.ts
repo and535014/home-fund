@@ -18,12 +18,14 @@ beforeEach(() => {
   vi.mocked(getPrismaClient).mockReturnValue({ client: "prisma" } as never);
   vi.mocked(runRecurringPostingJob).mockResolvedValue({
     alreadyPostedCount: 1,
+    blockedCount: 2,
     householdCount: 2,
     pendingCount: 3,
     postedCount: 4,
     skippedCount: 5,
     skippedHouseholdCount: 1,
     targetMonth: "2026-07",
+    unavailableCount: 6,
   });
 });
 
@@ -55,12 +57,14 @@ describe("GET /api/cron/recurring-posting", () => {
     await expect(response.json()).resolves.toEqual({
       ok: true,
       alreadyPostedCount: 1,
+      blockedCount: 2,
       householdCount: 2,
       pendingCount: 3,
       postedCount: 4,
       skippedCount: 5,
       skippedHouseholdCount: 1,
       targetMonth: "2026-07",
+      unavailableCount: 6,
     });
     expect(runRecurringPostingJob).toHaveBeenCalledWith({
       prisma: { client: "prisma" },

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
 
     console.info("Recurring posting cron completed", {
       alreadyPostedCount: result.alreadyPostedCount,
+      blockedCount: result.blockedCount,
       householdCount: result.householdCount,
       pendingCount: result.pendingCount,
       postedCount: result.postedCount,
@@ -40,17 +41,20 @@ export async function GET(request: Request) {
       skippedCount: result.skippedCount,
       skippedHouseholdCount: result.skippedHouseholdCount,
       targetMonth: result.targetMonth,
+      unavailableCount: result.unavailableCount,
     });
 
     return NextResponse.json({
       ok: true,
       alreadyPostedCount: result.alreadyPostedCount,
+      blockedCount: result.blockedCount,
       householdCount: result.householdCount,
       pendingCount: result.pendingCount,
       postedCount: result.postedCount,
       skippedCount: result.skippedCount,
       skippedHouseholdCount: result.skippedHouseholdCount,
       targetMonth: result.targetMonth,
+      unavailableCount: result.unavailableCount,
     });
   } catch (error) {
     console.error("Recurring posting cron failed", error);
