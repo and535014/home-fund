@@ -97,6 +97,17 @@ enum RecurringOccurrenceStatus {
   pending
   posted
   skipped
+  blocked
+}
+
+enum RecurringOccurrenceBlockedReason {
+  archived_category
+  disabled_member
+}
+
+enum RecurringPostingActorKind {
+  member
+  system
 }
 
 model Household {
@@ -257,6 +268,7 @@ model LedgerRecord {
 model LedgerImportBatch {
   id                String                  @id @default(cuid())
   householdId       String
+  batchIdentity     String                  @default(dbgenerated("(gen_random_uuid())::text"))
   fileName          String
   fileFingerprint   String
   status            LedgerImportBatchStatus
@@ -272,15 +284,18 @@ model LedgerImportBatch {
 
   @@index([householdId, createdAt])
   @@index([householdId, fileFingerprint])
+  @@unique([householdId, batchIdentity])
 }
 
 model LedgerImportRow {
   id             String                @id @default(cuid())
   batchId        String
+  rowIdentity    String                @default(dbgenerated("(gen_random_uuid())::text"))
   csvRowNumber   Int
   rowFingerprint String
   status         LedgerImportRowStatus
   ledgerRecordId String?               @unique
+  failureReason  String?
   createdAt      DateTime              @default(now())
 
   batch        LedgerImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
@@ -289,6 +304,7 @@ model LedgerImportRow {
   @@index([batchId, csvRowNumber])
   @@index([rowFingerprint])
   @@index([ledgerRecordId])
+  @@unique([batchId, rowIdentity])
 }
 
 model RecurringRule {
@@ -329,6 +345,8 @@ model RecurringOccurrence {
   status           RecurringOccurrenceStatus
   ledgerRecordId   String?                   @unique
   postedByMemberId String?
+  blockedReason    RecurringOccurrenceBlockedReason?
+  postingActorKind RecurringPostingActorKind?
   postedAt         DateTime?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
