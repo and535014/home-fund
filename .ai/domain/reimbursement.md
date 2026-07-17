@@ -25,11 +25,13 @@
 - Reimbursement payment amount 必須對應 reimbursed expenses total。
 - `退款紀錄` 不能影響 ordinary income / expense totals。
 - Refund record correction 不能改 amount、paid-to member、paid-from source、batch、linked ledger records 或 reimbursed state。
+- Refund record correction 必須提交 `expectedVersion` 並使用 conditional write；成功後遞增 `version`，同時記錄 edited-by 與 edited-at。
+- Refund record correction 發生 `version_conflict` 時不得自動覆蓋或重試；使用者必須重新載入最新 detail 後再提交。
 - Batch reimbursement 初始政策應避免跨 paid-to member，否則一筆 payment evidence 會語意不清。
 
 ## 開放問題
 
 - Batch reimbursement 是 all-or-nothing 還是 partial success。
-- Refund record correction 是否需要 edited-by / edited-at / history rows。
+- Refund record correction 是否需要完整 history rows。
 - Partial reimbursement、split payment、reversal 何時納入。
 - Payment reconciliation import 是否需要獨立流程。
