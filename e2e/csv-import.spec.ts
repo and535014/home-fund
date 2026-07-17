@@ -96,6 +96,33 @@ test("previews, corrects, imports, and resets CSV ledger records", async ({
   await expect(page.getByText("E2E CSV 待修正代墊")).toBeVisible();
 });
 
+test("retries the same confirmed CSV row without creating a duplicate", async ({
+  page,
+}) => {
+  await signInAsFinanceManager(page);
+  await page.goto("/settings/import");
+
+  await uploadCsv(page, "ledger-import-retry-e2e.csv", [
+    "type,date,name,amount,member,category,note",
+    "income,2026-06-26,E2E CSV 冪等重送,4321,Lin,生活費,",
+  ]);
+  await expectUploadedFile(page, "ledger-import-retry-e2e.csv");
+
+  const importButton = page.getByRole("button", { exact: true, name: "匯入" });
+  await importButton.evaluate((element) => {
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+
+  await expect(page.getByText("最終成功")).toBeVisible();
+  await expect(
+    page.getByText(/已匯入 1 筆，未重複建立/u),
+  ).toBeVisible();
+
+  await page.goto("/?month=2026-06");
+  await expect(page.getByText("E2E CSV 冪等重送", { exact: true })).toHaveCount(1);
+});
+
 test("shows duplicate warnings without blocking import", async ({ page }) => {
   await signInAsFinanceManager(page);
   await page.goto("/settings/import");

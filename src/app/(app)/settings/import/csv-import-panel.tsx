@@ -168,18 +168,16 @@ export function CsvImportPanel({ categories, members }: CsvImportPanelProps) {
 
       if (!result.ok) {
         setErrorMessage(confirmErrorMessage(result));
-
-        if ("rows" in result && result.rows) {
-          setPreview({
-            ...preview,
-            rows: result.rows,
-          });
-        }
         return;
       }
 
       toast.success("最終成功", {
-        description: `成功 ${result.importedCount} 筆，失敗 ${result.failedCount} 筆，略過 ${result.skippedCount} 筆`,
+        description: [
+          `成功 ${result.importedCount} 筆，失敗 ${result.failedCount} 筆，略過 ${result.skippedCount} 筆`,
+          result.alreadyImportedCount > 0
+            ? `已匯入 ${result.alreadyImportedCount} 筆，未重複建立`
+            : null,
+        ].filter(Boolean).join("；"),
         id: "csv-import-success",
       });
       resetImportState();

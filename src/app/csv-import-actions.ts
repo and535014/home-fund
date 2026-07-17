@@ -1,17 +1,18 @@
 "use server";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import {
   requireMutationAccess,
   revalidateActionPaths,
 } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
-  confirmLedgerImportInDatabase,
+  prepareLedgerImportConfirmationInDatabase,
   previewLedgerImportInDatabase,
   type LedgerImportCommandPrismaClient,
 } from "@/modules/fund-ledger/ledger-import-command";
 import type { LedgerImportRowOverride } from "@/modules/fund-ledger/ledger-import";
+import { confirmCsvRows } from "@/modules/fund-ledger/ledger-record-creation";
 
 const maxCsvBytes = 1024 * 1024;
 const previewTokenMaxAgeMs = 30 * 60 * 1000;
@@ -85,25 +86,66 @@ export async function confirmCsvImportAction(formData: FormData) {
     };
   }
 
-  const result = await tryConfirmLedgerImport(
-    session.access.member,
-    {
-      csv: tokenResult.csv,
-      fileName,
-      removedCsvRowNumbers,
-      overrides,
-    },
-    {
-      prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
-      householdId: session.access.member.householdId,
-    },
-  );
+  try {
+    const prepared = await prepareLedgerImportConfirmationInDatabase(
+      session.access.member,
+      {
+        csv: tokenResult.csv,
+        removedCsvRowNumbers,
+        overrides,
+      },
+      {
+        prisma: getPrismaClient() as unknown as LedgerImportCommandPrismaClient,
+        householdId: session.access.member.householdId,
+      },
+    );
 
-  if (result.ok) {
+    if ("ok" in prepared) {
+      return prepared;
+    }
+
+    const result = await confirmCsvRows(
+      { kind: "member", member: session.access.member },
+      {
+        batchIdentity: tokenResult.batchIdentity,
+        fileName,
+        fileFingerprint: createHash("sha256").update(tokenResult.csv).digest("hex"),
+        ...prepared,
+      },
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    const importedCount = result.rows.filter((row) =>
+      row.status === "created" || row.status === "already_imported"
+    ).length;
+    const alreadyImportedCount = result.rows.filter(
+      (row) => row.status === "already_imported",
+    ).length;
+    const failedCount = result.rows.filter(
+      (row) => row.status === "rejected",
+    ).length;
+    const skippedCount = result.skippedRows.length;
+
     revalidateActionPaths(["/", "/search", "/settings/import"]);
-  }
+    return {
+      ...result,
+      importedCount,
+      alreadyImportedCount,
+      failedCount,
+      skippedCount,
+    };
+  } catch (error) {
+    console.error("CSV import confirmation failed", error);
 
-  return result;
+    return {
+      ok: false as const,
+      reason: "unexpected_error" as const,
+      message: "CSV 匯入失敗，請稍後再試；若問題持續，請檢查 production 資料庫 migration 是否已套用。",
+    };
+  }
 }
 
 export async function repreviewCsvImportAction(formData: FormData) {
@@ -137,6 +179,7 @@ function createPreviewToken(csv: string): string {
   const payload = Buffer.from(JSON.stringify({
     csv,
     createdAt: Date.now(),
+    batchIdentity: crypto.randomUUID(),
   })).toString("base64url");
   const signature = signPreviewPayload(payload);
 
@@ -147,6 +190,7 @@ function verifyPreviewToken(token: string):
   | {
       ok: true;
       csv: string;
+      batchIdentity: string;
     }
   | {
       ok: false;
@@ -174,11 +218,13 @@ function verifyPreviewToken(token: string):
     ) as {
       createdAt?: unknown;
       csv?: unknown;
+      batchIdentity?: unknown;
     };
 
     if (
       typeof parsed.csv !== "string" ||
       typeof parsed.createdAt !== "number" ||
+      typeof parsed.batchIdentity !== "string" ||
       Date.now() - parsed.createdAt > previewTokenMaxAgeMs
     ) {
       return { ok: false };
@@ -187,6 +233,7 @@ function verifyPreviewToken(token: string):
     return {
       ok: true,
       csv: parsed.csv,
+      batchIdentity: parsed.batchIdentity,
     };
   } catch {
     return { ok: false };
@@ -209,28 +256,6 @@ function previewTokenSecret(): string {
   }
 
   return "local-dev-preview-secret";
-}
-
-async function tryConfirmLedgerImport(
-  ...args: Parameters<typeof confirmLedgerImportInDatabase>
-): Promise<
-  Awaited<ReturnType<typeof confirmLedgerImportInDatabase>> | {
-    ok: false;
-    reason: "unexpected_error";
-    message: string;
-  }
-> {
-  try {
-    return await confirmLedgerImportInDatabase(...args);
-  } catch (error) {
-    console.error("CSV import confirmation failed", error);
-
-    return {
-      ok: false,
-      reason: "unexpected_error",
-      message: "CSV 匯入失敗，請稍後再試；若問題持續，請檢查 production 資料庫 migration 是否已套用。",
-    };
-  }
 }
 
 function parseOverrides(value: string): LedgerImportRowOverride[] {

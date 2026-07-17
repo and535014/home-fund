@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LEDGER_IMPORT_HEADER,
+  ledgerImportRowIdentity,
   previewLedgerImportCsv,
 } from "./ledger-import";
 
@@ -20,6 +21,11 @@ describe("previewLedgerImportCsv", () => {
     expect(LEDGER_IMPORT_HEADER.join(",")).toBe(
       "type,date,name,amount,member,category,note",
     );
+  });
+
+  it("derives stable row identity from the original CSV row number", () => {
+    expect(ledgerImportRowIdentity(2)).toBe("csv-row:2");
+    expect(ledgerImportRowIdentity(9)).toBe("csv-row:9");
   });
 
   it("previews income, fund expense, and member expense rows", () => {
