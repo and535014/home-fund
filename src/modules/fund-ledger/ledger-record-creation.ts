@@ -348,22 +348,29 @@ export async function confirmCsvRows(
   }
 
   try {
-    const outcomes = await Promise.all([
-      ...input.rows.map((row) => confirmActiveCsvRow(
+    const confirmationTasks = [
+      ...input.rows.map((row) => () => confirmActiveCsvRow(
         prisma,
         actor,
         acquired.batch.id,
         row,
       )),
-      ...input.sourceRejectedRows.map((row) => confirmSourceRejectedCsvRow(
+      ...input.sourceRejectedRows.map((row) => () => confirmSourceRejectedCsvRow(
         prisma,
         acquired.batch.id,
         row,
       )),
-    ]);
-    const skipped = await Promise.all(input.skippedRows.map((row) =>
-      confirmSkippedCsvRow(prisma, acquired.batch.id, row)
-    ));
+    ];
+    const outcomes = await runWithConcurrencyLimit(
+      confirmationTasks,
+      CSV_CONFIRM_CONCURRENCY,
+    );
+    const skipped = await runWithConcurrencyLimit(
+      input.skippedRows.map((row) => () =>
+        confirmSkippedCsvRow(prisma, acquired.batch.id, row)
+      ),
+      CSV_CONFIRM_CONCURRENCY,
+    );
 
     if (skipped.some((result) => !result.ok)) {
       return { ok: false, reason: "unavailable" };
@@ -389,6 +396,7 @@ export async function confirmCsvRows(
 
 type PrismaClient = ReturnType<typeof getPrismaClient>;
 type CsvBatch = { id: string; fileFingerprint: string };
+const CSV_CONFIRM_CONCURRENCY = 8;
 type ConfirmedCsvRowOutcome =
   | { collection: "rows"; row: ConfirmCsvRowResult }
   | { collection: "skippedRows"; row: ConfirmCsvSkippedRowResult };
@@ -705,10 +713,17 @@ async function createLedgerRecordWithinTransaction(
   request: KernelRequest,
 ): Promise<KernelResult> {
   const householdId = householdIdFor(request.actor);
-  const category = await tx.category.findFirst({
-    where: { id: request.draft.categoryId, householdId },
-    select: { id: true, status: true, type: true },
-  });
+  const [category = null] = await tx.$queryRaw<Array<{
+    id: string;
+    status: "active" | "archived";
+    type: "income" | "expense";
+  }>>`
+    SELECT "id", "status", "type"
+    FROM "Category"
+    WHERE "id" = ${request.draft.categoryId}
+      AND "householdId" = ${householdId}
+    FOR SHARE
+  `;
 
   const attribution = await resolveAttributionMember({
     tx,
@@ -744,6 +759,30 @@ async function createLedgerRecordWithinTransaction(
   });
 
   return { ok: true, recordId };
+}
+
+async function runWithConcurrencyLimit<T>(
+  tasks: Array<() => Promise<T>>,
+  limit: number,
+): Promise<T[]> {
+  const results = new Array<T>(tasks.length);
+  let nextTaskIndex = 0;
+
+  async function runWorker() {
+    while (nextTaskIndex < tasks.length) {
+      const taskIndex = nextTaskIndex;
+      nextTaskIndex += 1;
+      results[taskIndex] = await tasks[taskIndex]();
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(limit, tasks.length) },
+      () => runWorker(),
+    ),
+  );
+  return results;
 }
 
 function householdIdFor(

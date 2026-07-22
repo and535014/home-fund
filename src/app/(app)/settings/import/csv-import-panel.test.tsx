@@ -83,9 +83,12 @@ describe("CsvImportPanel audited confirmation", () => {
     await renderPanel();
     uploadCsv("all-skipped.csv");
 
-    fireEvent.click(await screen.findByRole("button", { name: "移除第 2 列" }));
-    const importButton = screen.getByRole("button", { name: /^匯入$/u });
-    expect(importButton).toBeEnabled();
+    const removeButton = await screen.findByRole("button", { name: "移除第 2 列" });
+    await waitFor(() => expect(removeButton).toBeEnabled());
+    fireEvent.click(removeButton);
+
+    const importButton = await screen.findByRole("button", { name: /^匯入$/u });
+    await waitFor(() => expect(importButton).toBeEnabled());
     fireEvent.click(importButton);
 
     await waitFor(() => expect(confirmCsvImportAction).toHaveBeenCalledOnce());

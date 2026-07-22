@@ -29,7 +29,7 @@
 - Recurring event 的收入來源或代墊成員若在入帳前已 disabled，system actor 不得建立 ledger record；occurrence 必須保留 `blocked` 狀態與原因。
 - `blocked` 是需要使用者處理的 domain 狀態；資料庫 timeout、暫時性連線問題等 Implementation failure 不得把 occurrence 改為 `blocked` 或其他完成狀態，應留下 operational failure evidence 並允許安全重試。
 - Pending occurrence 不影響 ledger totals、category totals 或 reimbursement totals。
-- Search 可將 pending occurrence 顯示為獨立 result kind，但不得把它映射或偽裝成 ordinary ledger record，也不得讓它進入 ordinary batch delete 或 reimbursement selection。
+- Search 與 dashboard 可為共用呈現及篩選，將 pending occurrence 投影為 ledger-compatible display record；該投影不是財務事實，必須保留可辨識的 recurring occurrence identity，且不得進入 ordinary batch delete、ledger totals 或 reimbursement selection。
 - Confirmed occurrence 會建立普通 ledger record，並保留 recurring trace。
 - Member-paid recurring expense 只有在變成 ledger record 後才 reimbursement-eligible。
 - Rule changes 在 MVP 以 delete-and-recreate 表達，不原地編輯 event definition。

@@ -514,7 +514,47 @@ integrationDescribe("ledger record creation persistence contract", () => {
     })).resolves.toBe(0);
   });
 
-  it("rolls a posted attempt back when a blocked transition wins the race", async () => {
+  it("rejects creation after a concurrent category archive commits", async () => {
+    let creationSettled = false;
+    let creationPromise: ReturnType<typeof createManualRecord> | undefined;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.category.update({
+          where: { id: fixture.expenseCategory },
+          data: { status: "archived" },
+        });
+        creationPromise = createManualRecord(csvActor, {
+          type: "expense",
+          name: "分類封存競態",
+          amountCents: 1_000,
+          occurredOn: "2026-07-17",
+          categoryId: fixture.expenseCategory,
+          paymentSource: "fund",
+        }).finally(() => {
+          creationSettled = true;
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(creationSettled).toBe(false);
+      });
+
+      await expect(creationPromise!).resolves.toEqual({
+        ok: false,
+        reason: "archived_category",
+      });
+      await expect(prisma.ledgerRecord.count({
+        where: { name: "分類封存競態" },
+      })).resolves.toBe(0);
+    } finally {
+      await prisma.category.update({
+        where: { id: fixture.expenseCategory },
+        data: { status: "active" },
+      });
+    }
+  });
+
+  it("serializes category archival after an in-flight recurring post", async () => {
     const occurrence = await createRecurringOccurrence({
       categoryId: fixture.expenseCategory,
       id: "recurring-posted-blocked-race",
@@ -525,7 +565,9 @@ integrationDescribe("ledger record creation persistence contract", () => {
     const actor = recurringPostingSystemActor(fixture.householdA);
     const advisoryKey = 4_170_717;
     let postingPromise: ReturnType<typeof postRecurringOccurrence> | undefined;
-    let results: Awaited<ReturnType<typeof postRecurringOccurrence>>[] = [];
+    let archivePromise: Promise<unknown> | undefined;
+    let posted: Awaited<ReturnType<typeof postRecurringOccurrence>> | undefined;
+    let replay: Awaited<ReturnType<typeof postRecurringOccurrence>> | undefined;
 
     try {
       await installRecurringRaceTrigger();
@@ -537,15 +579,16 @@ integrationDescribe("ledger record creation persistence contract", () => {
           occurrenceId: occurrence.id,
         });
         await waitForAdvisoryWaiter(tx, advisoryKey);
-        await tx.category.update({
+        archivePromise = prisma.category.update({
           where: { id: fixture.expenseCategory },
           data: { status: "archived" },
-        });
+        }).then(() => undefined);
       });
-      results = await Promise.all([
-        postingPromise!,
-        postRecurringOccurrence(actor, { occurrenceId: occurrence.id }),
-      ]);
+      posted = await postingPromise!;
+      await archivePromise!;
+      replay = await postRecurringOccurrence(actor, {
+        occurrenceId: occurrence.id,
+      });
     } finally {
       await prisma.category.update({
         where: { id: fixture.expenseCategory },
@@ -554,27 +597,24 @@ integrationDescribe("ledger record creation persistence contract", () => {
       await dropRecurringRaceTrigger();
     }
 
-    expect(results).toEqual([
-      {
-        status: "blocked",
-        occurrenceId: occurrence.id,
-        reason: "archived_category",
-      },
-      {
-        status: "blocked",
-        occurrenceId: occurrence.id,
-        reason: "archived_category",
-      },
-    ]);
+    expect(posted).toMatchObject({
+      status: "posted",
+      occurrenceId: occurrence.id,
+    });
+    expect(replay).toEqual({
+      status: "already_posted",
+      occurrenceId: occurrence.id,
+      recordId: posted?.status === "posted" ? posted.recordId : "missing",
+    });
     await expect(prisma.ledgerRecord.count({
       where: { name: fixture.recurringRaceName },
-    })).resolves.toBe(0);
+    })).resolves.toBe(1);
     await expect(prisma.recurringOccurrence.findUnique({
       where: { id: occurrence.id },
     })).resolves.toMatchObject({
-      status: "blocked",
-      blockedReason: "archived_category",
-      ledgerRecordId: null,
+      status: "posted",
+      blockedReason: null,
+      ledgerRecordId: expect.any(String),
     });
   });
 
@@ -781,6 +821,52 @@ integrationDescribe("ledger record creation persistence contract", () => {
       { status: "imported", failureReason: null },
       { status: "failed", failureReason: "disabled_member" },
     ]);
+  });
+
+  it("processes a large mixed CSV batch with bounded database concurrency", async () => {
+    const rowCountPerOutcome = 64;
+    const activeRows = Array.from({ length: rowCountPerOutcome }, (_, index) =>
+      csvRow({
+        csvRowNumber: index + 2,
+        name: `CSV 大量列 ${index + 1}`,
+      })
+    );
+    const sourceRejectedRows = Array.from(
+      { length: rowCountPerOutcome },
+      (_, index) => ({
+        rowIdentity: `csv-row:${index + 102}`,
+        csvRowNumber: index + 102,
+        rowFingerprint: `rejected-${index + 102}`,
+        reason: "member_not_found" as const,
+      }),
+    );
+    const skippedRows = Array.from(
+      { length: rowCountPerOutcome },
+      (_, index) => ({
+        rowIdentity: `csv-row:${index + 202}`,
+        csvRowNumber: index + 202,
+        rowFingerprint: `skipped-${index + 202}`,
+      }),
+    );
+
+    const result = await confirmCsvRows(csvActor, csvConfirmation({
+      batchIdentity: "csv-large-bounded-batch",
+      rows: activeRows,
+      sourceRejectedRows,
+      skippedRows,
+    }));
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.rows).toHaveLength(rowCountPerOutcome * 2);
+    expect(result.ok && result.skippedRows).toHaveLength(rowCountPerOutcome);
+    await expect(csvBatch("csv-large-bounded-batch")).resolves.toMatchObject({
+      importedRowCount: rowCountPerOutcome,
+      failedRowCount: rowCountPerOutcome,
+      skippedRowCount: rowCountPerOutcome,
+    });
+    await expect(prisma.ledgerRecord.count({
+      where: { name: { startsWith: "CSV 大量列 " } },
+    })).resolves.toBe(rowCountPerOutcome);
   });
 
   it("returns already_imported when the same batch row identity is retried", async () => {
