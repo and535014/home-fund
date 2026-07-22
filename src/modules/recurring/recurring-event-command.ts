@@ -149,26 +149,6 @@ export type RunRecurringPostingJobResult = EnsureRecurringOccurrencesResult & {
   targetMonth: string;
 };
 
-export type ConfirmRecurringOccurrenceResult =
-  | {
-      ok: true;
-      occurrenceId: string;
-      recordId: string;
-    }
-  | {
-      ok: false;
-      reason:
-        | "already_posted"
-        | "occurrence_not_found"
-        | "occurrence_not_due"
-        | "permission_denied"
-        | "invalid_schedule"
-        | "archived_category"
-        | "disabled_member"
-        | "unavailable";
-      recordId?: string;
-    };
-
 export async function createRecurringEventInDatabase(
   actor: AuthenticatedMember,
   command: CreateRecurringEventCommand,
@@ -415,37 +395,6 @@ export async function runRecurringPostingJob({
     summary.unavailableCount += result.unavailableCount;
   }
   return summary;
-}
-
-export async function confirmRecurringOccurrenceInDatabase(
-  actor: AuthenticatedMember,
-  command: { occurrenceId: string },
-  context: {
-    householdId: string;
-    prisma: RecurringEventMutationPrismaClient;
-  },
-): Promise<ConfirmRecurringOccurrenceResult> {
-  const result = await postRecurringOccurrence(
-    memberActor(actor, context.householdId),
-    command,
-  );
-  if (result.status === "posted") {
-    return {
-      ok: true,
-      occurrenceId: result.occurrenceId,
-      recordId: result.recordId,
-    };
-  }
-  if (result.status === "already_posted") {
-    return { ok: false, reason: "already_posted", recordId: result.recordId };
-  }
-  if (result.status === "blocked") {
-    return { ok: false, reason: result.reason };
-  }
-  if (result.status === "unavailable") {
-    return { ok: false, reason: "unavailable" };
-  }
-  return { ok: false, reason: result.reason };
 }
 
 function memberActor(

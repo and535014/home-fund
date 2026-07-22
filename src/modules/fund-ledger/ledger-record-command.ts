@@ -3,12 +3,7 @@ import {
   loadCategoryLookups,
   type CategoryLookupQueryPrismaClient,
 } from "../categorization/category-query";
-import {
-  createLedgerRecord,
-  type CreateLedgerRecordCommand,
-  type CreateLedgerRecordResult,
-  type LedgerRecord,
-} from "./ledger-records";
+import type { LedgerRecord } from "./ledger-records";
 import {
   deleteLedgerRecord,
   updateLedgerRecord,
@@ -22,30 +17,6 @@ import {
   versionedPrismaLedgerRecordSelect,
   type VersionedPrismaLedgerRecordRow,
 } from "./ledger-record-prisma-adapter";
-
-export type LedgerRecordCommandPrismaClient = {
-  category: CategoryLookupQueryPrismaClient["category"];
-  ledgerRecord: {
-    create(args: {
-      data: {
-        id: string;
-        householdId: string;
-        type: LedgerRecord["type"];
-        name: string;
-        amountCents: number;
-        occurredOn: Date;
-        categoryId: string;
-        createdByMemberId: string;
-        sourceMemberId: string | null;
-        paymentSource: "fund" | "member" | null;
-        payerMemberId: string | null;
-        reimbursementStatus: LedgerRecord["reimbursementStatus"];
-        status: LedgerRecord["status"];
-        note: string | null;
-      };
-    }): Promise<unknown>;
-  };
-};
 
 export type LedgerRecordMutationPrismaClient = {
   $transaction<T>(
@@ -84,39 +55,6 @@ type LedgerRecordMutationTransaction = {
     }): Promise<{ count: number }>;
   };
 };
-
-export type CreateLedgerRecordInDatabaseContext = {
-  prisma: LedgerRecordCommandPrismaClient;
-  householdId: string;
-  generateId?: () => string;
-};
-
-export async function createLedgerRecordInDatabase(
-  actor: AuthenticatedMember,
-  command: CreateLedgerRecordCommand,
-  context: CreateLedgerRecordInDatabaseContext,
-): Promise<CreateLedgerRecordResult> {
-  const householdId = context.householdId;
-  const categories = await loadCategoryLookups({
-    householdId,
-    prisma: context.prisma,
-  });
-
-  const result = createLedgerRecord(actor, command, {
-    categories,
-    generateId: context.generateId,
-  });
-
-  if (!result.ok) {
-    return result;
-  }
-
-  await context.prisma.ledgerRecord.create({
-    data: toLedgerRecordCreateData(result.record, householdId),
-  });
-
-  return result;
-}
 
 export type UpdateLedgerRecordInDatabaseCommand = UpdateLedgerRecordCommand & {
   recordId: string;
@@ -259,25 +197,6 @@ export async function voidLedgerRecordInDatabase(
 
     return result;
   });
-}
-
-function toLedgerRecordCreateData(record: LedgerRecord, householdId: string) {
-  return {
-    id: record.id,
-    householdId,
-    type: record.type,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: new Date(`${record.occurredOn}T00:00:00.000Z`),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    sourceMemberId: record.type === "income" ? record.sourceMemberId : null,
-    paymentSource: record.type === "expense" ? record.paymentSource : null,
-    payerMemberId: record.type === "expense" ? record.payerMemberId ?? null : null,
-    reimbursementStatus: record.reimbursementStatus,
-    status: record.status,
-    note: record.note ?? null,
-  };
 }
 
 function toLedgerRecordUpdateData(record: LedgerRecord) {

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { postRecurringOccurrence } from "../fund-ledger/ledger-record-creation";
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
-  confirmRecurringOccurrenceInDatabase,
   createRecurringEventInDatabase,
   deleteRecurringEventInDatabase,
   ensureRecurringOccurrencesForMonth,
@@ -17,12 +16,6 @@ const admin: AuthenticatedMember = {
   id: "member-admin",
   googleAccountLinked: true,
   roles: ["admin"],
-};
-
-const generalMember: AuthenticatedMember = {
-  id: "member-a",
-  googleAccountLinked: true,
-  roles: ["general_member"],
 };
 
 const categories = [
@@ -330,34 +323,5 @@ describe("runRecurringPostingJob", () => {
       expect.any(Object),
     );
     expect(prisma).not.toHaveProperty("member");
-  });
-});
-
-describe("confirmRecurringOccurrenceInDatabase", () => {
-  it("delegates member confirmation once to the deep external seam", async () => {
-    vi.mocked(postRecurringOccurrence).mockResolvedValue({
-      status: "already_posted",
-      occurrenceId: "occ-rent-2026-07",
-      recordId: "record-rent-2026-07",
-    });
-
-    await expect(confirmRecurringOccurrenceInDatabase(generalMember, {
-      occurrenceId: "occ-rent-2026-07",
-    }, {
-      householdId: "household-demo",
-      prisma: {} as never,
-    })).resolves.toEqual({
-      ok: false,
-      reason: "already_posted",
-      recordId: "record-rent-2026-07",
-    });
-    expect(postRecurringOccurrence).toHaveBeenCalledTimes(1);
-    expect(postRecurringOccurrence).toHaveBeenCalledWith(
-      {
-        kind: "member",
-        member: { ...generalMember, householdId: "household-demo" },
-      },
-      { occurrenceId: "occ-rent-2026-07" },
-    );
   });
 });

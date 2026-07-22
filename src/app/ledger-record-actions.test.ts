@@ -28,7 +28,6 @@ vi.mock("@/db/prisma", () => ({
 }));
 
 vi.mock("@/modules/fund-ledger/ledger-record-command", () => ({
-  createLedgerRecordInDatabase: vi.fn(),
   updateLedgerRecordInDatabase: vi.fn(),
   voidLedgerRecordInDatabase: vi.fn(),
 }));
