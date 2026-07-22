@@ -31,6 +31,7 @@ const fixture = {
     "integration-ledger-creation-outside-expense-category",
   recurringFailureName: "Integration recurring transient failure",
   recurringRaceName: "Integration recurring posted blocked race",
+  memberRaceName: "Integration member status race",
 } as const;
 
 const financeMember = {
@@ -218,6 +219,93 @@ integrationDescribe("ledger record creation persistence contract", () => {
     await expect(prisma.ledgerRecord.count({
       where: { householdId: fixture.householdA },
     })).resolves.toBe(recordsBefore);
+  });
+
+  it("rejects creation after a concurrent attribution member disable commits", async () => {
+    let creationSettled = false;
+    let creationPromise: ReturnType<typeof createManualRecord> | undefined;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.member.update({
+          where: { id: fixture.invitedMember },
+          data: { status: "disabled" },
+        });
+        creationPromise = createManualRecord(csvActor, {
+          type: "expense",
+          name: "成員停用競態",
+          amountCents: 1_000,
+          occurredOn: "2026-07-17",
+          categoryId: fixture.expenseCategory,
+          paymentSource: "member",
+          payerMemberId: fixture.invitedMember,
+        }).finally(() => {
+          creationSettled = true;
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(creationSettled).toBe(false);
+      });
+
+      await expect(creationPromise!).resolves.toEqual({
+        ok: false,
+        reason: "disabled_member",
+      });
+      await expect(prisma.ledgerRecord.count({
+        where: { name: "成員停用競態" },
+      })).resolves.toBe(0);
+    } finally {
+      await prisma.member.update({
+        where: { id: fixture.invitedMember },
+        data: { status: "invited" },
+      });
+    }
+  });
+
+  it("serializes attribution member disable after in-flight creation", async () => {
+    const advisoryKey = 4_170_718;
+    let creationPromise: ReturnType<typeof createManualRecord> | undefined;
+    let disablePromise: Promise<unknown> | undefined;
+    let result: Awaited<ReturnType<typeof createManualRecord>> | undefined;
+
+    try {
+      await installMemberRaceTrigger();
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`
+          SELECT pg_advisory_xact_lock(${advisoryKey}) IS NULL AS acquired
+        `;
+        creationPromise = createManualRecord(csvActor, {
+          type: "expense",
+          name: fixture.memberRaceName,
+          amountCents: 1_000,
+          occurredOn: "2026-07-17",
+          categoryId: fixture.expenseCategory,
+          paymentSource: "member",
+          payerMemberId: fixture.invitedMember,
+        });
+        await waitForAdvisoryWaiter(tx, advisoryKey);
+        disablePromise = prisma.member.update({
+          where: { id: fixture.invitedMember },
+          data: { status: "disabled" },
+        }).then(() => undefined);
+      });
+      result = await creationPromise!;
+      await disablePromise!;
+    } finally {
+      await prisma.member.update({
+        where: { id: fixture.invitedMember },
+        data: { status: "invited" },
+      });
+      await dropMemberRaceTrigger();
+    }
+
+    expect(result).toMatchObject({ ok: true });
+    await expect(prisma.ledgerRecord.findFirst({
+      where: { name: fixture.memberRaceName },
+    })).resolves.toMatchObject({
+      payerMemberId: fixture.invitedMember,
+      status: "active",
+    });
   });
 
   it("rejects a category outside the actor household without writing", async () => {
@@ -1363,6 +1451,7 @@ async function csvRowTraces(batchIdentity: string) {
 async function cleanupCreationFixtures() {
   await dropRecurringFailureTrigger();
   await dropRecurringRaceTrigger();
+  await dropMemberRaceTrigger();
   await prisma.recurringOccurrence.deleteMany({
     where: { householdId: { in: [fixture.householdA, fixture.householdB] } },
   });
@@ -1501,6 +1590,30 @@ async function dropRecurringRaceTrigger() {
   await prisma.$executeRawUnsafe(`
     DROP TRIGGER IF EXISTS integration_recurring_posting_race_trigger ON "LedgerRecord";
     DROP FUNCTION IF EXISTS integration_recurring_posting_race();
+  `);
+}
+
+async function installMemberRaceTrigger() {
+  await dropMemberRaceTrigger();
+  await prisma.$executeRawUnsafe(`
+    CREATE FUNCTION integration_member_status_race() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."name" = '${fixture.memberRaceName}' THEN
+        PERFORM pg_advisory_xact_lock(4170718);
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    CREATE TRIGGER integration_member_status_race_trigger
+    BEFORE INSERT ON "LedgerRecord"
+    FOR EACH ROW EXECUTE FUNCTION integration_member_status_race();
+  `);
+}
+
+async function dropMemberRaceTrigger() {
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS integration_member_status_race_trigger ON "LedgerRecord";
+    DROP FUNCTION IF EXISTS integration_member_status_race();
   `);
 }
 

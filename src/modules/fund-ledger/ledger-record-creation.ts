@@ -1,10 +1,6 @@
 import { getPrismaClient } from "@/db/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { authorize } from "@/modules/identity-access/authorization";
-import {
-  findDisabledHouseholdMember,
-  findFinancialAttributionMember,
-} from "@/modules/identity-access/household-member-query";
 import type { HouseholdScopedAuthenticatedMember } from "@/modules/identity-access/session-access";
 import type { RecurringPostingSystemActor } from "@/modules/identity-access/system-actor";
 import { formatDateInTimeZone } from "@/modules/recurring/recurring-date";
@@ -820,23 +816,22 @@ async function resolveAttributionMember({
     return { ok: true, memberId };
   }
 
-  const availableMember = await findFinancialAttributionMember({
-    householdId,
-    memberId,
-    prisma: tx,
-  });
-  if (availableMember) {
-    return { ok: true, memberId: availableMember.id };
+  const [member = null] = await tx.$queryRaw<Array<{
+    id: string;
+    status: "active" | "invited" | "disabled";
+  }>>`
+    SELECT "id", "status"
+    FROM "Member"
+    WHERE "id" = ${memberId}
+      AND "householdId" = ${householdId}
+    FOR SHARE
+  `;
+  if (!member) {
+    return { ok: false, reason: "member_outside_household" };
   }
-
-  const disabledMember = await findDisabledHouseholdMember({
-    householdId,
-    memberId,
-    prisma: tx,
-  });
-  return disabledMember
+  return member.status === "disabled"
     ? { ok: false, reason: "disabled_member" }
-    : { ok: false, reason: "member_outside_household" };
+    : { ok: true, memberId: member.id };
 }
 
 function validateDraft(
