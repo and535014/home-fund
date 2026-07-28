@@ -239,6 +239,7 @@ model LedgerRecord {
   reimbursementStatus ReimbursementStatus
   status              LedgerRecordStatus  @default(active)
   note                String?
+  version             Int                 @default(1)
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
