@@ -1,20 +1,23 @@
-import type {
-  CreateLedgerRecordResult,
-  LedgerRecord,
-} from "../fund-ledger/ledger-records";
-import { createLedgerRecord } from "../fund-ledger/ledger-records";
+import {
+  postRecurringOccurrence,
+  type LedgerCreationMemberActor,
+  type PostRecurringOccurrenceResult,
+} from "../fund-ledger/ledger-record-creation";
 import {
   loadCategoryLookups,
   type CategoryLookupQueryPrismaClient,
 } from "../categorization/category-query";
 import type { AuthenticatedMember } from "../identity-access/authorization";
 import {
+  recurringPostingSystemActor,
+  type RecurringPostingSystemActor,
+} from "../identity-access/system-actor";
+import {
   formatDateInTimeZone,
   formatMonthInTimeZone,
 } from "./recurring-date";
 import {
   createRecurringEvent,
-  recurringEventToLedgerCommand,
   resolveRecurringTargetDate,
   type CreateRecurringEventCommand,
   type CreateRecurringEventResult,
@@ -25,7 +28,8 @@ import {
 
 type PaymentSource = "fund" | "member";
 type ScheduleAnchor = "fixed_day" | "month_end";
-type OccurrenceStatus = "pending" | "posted" | "skipped";
+type OccurrenceStatus = "pending" | "posted" | "skipped" | "blocked";
+type BlockedReason = "archived_category" | "disabled_member";
 
 export type RecurringRuleRow = {
   active: boolean;
@@ -62,48 +66,14 @@ export type RecurringEventPostingJobPrismaClient =
         select: { id: true };
       }): Promise<{ id: string }[]>;
     };
-    member: {
-      findFirst(args: {
-        orderBy: { createdAt: "asc" };
-        select: {
-          id: true;
-          roles: {
-            select: { role: true };
-          };
-        };
-        where: {
-          householdId: string;
-          roles: {
-            some: {
-              role: { in: ["admin", "finance_manager"] };
-            };
-          };
-          status: "active";
-        };
-      }): Promise<{
-        id: string;
-        roles: { role: "admin" | "finance_manager" | "general_member" }[];
-      } | null>;
-    };
   };
 
 type RecurringEventMutationTransaction = CategoryLookupQueryPrismaClient & {
-  ledgerRecord: {
-    create(args: { data: Record<string, unknown> }): Promise<unknown>;
-  };
   recurringOccurrence: {
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
-    findFirst(args: {
-      where: Record<string, unknown>;
-      include?: Record<string, unknown>;
-    }): Promise<RecurringOccurrenceWithRuleRow | null>;
     findUnique(args: {
       where: Record<string, unknown>;
     }): Promise<RecurringOccurrenceRow | null>;
-    update(args: {
-      where: { id: string };
-      data: Record<string, unknown>;
-    }): Promise<unknown>;
     updateMany(args: {
       where: Record<string, unknown>;
       data: Record<string, unknown>;
@@ -126,6 +96,7 @@ type RecurringEventMutationTransaction = CategoryLookupQueryPrismaClient & {
 };
 
 type RecurringOccurrenceRow = {
+  blockedReason?: BlockedReason | null;
   id: string;
   ledgerRecordId: string | null;
   month: string;
@@ -133,18 +104,24 @@ type RecurringOccurrenceRow = {
   targetDate: Date;
 };
 
-type RecurringOccurrenceWithRuleRow = RecurringOccurrenceRow & {
-  recurringRule: RecurringRuleRow;
-};
-
 export type CreateRecurringEventInDatabaseContext = {
-  generateLedgerRecordId?: () => string;
   generateId?: () => string;
   generateOccurrenceId?: () => string;
   householdId: string;
   now?: () => Date;
   prisma: RecurringEventCommandPrismaClient;
 };
+
+export type CreateRecurringEventInDatabaseResult =
+  | Extract<CreateRecurringEventResult, { ok: false }>
+  | (Extract<CreateRecurringEventResult, { ok: true }> & {
+      currentOccurrenceStatus:
+        | "not_created"
+        | "pending"
+        | "posted"
+        | "blocked"
+        | "unavailable";
+    });
 
 export type DeleteRecurringEventResult =
   | {
@@ -159,9 +136,11 @@ export type DeleteRecurringEventResult =
 
 export type EnsureRecurringOccurrencesResult = {
   alreadyPostedCount: number;
+  blockedCount: number;
   pendingCount: number;
   postedCount: number;
   skippedCount: number;
+  unavailableCount: number;
 };
 
 export type RunRecurringPostingJobResult = EnsureRecurringOccurrencesResult & {
@@ -170,34 +149,12 @@ export type RunRecurringPostingJobResult = EnsureRecurringOccurrencesResult & {
   targetMonth: string;
 };
 
-export type ConfirmRecurringOccurrenceResult =
-  | {
-      ok: true;
-      occurrenceId: string;
-      recordId: string;
-    }
-  | {
-      ok: false;
-      reason:
-        | "already_posted"
-        | "occurrence_not_found"
-        | "occurrence_not_due"
-        | "permission_denied"
-        | "invalid_schedule_day"
-        | "invalid_month"
-        | "missing_category"
-        | "archived_category"
-        | "category_type_mismatch"
-        | "invalid_amount";
-      recordId?: string;
-    };
-
 export async function createRecurringEventInDatabase(
   actor: AuthenticatedMember,
   command: CreateRecurringEventCommand,
   context: CreateRecurringEventInDatabaseContext,
-): Promise<CreateRecurringEventResult> {
-  return context.prisma.$transaction(async (tx) => {
+): Promise<CreateRecurringEventInDatabaseResult> {
+  const persisted = await context.prisma.$transaction(async (tx) => {
     const categories = await loadCategoryLookups({
       householdId: context.householdId,
       prisma: tx,
@@ -208,23 +165,51 @@ export async function createRecurringEventInDatabase(
     });
 
     if (!result.ok) {
-      return result;
+      return { result, occurrence: null };
     }
 
     await tx.recurringRule.create({
       data: toRecurringRuleCreateData(result.event, context.householdId),
     });
-    await createCurrentMonthOccurrenceForNewEvent(actor, result.event, {
-      categories,
-      generateLedgerRecordId: context.generateLedgerRecordId,
-      generateOccurrenceId: context.generateOccurrenceId,
-      householdId: context.householdId,
-      now: context.now,
-      tx,
-    });
+    const occurrence = await createCurrentMonthOccurrenceForNewEvent(
+      result.event,
+      {
+        generateOccurrenceId: context.generateOccurrenceId,
+        householdId: context.householdId,
+        now: context.now,
+        tx,
+      },
+    );
 
-    return result;
+    return { result, occurrence };
   });
+
+  if (!persisted.result.ok) {
+    return persisted.result;
+  }
+  if (!persisted.occurrence) {
+    return {
+      ...persisted.result,
+      currentOccurrenceStatus: "not_created",
+    };
+  }
+  if (!persisted.occurrence.shouldPost) {
+    return {
+      ...persisted.result,
+      currentOccurrenceStatus: "pending",
+    };
+  }
+
+  const postResult = await postRecurringOccurrence(memberActor(
+    actor,
+    context.householdId,
+  ), {
+    occurrenceId: persisted.occurrence.id,
+  });
+  return {
+    ...persisted.result,
+    currentOccurrenceStatus: currentOccurrenceStatus(postResult),
+  };
 }
 
 export async function deleteRecurringEventInDatabase(
@@ -241,7 +226,6 @@ export async function deleteRecurringEventInDatabase(
   }
 
   const now = context.now?.() ?? new Date();
-
   return context.prisma.$transaction(async (tx) => {
     const event = await tx.recurringRule.findFirst({
       where: {
@@ -250,17 +234,13 @@ export async function deleteRecurringEventInDatabase(
         id: command.recurringEventId,
       },
     });
-
     if (!event) {
       return { ok: false, reason: "event_not_found" };
     }
 
     await tx.recurringRule.update({
       where: { id: command.recurringEventId },
-      data: {
-        active: false,
-        deletedAt: now,
-      },
+      data: { active: false, deletedAt: now },
     });
     const skipped = await tx.recurringOccurrence.updateMany({
       where: {
@@ -270,7 +250,6 @@ export async function deleteRecurringEventInDatabase(
       },
       data: { status: "skipped" },
     });
-
     return {
       ok: true,
       recurringEventId: command.recurringEventId,
@@ -279,43 +258,35 @@ export async function deleteRecurringEventInDatabase(
   });
 }
 
+type GeneratedOccurrence =
+  | { kind: "already_posted" | "blocked" | "pending" | "skipped" }
+  | { kind: "post"; occurrenceId: string };
+
 export async function ensureRecurringOccurrencesForMonth(
-  actor: AuthenticatedMember,
+  actor: LedgerCreationMemberActor | RecurringPostingSystemActor,
   command: { month: string },
   context: {
-    generateLedgerRecordId?: () => string;
     generateOccurrenceId?: () => string;
     householdId: string;
     now?: () => Date;
     prisma: RecurringEventMutationPrismaClient;
   },
 ): Promise<EnsureRecurringOccurrencesResult> {
-  return context.prisma.$transaction(async (tx) => {
-    const rules = await tx.recurringRule.findMany({
-      where: {
-        active: true,
-        householdId: context.householdId,
-      },
+  const today = formatDateInTimeZone(context.now?.() ?? new Date(), "Asia/Taipei");
+  const rules = await context.prisma.$transaction((tx) =>
+    tx.recurringRule.findMany({
+      where: { active: true, householdId: context.householdId },
       orderBy: { createdAt: "asc" },
-    });
-    const categories = await loadCategoryLookups({
-      householdId: context.householdId,
-      prisma: tx,
-    });
-    const summary: EnsureRecurringOccurrencesResult = {
-      alreadyPostedCount: 0,
-      pendingCount: 0,
-      postedCount: 0,
-      skippedCount: 0,
-    };
+    })
+  );
+  const occurrences: GeneratedOccurrence[] = [];
 
-    for (const rule of rules) {
+  for (const rule of rules) {
+    const generated = await context.prisma.$transaction(async (tx) => {
       const event = mapRecurringRuleRowToEvent(rule);
       const targetDate = resolveRecurringTargetDate(event.schedule, command.month);
-
       if (typeof targetDate !== "string") {
-        summary.skippedCount += 1;
-        continue;
+        return { kind: "skipped" } as const;
       }
 
       const existing = await tx.recurringOccurrence.findUnique({
@@ -326,14 +297,18 @@ export async function ensureRecurringOccurrencesForMonth(
           },
         },
       });
-
       if (existing?.status === "posted") {
-        summary.alreadyPostedCount += 1;
-        continue;
+        return { kind: "already_posted" } as const;
+      }
+      if (existing?.status === "blocked") {
+        return { kind: "blocked" } as const;
+      }
+      if (existing?.status === "skipped") {
+        return { kind: "skipped" } as const;
       }
 
-      const occurrenceId = existing?.id ?? context.generateOccurrenceId?.() ?? crypto.randomUUID();
-
+      const occurrenceId = existing?.id ??
+        context.generateOccurrenceId?.() ?? crypto.randomUUID();
       if (!existing) {
         await tx.recurringOccurrence.create({
           data: {
@@ -348,29 +323,35 @@ export async function ensureRecurringOccurrencesForMonth(
       }
 
       if (event.postingMode === "reminder") {
-        summary.pendingCount += 1;
-        continue;
+        return { kind: "pending" } as const;
+      } else if (targetDate > today) {
+        return { kind: "skipped" } as const;
       }
+      return { kind: "post", occurrenceId } as const;
+    });
+    occurrences.push(generated);
+  }
 
-      const postResult = await postRecurringEventLedgerRecord(actor, event, {
-        categories,
-        generateLedgerRecordId: context.generateLedgerRecordId,
-        householdId: context.householdId,
-        month: command.month,
-        now: context.now,
-        occurrenceId,
-        tx,
-      });
-
-      if (postResult.ok) {
-        summary.postedCount += 1;
-      } else {
-        summary.skippedCount += 1;
-      }
+  const summary = emptyOccurrenceSummary();
+  for (const occurrence of occurrences) {
+    if (occurrence.kind === "already_posted") {
+      summary.alreadyPostedCount += 1;
+    } else if (occurrence.kind === "blocked") {
+      summary.blockedCount += 1;
+    } else if (occurrence.kind === "pending") {
+      summary.pendingCount += 1;
+    } else if (occurrence.kind === "skipped") {
+      summary.skippedCount += 1;
+    } else if (occurrence.kind === "post") {
+      applyPostResultToSummary(
+        summary,
+        await postRecurringOccurrence(actor, {
+          occurrenceId: occurrence.occurrenceId,
+        }),
+      );
     }
-
-    return summary;
-  });
+  }
+  return summary;
 }
 
 export async function runRecurringPostingJob({
@@ -386,23 +367,14 @@ export async function runRecurringPostingJob({
     select: { id: true },
   });
   const summary: RunRecurringPostingJobResult = {
-    alreadyPostedCount: 0,
+    ...emptyOccurrenceSummary(),
     householdCount: 0,
-    pendingCount: 0,
-    postedCount: 0,
-    skippedCount: 0,
     skippedHouseholdCount: 0,
     targetMonth,
   };
 
   for (const household of households) {
-    const actor = await loadRecurringPostingActor(prisma, household.id);
-
-    if (!actor) {
-      summary.skippedHouseholdCount += 1;
-      continue;
-    }
-
+    const actor = recurringPostingSystemActor(household.id);
     const result = await ensureRecurringOccurrencesForMonth(actor, {
       month: targetMonth,
     }, {
@@ -410,71 +382,62 @@ export async function runRecurringPostingJob({
       now: () => targetDate,
       prisma,
     });
-
     summary.alreadyPostedCount += result.alreadyPostedCount;
+    summary.blockedCount += result.blockedCount;
     summary.householdCount += 1;
     summary.pendingCount += result.pendingCount;
     summary.postedCount += result.postedCount;
     summary.skippedCount += result.skippedCount;
+    summary.unavailableCount += result.unavailableCount;
   }
-
   return summary;
 }
 
-export async function confirmRecurringOccurrenceInDatabase(
+function memberActor(
   actor: AuthenticatedMember,
-  command: { occurrenceId: string },
-  context: {
-    generateLedgerRecordId?: () => string;
-    householdId: string;
-    now?: () => Date;
-    prisma: RecurringEventMutationPrismaClient;
-  },
-): Promise<ConfirmRecurringOccurrenceResult> {
-  return context.prisma.$transaction(async (tx) => {
-    const occurrence = await tx.recurringOccurrence.findFirst({
-      where: {
-        householdId: context.householdId,
-        id: command.occurrenceId,
-      },
-      include: { recurringRule: true },
-    });
+  householdId: string,
+): LedgerCreationMemberActor {
+  return { kind: "member", member: { ...actor, householdId } };
+}
 
-    if (!occurrence) {
-      return { ok: false, reason: "occurrence_not_found" };
-    }
+function emptyOccurrenceSummary(): EnsureRecurringOccurrencesResult {
+  return {
+    alreadyPostedCount: 0,
+    blockedCount: 0,
+    pendingCount: 0,
+    postedCount: 0,
+    skippedCount: 0,
+    unavailableCount: 0,
+  };
+}
 
-    if (occurrence.status === "posted" && occurrence.ledgerRecordId) {
-      return {
-        ok: false,
-        reason: "already_posted",
-        recordId: occurrence.ledgerRecordId,
-      };
-    }
+function applyPostResultToSummary(
+  summary: EnsureRecurringOccurrencesResult,
+  result: PostRecurringOccurrenceResult,
+) {
+  if (result.status === "posted") {
+    summary.postedCount += 1;
+  } else if (result.status === "already_posted") {
+    summary.alreadyPostedCount += 1;
+  } else if (result.status === "blocked") {
+    summary.blockedCount += 1;
+  } else if (result.status === "unavailable") {
+    summary.unavailableCount += 1;
+  } else {
+    summary.skippedCount += 1;
+  }
+}
 
-    const categories = await loadCategoryLookups({
-      householdId: context.householdId,
-      prisma: tx,
-    });
-    const event = mapRecurringRuleRowToEvent(occurrence.recurringRule);
-    const result = await postRecurringEventLedgerRecord(actor, event, {
-      categories,
-      generateLedgerRecordId: context.generateLedgerRecordId,
-      householdId: context.householdId,
-      month: occurrence.month,
-      now: context.now,
-      occurrenceId: occurrence.id,
-      tx,
-    });
-
-    return result.ok
-      ? {
-          ok: true,
-          occurrenceId: occurrence.id,
-          recordId: result.recordId,
-        }
-      : result;
-  });
+function currentOccurrenceStatus(
+  result: PostRecurringOccurrenceResult,
+): "pending" | "posted" | "blocked" | "unavailable" {
+  if (result.status === "posted" || result.status === "already_posted") {
+    return "posted";
+  }
+  if (result.status === "blocked") {
+    return "blocked";
+  }
+  return result.status === "unavailable" ? "unavailable" : "pending";
 }
 
 function mapRecurringRuleRowToEvent(row: RecurringRuleRow): RecurringEvent {
@@ -488,13 +451,9 @@ function mapRecurringRuleRowToEvent(row: RecurringRuleRow): RecurringEvent {
     postingMode: row.postingMode,
     schedule: row.scheduleAnchor === "month_end"
       ? { anchor: "month_end" as const }
-      : {
-          anchor: "fixed_day" as const,
-          dayOfMonth: row.dayOfMonth ?? 1,
-        },
+      : { anchor: "fixed_day" as const, dayOfMonth: row.dayOfMonth ?? 1 },
     ...(row.note ? { note: row.note } : {}),
   };
-
   if (row.type === "income") {
     return {
       ...base,
@@ -502,7 +461,6 @@ function mapRecurringRuleRowToEvent(row: RecurringRuleRow): RecurringEvent {
       type: "income",
     };
   }
-
   return {
     ...base,
     paymentSource: row.paymentSource ?? "fund",
@@ -534,32 +492,23 @@ function toRecurringRuleCreateData(event: RecurringEvent, householdId: string) {
 }
 
 async function createCurrentMonthOccurrenceForNewEvent(
-  actor: AuthenticatedMember,
   event: RecurringEvent,
   context: {
-    categories: { id: string; status: "active" | "archived"; type: "income" | "expense" }[];
-    generateLedgerRecordId?: () => string;
     generateOccurrenceId?: () => string;
     householdId: string;
     now?: () => Date;
-    tx: Pick<RecurringEventMutationTransaction, "ledgerRecord" | "recurringOccurrence">;
+    tx: Pick<RecurringEventMutationTransaction, "recurringOccurrence">;
   },
-) {
+): Promise<{ id: string; shouldPost: boolean } | null> {
   const now = context.now?.() ?? new Date();
   const currentMonth = formatMonthInTimeZone(now, "Asia/Taipei");
   const today = formatDateInTimeZone(now, "Asia/Taipei");
   const targetDate = resolveRecurringTargetDate(event.schedule, currentMonth);
-
-  if (typeof targetDate !== "string") {
-    return;
-  }
-
-  if (targetDate < today) {
-    return;
+  if (typeof targetDate !== "string" || targetDate < today) {
+    return null;
   }
 
   const occurrenceId = context.generateOccurrenceId?.() ?? crypto.randomUUID();
-
   await context.tx.recurringOccurrence.create({
     data: {
       householdId: context.householdId,
@@ -570,177 +519,12 @@ async function createCurrentMonthOccurrenceForNewEvent(
       targetDate: dateOnly(targetDate),
     },
   });
-
-  if (event.postingMode === "immediate" && targetDate === today) {
-    const postResult = await postRecurringEventLedgerRecord(actor, event, {
-      categories: context.categories,
-      generateLedgerRecordId: context.generateLedgerRecordId,
-      householdId: context.householdId,
-      month: currentMonth,
-      now: context.now,
-      occurrenceId,
-      tx: context.tx,
-    });
-
-    if (!postResult.ok) {
-      throw new Error(
-        `Created recurring event could not post current occurrence: ${postResult.reason}`,
-      );
-    }
-  }
-}
-
-async function postRecurringEventLedgerRecord(
-  actor: AuthenticatedMember,
-  event: RecurringEvent,
-  context: {
-    categories: { id: string; status: "active" | "archived"; type: "income" | "expense" }[];
-    generateLedgerRecordId?: () => string;
-    householdId: string;
-    month: string;
-    now?: () => Date;
-    occurrenceId: string;
-    tx: Pick<RecurringEventMutationTransaction, "ledgerRecord" | "recurringOccurrence">;
-  },
-): Promise<
-  | { ok: true; recordId: string }
-  | Extract<ConfirmRecurringOccurrenceResult, { ok: false }>
-> {
-  const command = recurringEventToLedgerCommand(event, context.month);
-
-  if ("ok" in command) {
-    return command;
-  }
-
-  if (
-    !canPostRecurringEvent(
-      event,
-      command.occurredOn,
-      context.now?.() ?? new Date(),
-    )
-  ) {
-    return { ok: false, reason: "occurrence_not_due" };
-  }
-
-  const result = createLedgerRecord(actor, command, {
-    categories: context.categories,
-    generateId: context.generateLedgerRecordId,
-  });
-
-  if (!result.ok) {
-    return mapLedgerRecordFailure(result.reason);
-  }
-
-  await context.tx.ledgerRecord.create({
-    data: toLedgerRecordCreateData(result.record, context.householdId),
-  });
-  await context.tx.recurringOccurrence.update({
-    where: { id: context.occurrenceId },
-    data: {
-      ledgerRecordId: result.record.id,
-      postedAt: context.now?.() ?? new Date(),
-      postedByMemberId: actor.id,
-      status: "posted",
-    },
-  });
-
-  return { ok: true, recordId: result.record.id };
-}
-
-function canPostRecurringEvent(
-  event: RecurringEvent,
-  occurredOn: string,
-  now: Date,
-): boolean {
-  if (event.postingMode === "reminder") {
-    return true;
-  }
-
-  return occurredOn <= formatDateInTimeZone(now, "Asia/Taipei");
-}
-
-function mapLedgerRecordFailure(
-  reason: Extract<CreateLedgerRecordResult, { ok: false }>["reason"],
-): Extract<ConfirmRecurringOccurrenceResult, { ok: false }> {
-  if (
-    reason === "archived_category" ||
-    reason === "category_type_mismatch" ||
-    reason === "invalid_amount" ||
-    reason === "missing_category" ||
-    reason === "permission_denied"
-  ) {
-    return {
-      ok: false,
-      reason,
-    };
-  }
-
-  if (
-    reason === "fund_paid_expense_cannot_have_member_payer" ||
-    reason === "invalid_date" ||
-    reason === "missing_member_payer" ||
-    reason === "missing_name"
-  ) {
-    throw new Error(`Invalid persisted recurring event generated ${reason}`);
-  }
-
-  const exhaustive: never = reason;
-  return exhaustive;
-}
-
-function toLedgerRecordCreateData(record: LedgerRecord, householdId: string) {
   return {
-    id: record.id,
-    householdId,
-    type: record.type,
-    name: record.name,
-    amountCents: record.amountCents,
-    occurredOn: dateOnly(record.occurredOn),
-    categoryId: record.categoryId,
-    createdByMemberId: record.createdByMemberId,
-    sourceMemberId: record.type === "income" ? record.sourceMemberId : null,
-    paymentSource: record.type === "expense" ? record.paymentSource : null,
-    payerMemberId: record.type === "expense" ? record.payerMemberId ?? null : null,
-    reimbursementStatus: record.reimbursementStatus,
-    status: record.status,
-    note: record.note ?? null,
+    id: occurrenceId,
+    shouldPost: event.postingMode === "immediate" && targetDate === today,
   };
 }
 
 function dateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-async function loadRecurringPostingActor(
-  prisma: RecurringEventPostingJobPrismaClient,
-  householdId: string,
-): Promise<AuthenticatedMember | null> {
-  const member = await prisma.member.findFirst({
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      roles: {
-        select: { role: true },
-      },
-    },
-    where: {
-      householdId,
-      roles: {
-        some: {
-          role: { in: ["admin", "finance_manager"] },
-        },
-      },
-      status: "active",
-    },
-  });
-
-  if (!member) {
-    return null;
-  }
-
-  return {
-    googleAccountLinked: true,
-    id: member.id,
-    roles: member.roles.map((role) => role.role),
-  };
 }

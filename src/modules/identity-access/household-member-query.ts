@@ -2,6 +2,7 @@ import type {
   MemberCapability,
   MemberRole,
 } from "@/modules/identity-access/authorization";
+import type { Prisma } from "@/generated/prisma/client";
 import type { HouseholdMemberAccount } from "@/modules/identity-access/member-management";
 
 export type HouseholdMemberOption = {
@@ -49,6 +50,49 @@ export const householdMemberOptionSelect = {
 export const householdMemberOrderBy = {
   displayName: "asc",
 } as const;
+
+export const financialAttributionMemberStatuses = [
+  "active",
+  "invited",
+] as const;
+
+export async function findFinancialAttributionMember({
+  householdId,
+  memberId,
+  prisma,
+}: {
+  householdId: string;
+  memberId: string;
+  prisma: Pick<Prisma.TransactionClient, "member">;
+}): Promise<{ id: string } | null> {
+  return prisma.member.findFirst({
+    where: {
+      id: memberId,
+      householdId,
+      status: { in: [...financialAttributionMemberStatuses] },
+    },
+    select: { id: true },
+  });
+}
+
+export async function findDisabledHouseholdMember({
+  householdId,
+  memberId,
+  prisma,
+}: {
+  householdId: string;
+  memberId: string;
+  prisma: Pick<Prisma.TransactionClient, "member">;
+}): Promise<{ id: string } | null> {
+  return prisma.member.findFirst({
+    where: {
+      id: memberId,
+      householdId,
+      status: "disabled",
+    },
+    select: { id: true },
+  });
+}
 
 export type HouseholdMemberQueryPrismaClient = {
   member: {

@@ -10,11 +10,11 @@ import {
 } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
-  createLedgerRecordInDatabase,
   updateLedgerRecordInDatabase,
   voidLedgerRecordInDatabase,
   type LedgerRecordMutationPrismaClient,
 } from "@/modules/fund-ledger/ledger-record-command";
+import { createManualRecord } from "@/modules/fund-ledger/ledger-record-creation";
 import { markExpensesReimbursedInDatabase } from "@/modules/reimbursement/reimbursement-command";
 import {
   parseCreateLedgerRecordForm,
@@ -36,7 +36,10 @@ export type CreateLedgerRecordActionCode =
   | "missing_name"
   | "missing_payer_member"
   | "missing_source_member"
-  | "permission_denied";
+  | "member_outside_household"
+  | "disabled_member"
+  | "permission_denied"
+  | "unavailable";
 
 export type CreateLedgerRecordActionField =
   | "amountTwd"
@@ -49,7 +52,10 @@ export type CreateLedgerRecordActionField =
   | "sourceMemberId";
 
 export type UpdateLedgerRecordActionCode =
-  | CreateLedgerRecordActionCode
+  | Exclude<
+      CreateLedgerRecordActionCode,
+      "disabled_member" | "member_outside_household" | "unavailable"
+    >
   | "missing_record_id"
   | "record_not_found"
   | "record_changed"
@@ -127,21 +133,22 @@ export async function createLedgerRecordAction(
 
   const session = await requireMutationAccess();
 
-  const result = await createLedgerRecordInDatabase(
-    session.access.member,
-    parsed.command,
-    {
-      prisma: getPrismaClient(),
-      householdId: session.access.member.householdId,
-    },
-  );
+  let result;
+  try {
+    result = await createManualRecord(
+      { kind: "member", member: session.access.member },
+      parsed.command,
+    );
+  } catch {
+    return createLedgerRecordError("unavailable");
+  }
 
   if (!result.ok) {
-    return createLedgerRecordError(result.reason);
+    return createLedgerRecordError(result.reason, parsed.command.type);
   }
 
   return ledgerMutationSuccess("紀錄已新增。", {
-    recordId: result.record.id,
+    recordId: result.recordId,
   });
 }
 
@@ -249,6 +256,7 @@ function ledgerMutationSuccess<
 
 function createLedgerRecordError(
   code: CreateLedgerRecordActionCode,
+  recordType?: "income" | "expense",
 ): CreateLedgerRecordActionState {
   const messages: Record<CreateLedgerRecordActionCode, string> = {
     archived_category: "這個分類已封存，請改選其他分類。",
@@ -263,12 +271,15 @@ function createLedgerRecordError(
     missing_name: "請輸入紀錄名稱。",
     missing_payer_member: "請選擇代墊成員。",
     missing_source_member: "請選擇收入來源。",
+    member_outside_household: "這位成員不屬於目前家庭。",
+    disabled_member: "這位成員目前無法作為財務歸屬。",
     permission_denied: "目前帳號沒有新增這筆紀錄的權限。",
+    unavailable: "目前無法確認新增結果，請稍後重新整理後再查看。",
   };
 
   return actionError(messages[code], {
     code,
-    fieldErrors: { [fieldForError(code)]: [messages[code]] },
+    fieldErrors: { [fieldForError(code, recordType)]: [messages[code]] },
   });
 }
 
@@ -386,7 +397,15 @@ function fieldForReimbursementError(
 
 function fieldForError(
   code: CreateLedgerRecordActionCode,
+  recordType?: "income" | "expense",
 ): CreateLedgerRecordActionField {
+  if (
+    (code === "member_outside_household" || code === "disabled_member")
+    && recordType === "income"
+  ) {
+    return "sourceMemberId";
+  }
+
   const fields: Record<CreateLedgerRecordActionCode, CreateLedgerRecordActionField> = {
     archived_category: "categoryId",
     category_type_mismatch: "categoryId",
@@ -400,7 +419,10 @@ function fieldForError(
     missing_name: "name",
     missing_payer_member: "payerMemberId",
     missing_source_member: "sourceMemberId",
+    member_outside_household: "payerMemberId",
+    disabled_member: "payerMemberId",
     permission_denied: "recordType",
+    unavailable: "recordType",
   };
 
   return fields[code];

@@ -102,6 +102,10 @@ export type LedgerImportRowOverride = {
   categoryId?: string;
 };
 
+export function ledgerImportRowIdentity(csvRowNumber: number): string {
+  return `csv-row:${csvRowNumber}`;
+}
+
 type CsvCellMap = Record<(typeof LEDGER_IMPORT_HEADER)[number], string>;
 type CsvParseResult =
   | {

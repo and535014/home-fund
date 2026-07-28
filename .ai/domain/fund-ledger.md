@@ -30,9 +30,12 @@
 - Finance manager 可做財務修正，但 MVP 不預設可刪除他人紀錄。
 - Imported ledger records 必須遵守和手動建立相同的 validation 與 permission rules。
 - CSV upload / preview 本身不能產生財務效果；只有 confirm 後才會建立 records。
+- CSV import confirm 採 partial success；每列必須獨立 validation，並以自己的 transaction 原子建立 ledger record 與 import trace。
+- CSV import 必須逐列回報 created、rejected 或 already imported；同一次 import 的重送以穩定的 batch identity 與 row identity 保證冪等。
+- CSV row fingerprint 只提示內容可能重複，不得單獨阻止另一筆內容相同但合法的財務事實。
+- Disabled member 不可成為新 ledger record 的收入來源或代墊成員；既有歷史 records 仍須可讀。
 
 ## 開放問題
 
-- Batch delete / CSV import 是 all-or-nothing 還是 partial success。
 - Production 是否需要完整 correction / void history。
 - CSV duplicate policy、member / category matching ambiguity 如何處理。

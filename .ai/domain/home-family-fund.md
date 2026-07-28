@@ -20,7 +20,7 @@
 - Google identity 只證明使用者身份；app-owned `Member` 才決定 household access、角色、顯示名稱與財務歸屬。
 - Ledger records 是財務事實來源；Reporting 只能讀取與投影，不擁有財務真相。
 - `退款紀錄` / reimbursement payment evidence 不是一般 income / expense ledger record，不能影響 ordinary income / expense totals。
-- `提醒入帳` 的 recurring occurrence 在確認前不能進 ledger totals、category totals、reimbursement totals 或 ordinary search results。
+- `提醒入帳` 的 recurring occurrence 在確認前不能進 ledger totals、category totals 或 reimbursement totals；Search 與 dashboard 可將它投影為可辨識的 ledger-compatible display record，但不得讓它進入 ordinary batch mutation。
 - 權限必須在 server / domain command 層重新驗證；UI visibility 只是提示。
 - 歷史紀錄、已完成需求、驗證與 release 細節應保存在 `.ai/requirements/`，不要塞回 domain 檔。
 
@@ -41,6 +41,5 @@
 ## 開放問題
 
 - 是否允許一個 member 同時具備 admin 和 finance manager 角色。
-- Disabled member 是否仍可作為新財務紀錄的歸屬對象，或只保留歷史可讀。
 - Batch action 是 all-or-nothing，還是允許 partial success。
 - Production 等級 audit 是否需要更完整的 correction history / voiding policy。

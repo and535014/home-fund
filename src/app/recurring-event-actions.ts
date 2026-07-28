@@ -7,7 +7,10 @@ import {
 } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
-  confirmRecurringOccurrenceInDatabase,
+  postRecurringOccurrence,
+  type PostRecurringOccurrenceResult,
+} from "@/modules/fund-ledger/ledger-record-creation";
+import {
   createRecurringEventInDatabase,
   deleteRecurringEventInDatabase,
   type RecurringEventCommandPrismaClient,
@@ -57,7 +60,9 @@ export type DeleteRecurringEventActionField = "recurringEventId";
 
 export type ConfirmRecurringOccurrenceActionCode =
   | ParseFailure<typeof parseConfirmRecurringOccurrenceForm>
-  | AsyncDomainFailure<typeof confirmRecurringOccurrenceInDatabase>;
+  | Extract<PostRecurringOccurrenceResult, { status: "blocked" }>["reason"]
+  | Extract<PostRecurringOccurrenceResult, { status: "rejected" }>["reason"]
+  | "unavailable";
 
 export type ConfirmRecurringOccurrenceActionField = "occurrenceId";
 
@@ -105,8 +110,16 @@ export async function createRecurringEventAction(
     return createRecurringEventError(result.reason);
   }
 
+  if (result.currentOccurrenceStatus === "unavailable") {
+    console.error("Recurring occurrence posting unavailable after event creation", {
+      recurringEventId: result.event.id,
+    });
+  }
+
   return actionSuccessWithRevalidation(
-    "週期事件已新增。",
+    result.currentOccurrenceStatus === "unavailable"
+      ? "週期事件已建立，本月入帳將重試"
+      : "週期事件已新增。",
     { recurringEventId: result.event.id },
     ["/", "/search", "/settings/recurring"],
   );
@@ -156,16 +169,21 @@ export async function confirmRecurringOccurrenceAction(
   }
 
   const session = await requireMutationAccess();
-  const result = await confirmRecurringOccurrenceInDatabase(
-    session.access.member,
+  const result = await postRecurringOccurrence(
+    { kind: "member", member: session.access.member },
     parsed.command,
-    {
-      householdId: session.access.member.householdId,
-      prisma: getPrismaClient() as unknown as RecurringEventMutationPrismaClient,
-    },
   );
 
-  if (!result.ok) {
+  if (result.status === "blocked") {
+    return confirmRecurringOccurrenceError(result.reason);
+  }
+  if (result.status === "unavailable") {
+    console.error("Recurring occurrence posting unavailable", {
+      occurrenceId: result.occurrenceId,
+    });
+    return confirmRecurringOccurrenceError("unavailable");
+  }
+  if (result.status === "rejected") {
     return confirmRecurringOccurrenceError(result.reason);
   }
 
@@ -224,17 +242,14 @@ function confirmRecurringOccurrenceError(
   code: ConfirmRecurringOccurrenceActionCode,
 ): ConfirmRecurringOccurrenceActionState {
   const messages: Record<ConfirmRecurringOccurrenceActionCode, string> = {
-    already_posted: "這筆週期事件已入帳。",
-    archived_category: "這個分類已封存，請改選其他分類。",
-    category_type_mismatch: "分類類型與紀錄類型不一致。",
-    invalid_amount: "金額格式不正確。",
-    invalid_month: "週期月份格式不正確。",
-    invalid_schedule_day: "指定日期不支援。",
-    missing_category: "請選擇分類。",
+    archived_category: "這個分類已封存，週期事件無法入帳。",
+    disabled_member: "週期事件的收入來源或代墊成員已停用。",
+    invalid_schedule: "這筆週期事件的排程資料無效。",
     occurrence_not_due: "這筆週期事件尚未到入帳日期。",
     missing_occurrence_id: "找不到要入帳的週期事件。",
     occurrence_not_found: "找不到這筆週期事件，可能已被更新或刪除。",
     permission_denied: "目前帳號沒有入帳這筆週期事件的權限。",
+    unavailable: "入帳服務暫時無法使用，請稍後再試。",
   };
 
   return actionError(messages[code], {

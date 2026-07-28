@@ -30,6 +30,6 @@
 ## 開放問題
 
 - Batch reimbursement 是 all-or-nothing 還是 partial success。
-- Refund record correction 是否需要 edited-by / edited-at / history rows。
+- Refund record correction 是否需要完整 history rows。
 - Partial reimbursement、split payment、reversal 何時納入。
 - Payment reconciliation import 是否需要獨立流程。

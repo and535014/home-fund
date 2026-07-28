@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initialActionState } from "./action-state";
-import { updateLedgerRecordAction } from "./ledger-record-actions";
+import {
+  createLedgerRecordAction,
+  updateLedgerRecordAction,
+} from "./ledger-record-actions";
 import { requireMutationAccess } from "./server-action-adapter";
 import { updateLedgerRecordInDatabase } from "@/modules/fund-ledger/ledger-record-command";
+import { createManualRecord } from "@/modules/fund-ledger/ledger-record-creation";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -24,9 +28,12 @@ vi.mock("@/db/prisma", () => ({
 }));
 
 vi.mock("@/modules/fund-ledger/ledger-record-command", () => ({
-  createLedgerRecordInDatabase: vi.fn(),
   updateLedgerRecordInDatabase: vi.fn(),
   voidLedgerRecordInDatabase: vi.fn(),
+}));
+
+vi.mock("@/modules/fund-ledger/ledger-record-creation", () => ({
+  createManualRecord: vi.fn(),
 }));
 
 vi.mock("@/modules/reimbursement/reimbursement-command", () => ({
@@ -64,6 +71,59 @@ beforeEach(() => {
     },
   });
   vi.mocked(updateLedgerRecordInDatabase).mockReset();
+  vi.mocked(createManualRecord).mockReset();
+});
+
+describe("createLedgerRecordAction", () => {
+  it("passes the existing scoped session member to createManualRecord", async () => {
+    vi.mocked(createManualRecord).mockResolvedValueOnce({
+      ok: true,
+      recordId: "record-1",
+    });
+
+    await createLedgerRecordAction(initialActionState(), validFundExpenseForm());
+
+    expect(createManualRecord).toHaveBeenCalledWith(
+      { kind: "member", member },
+      expect.objectContaining({
+        type: "expense",
+        paymentSource: "fund",
+      }),
+    );
+  });
+
+  it("maps a known creation rejection to its field error", async () => {
+    vi.mocked(createManualRecord).mockResolvedValueOnce({
+      ok: false,
+      reason: "disabled_member",
+    });
+
+    const result = await createLedgerRecordAction(
+      initialActionState(),
+      validMemberExpenseForm(),
+    );
+
+    expect(result).toMatchObject({
+      status: "error",
+      code: "disabled_member",
+      fieldErrors: { payerMemberId: ["這位成員目前無法作為財務歸屬。"] },
+    });
+  });
+
+  it("does not retry createManualRecord when its outcome is unknown", async () => {
+    vi.mocked(createManualRecord).mockRejectedValueOnce(new Error("network"));
+
+    const result = await createLedgerRecordAction(
+      initialActionState(),
+      validFundExpenseForm(),
+    );
+
+    expect(createManualRecord).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      status: "error",
+      code: "unavailable",
+    });
+  });
 });
 
 describe("updateLedgerRecordAction", () => {
@@ -111,5 +171,23 @@ function validMemberExpenseUpdateForm(): FormData {
   formData.set("categoryId", "expense-grocery");
   formData.set("paymentSource", "member");
   formData.set("payerMemberId", "member-mei");
+  return formData;
+}
+
+function validMemberExpenseForm(): FormData {
+  const formData = validFundExpenseForm();
+  formData.set("paymentSource", "member");
+  formData.set("payerMemberId", "member-mei");
+  return formData;
+}
+
+function validFundExpenseForm(): FormData {
+  const formData = new FormData();
+  formData.set("recordType", "expense");
+  formData.set("name", "新增支出");
+  formData.set("amountTwd", "350");
+  formData.set("occurredOn", "2026-07-17");
+  formData.set("categoryId", "expense-grocery");
+  formData.set("paymentSource", "fund");
   return formData;
 }
