@@ -11,8 +11,7 @@
 ## Read Models
 
 - Dashboard：月度 records、summary、category totals、yearly trend、pending recurring items。
-- Search：ordinary ledger records、pending recurring occurrences 與 refund records 使用明確區分的 result kind；pending occurrence 不是財務事實。
-- Reimbursement payment detail：退款紀錄、linked ledger records、可編輯欄位、version 與稽核資訊；不直接借用 Search result read model。
+- Search：ordinary ledger records、ledger-compatible pending recurring display records 與 refund records 分類顯示；pending occurrence 不是財務事實。
 - Refund page / reimbursement workspace：unpaid member-paid expenses、completed refund records、member scope summary。
 - Category summary：使用 category visual identity。
 

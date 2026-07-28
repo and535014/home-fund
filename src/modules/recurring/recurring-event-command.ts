@@ -273,19 +273,20 @@ export async function ensureRecurringOccurrencesForMonth(
   },
 ): Promise<EnsureRecurringOccurrencesResult> {
   const today = formatDateInTimeZone(context.now?.() ?? new Date(), "Asia/Taipei");
-  const occurrences = await context.prisma.$transaction(async (tx) => {
-    const rules = await tx.recurringRule.findMany({
+  const rules = await context.prisma.$transaction((tx) =>
+    tx.recurringRule.findMany({
       where: { active: true, householdId: context.householdId },
       orderBy: { createdAt: "asc" },
-    });
-    const generated: GeneratedOccurrence[] = [];
+    })
+  );
+  const occurrences: GeneratedOccurrence[] = [];
 
-    for (const rule of rules) {
+  for (const rule of rules) {
+    const generated = await context.prisma.$transaction(async (tx) => {
       const event = mapRecurringRuleRowToEvent(rule);
       const targetDate = resolveRecurringTargetDate(event.schedule, command.month);
       if (typeof targetDate !== "string") {
-        generated.push({ kind: "skipped" });
-        continue;
+        return { kind: "skipped" } as const;
       }
 
       const existing = await tx.recurringOccurrence.findUnique({
@@ -297,16 +298,13 @@ export async function ensureRecurringOccurrencesForMonth(
         },
       });
       if (existing?.status === "posted") {
-        generated.push({ kind: "already_posted" });
-        continue;
+        return { kind: "already_posted" } as const;
       }
       if (existing?.status === "blocked") {
-        generated.push({ kind: "blocked" });
-        continue;
+        return { kind: "blocked" } as const;
       }
       if (existing?.status === "skipped") {
-        generated.push({ kind: "skipped" });
-        continue;
+        return { kind: "skipped" } as const;
       }
 
       const occurrenceId = existing?.id ??
@@ -325,16 +323,14 @@ export async function ensureRecurringOccurrencesForMonth(
       }
 
       if (event.postingMode === "reminder") {
-        generated.push({ kind: "pending" });
+        return { kind: "pending" } as const;
       } else if (targetDate > today) {
-        generated.push({ kind: "skipped" });
-      } else {
-        generated.push({ kind: "post", occurrenceId });
+        return { kind: "skipped" } as const;
       }
-    }
-
-    return generated;
-  });
+      return { kind: "post", occurrenceId } as const;
+    });
+    occurrences.push(generated);
+  }
 
   const summary = emptyOccurrenceSummary();
   for (const occurrence of occurrences) {

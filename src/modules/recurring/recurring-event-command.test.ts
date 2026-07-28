@@ -209,6 +209,57 @@ describe("deleteRecurringEventInDatabase", () => {
 });
 
 describe("ensureRecurringOccurrencesForMonth", () => {
+  it("commits each generated occurrence independently", async () => {
+    const rules = [
+      recurringRule({ id: "event-first" }),
+      recurringRule({ id: "event-failing" }),
+    ];
+    const committedOccurrenceIds: string[] = [];
+    let stagedOccurrenceIds: string[] = [];
+    const tx = {
+      recurringOccurrence: {
+        create: vi.fn(async ({ data }: { data: { id: string } }) => {
+          stagedOccurrenceIds.push(data.id);
+          if (data.id === "occ-failing") {
+            throw Object.assign(new Error("database unavailable"), {
+              name: "PrismaClientKnownRequestError",
+            });
+          }
+          return data;
+        }),
+        findUnique: vi.fn(async () => null),
+      },
+      recurringRule: {
+        findMany: vi.fn(async () => rules),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (value: typeof tx) => unknown) => {
+        stagedOccurrenceIds = [];
+        try {
+          const result = await callback(tx);
+          committedOccurrenceIds.push(...stagedOccurrenceIds);
+          return result;
+        } finally {
+          stagedOccurrenceIds = [];
+        }
+      }),
+    };
+    const generatedIds = ["occ-first", "occ-failing"];
+
+    await expect(ensureRecurringOccurrencesForMonth(
+      { kind: "system", capability: "post_recurring_occurrence", householdId: "household-demo" },
+      { month: "2026-07" },
+      {
+        generateOccurrenceId: () => generatedIds.shift() ?? "unexpected",
+        householdId: "household-demo",
+        now: () => new Date("2026-07-15T01:00:00.000Z"),
+        prisma: prisma as never,
+      },
+    )).rejects.toThrow("database unavailable");
+    expect(committedOccurrenceIds).toEqual(["occ-first"]);
+  });
+
   it("commits generation first, then posts each due immediate occurrence once", async () => {
     const rules = [
       recurringRule({

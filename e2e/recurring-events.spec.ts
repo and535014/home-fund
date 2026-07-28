@@ -132,15 +132,36 @@ test("shows and confirms a pending recurring occurrence from Home", async ({
   await page.reload();
   const refreshedRecordsRegion = page.getByRole("region", { name: "紀錄" });
   await expect(refreshedRecordsRegion).toContainText("E2E Kai 週期生活費");
-  await expect(refreshedRecordsRegion).not.toContainText("未入帳");
+  const postedRow = refreshedRecordsRegion
+    .getByText("E2E Kai 週期生活費", { exact: true })
+    .locator('xpath=ancestor::*[@data-slot="item"]');
+  await expect(postedRow).not.toContainText("未入帳");
 
-  await page.getByRole("button", {
-    name: "查看E2E Kai 週期生活費詳情",
-  }).click();
+  await postedRow.click();
   const postedDialog = page.getByRole("dialog");
   await expect(postedDialog).toContainText("週期事件：「每月 10 號，提醒入帳」");
   await expect(postedDialog).toContainText("2026/06/10");
+  const attributionField = postedDialog.getByText("支付者", { exact: true }).locator("..");
+  await expect(attributionField.getByText("Kai", { exact: true })).toBeVisible();
   await expect(postedDialog.getByRole("button", { name: "確認入帳" })).toHaveCount(0);
+});
+
+test("blocks a pending recurring occurrence whose category was archived", async ({
+  page,
+}) => {
+  await expectBlockedRecurringOccurrence(page, {
+    message: "這個分類已封存，週期事件無法入帳。",
+    name: "E2E 封存分類週期支出",
+  });
+});
+
+test("blocks a pending recurring occurrence attributed to a disabled member", async ({
+  page,
+}) => {
+  await expectBlockedRecurringOccurrence(page, {
+    message: "週期事件的收入來源或代墊成員已停用。",
+    name: "E2E 停用成員週期收入",
+  });
 });
 
 test("includes pending recurring occurrences in Search detail flow", async ({
@@ -184,6 +205,25 @@ function recurringEventRow(page: Page, name: string) {
   return page
     .getByText(name, { exact: true })
     .locator('xpath=ancestor::*[@data-slot="item"]');
+}
+
+async function expectBlockedRecurringOccurrence(
+  page: Page,
+  { message, name }: { message: string; name: string },
+) {
+  await page.goto("/?month=2026-06");
+
+  const recordsRegion = page.getByRole("region", { name: "紀錄" });
+  await expect(recordsRegion).toContainText(name);
+  await page.getByRole("button", { name: `查看${name}詳情` }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name })).toBeVisible();
+  await dialog.getByRole("button", { name: "確認入帳" }).click();
+
+  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("region", { name: "紀錄" })).not.toContainText(name);
 }
 
 type TaipeiDateParts = {

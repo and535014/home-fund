@@ -25,10 +25,6 @@
 
 - 所有 record mutation 都要檢查 household scope 和 actor permission。
 - Correction、void 與 reimbursement 等互斥狀態轉換必須使用讀取版本做 conditional write；過期 mutation 應整筆失敗，batch 的部分版本衝突必須 rollback，且 reimbursement evidence 只能在所有目標 records 原子轉態成功後建立。
-- 每次成功改變 ledger record 財務狀態的 mutation 都必須遞增 `version`，包含 correction、single void、batch void 與 reimbursement state transition；`version` 由 versioned Ledger mutation module 集中管理，不得由 caller 任意指定或略過。
-- `version_conflict` 不得自動重試或把舊 command 套用到最新 record；整筆 mutation 必須 rollback，由使用者重新載入最新狀態後再提交。
-- Batch delete / void 可在 preflight 逐筆排除無權限、不存在、已 void 或已 reimbursement 的 records；所有通過 preflight 的 records 必須在同一個 transaction 原子更新，任一版本衝突都要讓整組合格 records rollback。
-- Batch preflight 只提供 eligibility 提示，不授權 mutation；transaction 內必須重新載入 household scope、actor capability、record status、reimbursement status 與 expected version。
 - General member 只能修改自己有權限的紀錄。
 - Admin 可處理任何 household ledger record。
 - Finance manager 可做財務修正，但 MVP 不預設可刪除他人紀錄。
