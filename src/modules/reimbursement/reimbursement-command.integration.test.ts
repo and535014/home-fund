@@ -5,7 +5,7 @@ import {
 } from "@/modules/fund-ledger/ledger-record-command";
 import {
   mapPrismaExpenseLedgerRecordToExpenseLedgerRecord,
-  versionedPrismaExpenseLedgerRecordSelect,
+  concurrencyPrismaExpenseLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import {
   writeReimbursementPaymentSettlement,
@@ -79,11 +79,12 @@ integrationDescribe("reimbursement transaction concurrency", () => {
     const rows = await prisma.ledgerRecord.findMany({
       where: { id: { in: recordIds } },
       orderBy: { id: "asc" },
-      select: versionedPrismaExpenseLedgerRecordSelect,
+      select: concurrencyPrismaExpenseLedgerRecordSelect,
     });
     expect(rows).toHaveLength(2);
 
-    const originalVersions = rows.map((row) => row.updatedAt);
+    const originalUpdatedAts = rows.map((row) => row.updatedAt);
+    const originalVersions = rows.map((row) => row.version);
     const reimbursedRecords = rows.map((row) => ({
       ...mapPrismaExpenseLedgerRecordToExpenseLedgerRecord(row),
       reimbursementStatus: "reimbursed" as const,
@@ -117,17 +118,20 @@ integrationDescribe("reimbursement transaction concurrency", () => {
       select: {
         reimbursementStatus: true,
         updatedAt: true,
+        version: true,
       },
     });
 
     expect(recordsAfterConflict).toEqual([
       {
         reimbursementStatus: "refundable",
-        updatedAt: originalVersions[0],
+        updatedAt: originalUpdatedAts[0],
+        version: originalVersions[0],
       },
       {
         reimbursementStatus: "refundable",
-        updatedAt: originalVersions[1],
+        updatedAt: originalUpdatedAts[1],
+        version: originalVersions[1],
       },
     ]);
     await expect(prisma.reimbursementBatch.findUnique({

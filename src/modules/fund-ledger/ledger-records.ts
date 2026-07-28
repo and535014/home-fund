@@ -73,6 +73,14 @@ export type ExpenseLedgerRecord = RecurringLedgerTrace & {
 
 export type LedgerRecord = IncomeLedgerRecord | ExpenseLedgerRecord;
 
+export type PersistedLedgerRecord = LedgerRecord & {
+  version: number;
+};
+
+export type PersistedExpenseLedgerRecord = ExpenseLedgerRecord & {
+  version: number;
+};
+
 export function isActiveLedgerRecord(record: LedgerRecord): boolean {
   return record.status === "active";
 }

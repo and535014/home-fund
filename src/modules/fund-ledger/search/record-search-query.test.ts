@@ -210,8 +210,8 @@ describe("record search query", () => {
 
     expect(result.records).toHaveLength(SEARCH_RECORD_PAGE_SIZE);
     expect(result.records.slice(0, 2)).toMatchObject([
-      { id: "income-1", type: "income", sourceMemberId: "member-mei" },
-      { id: "expense-1", type: "expense", paymentSource: "member" },
+      { id: "income-1", type: "income", sourceMemberId: "member-mei", version: 7 },
+      { id: "expense-1", type: "expense", paymentSource: "member", version: 7 },
     ]);
     expect(result).toMatchObject({
       nextCursor: { id: "expense-extra-97", occurredOn: "2026-06-10", amountCents: 8_000 },
@@ -251,5 +251,6 @@ function ledgerRecordRow({
     reimbursementStatus: type === "expense" ? "refundable" as const : "not_applicable" as const,
     status: "active" as const,
     note: null,
+    version: 7,
   };
 }

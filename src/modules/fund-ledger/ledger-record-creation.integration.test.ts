@@ -195,6 +195,7 @@ integrationDescribe("ledger record creation persistence contract", () => {
       payerMemberId: fixture.invitedMember,
       reimbursementStatus: "refundable",
       status: "active",
+      version: 1,
     });
   });
 

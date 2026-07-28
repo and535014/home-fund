@@ -135,8 +135,8 @@ describe("refund page query", () => {
       },
     ]);
     expect(result.unpaidExpenses).toMatchObject([
-      { id: "expense-grocery", type: "expense", payerMemberId: "member-mei" },
-      { id: "expense-taxi", type: "expense", payerMemberId: "member-lin" },
+      { id: "expense-grocery", type: "expense", payerMemberId: "member-mei", version: 3 },
+      { id: "expense-taxi", type: "expense", payerMemberId: "member-lin", version: 3 },
     ]);
     expect(result.refundRecords).toMatchObject([
       {
@@ -182,6 +182,7 @@ function ledgerRecordRow({
     reimbursementStatus: "refundable" as const,
     status: "active" as const,
     note: null,
+    version: 3,
   };
 }
 

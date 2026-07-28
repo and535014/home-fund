@@ -9,7 +9,7 @@ import { actionSuccessWithRevalidation } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
-  versionedPrismaLedgerRecordSelect,
+  concurrencyPrismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import {
   LedgerRecordMutationConflictError,
@@ -210,7 +210,7 @@ export async function batchDeleteSearchRecordsAction(
             in: selectedRecordIds,
           },
         },
-        select: versionedPrismaLedgerRecordSelect,
+        select: concurrencyPrismaLedgerRecordSelect,
       });
       const domainResult = batchDeleteLedgerRecords(
         session.access.member,
@@ -235,6 +235,7 @@ export async function batchDeleteSearchRecordsAction(
         },
         data: {
           status: "voided",
+          version: { increment: 1 },
         },
       });
 

@@ -208,6 +208,7 @@ describe("updateLedgerRecordInDatabase", () => {
         reimbursementStatus: "not_applicable",
         note: "補正",
         status: "active",
+        version: { increment: 1 },
       },
     });
     expect(tx.recurringOccurrence.update).not.toHaveBeenCalled();
@@ -401,7 +402,10 @@ describe("voidLedgerRecordInDatabase", () => {
         status: "active",
         updatedAt: new Date("2026-06-09T01:00:00.000Z"),
       },
-      data: { status: "voided" },
+      data: {
+        status: "voided",
+        version: { increment: 1 },
+      },
     });
   });
 });

@@ -132,6 +132,7 @@ describe("markExpensesReimbursedInDatabase", () => {
       },
       data: {
         reimbursementStatus: "reimbursed",
+        version: { increment: 1 },
       },
     });
     expect(tx.ledgerRecord.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
@@ -316,6 +317,7 @@ describe("batchMarkLedgerRecordsReimbursedInDatabase", () => {
       },
       data: {
         reimbursementStatus: "reimbursed",
+        version: { increment: 1 },
       },
     });
   });

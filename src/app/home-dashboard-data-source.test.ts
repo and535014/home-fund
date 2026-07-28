@@ -44,6 +44,7 @@ describe("createHomeDashboardDataSource", () => {
           reimbursementStatus: "refundable" as const,
           status: "active" as const,
           note: "日用品代墊",
+          version: 3,
         },
       ])
       .mockResolvedValueOnce([
@@ -61,6 +62,7 @@ describe("createHomeDashboardDataSource", () => {
           reimbursementStatus: "not_applicable" as const,
           status: "active" as const,
           note: "年初收入",
+          version: 8,
         },
       ]);
     const recurringOccurrenceFindMany = vi.fn(async () => [
@@ -146,6 +148,7 @@ describe("createHomeDashboardDataSource", () => {
           reimbursementStatus: "refundable",
           status: "active",
           note: "日用品代墊",
+          version: 3,
         },
       ],
       yearlyRecords: [
@@ -161,6 +164,7 @@ describe("createHomeDashboardDataSource", () => {
           reimbursementStatus: "not_applicable",
           status: "active",
           note: "年初收入",
+          version: 8,
         },
       ],
     });

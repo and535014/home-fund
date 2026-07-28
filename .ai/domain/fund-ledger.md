@@ -25,6 +25,7 @@
 
 - 所有 record mutation 都要檢查 household scope 和 actor permission。
 - Correction、void 與 reimbursement 等互斥狀態轉換必須使用讀取版本做 conditional write；過期 mutation 應整筆失敗，batch 的部分版本衝突必須 rollback，且 reimbursement evidence 只能在所有目標 records 原子轉態成功後建立。
+- 已持久化 Ledger record 的 version 從 `1` 開始；每次成功狀態變更必須在同一 transaction 中遞增，失敗或 rollback 不得改變 version。
 - General member 只能修改自己有權限的紀錄。
 - Admin 可處理任何 household ledger record。
 - Finance manager 可做財務修正，但 MVP 不預設可刪除他人紀錄。

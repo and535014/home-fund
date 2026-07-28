@@ -161,6 +161,7 @@ describe("batchDeleteSearchRecordsAction", () => {
       },
       data: {
         status: "voided",
+        version: { increment: 1 },
       },
     });
     expect(revalidatePath).not.toHaveBeenCalled();
@@ -299,6 +300,7 @@ describe("batchRefundSearchRecordsAction", () => {
       },
       data: {
         reimbursementStatus: "reimbursed",
+        version: { increment: 1 },
       },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/");
