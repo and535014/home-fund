@@ -2,8 +2,8 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import {
   mapPrismaExpenseLedgerRecordToExpenseLedgerRecord,
   mapPrismaLedgerRecordToLedgerRecord,
-  versionedPrismaExpenseLedgerRecordSelect,
-  versionedPrismaLedgerRecordSelect,
+  concurrencyPrismaExpenseLedgerRecordSelect,
+  concurrencyPrismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
 import {
   LedgerRecordMutationConflictError,
@@ -103,7 +103,7 @@ export async function markExpensesReimbursedInDatabase(
             type: "expense",
             status: "active",
           },
-          select: versionedPrismaExpenseLedgerRecordSelect,
+          select: concurrencyPrismaExpenseLedgerRecordSelect,
         });
         const result = markExpensesReimbursed(
           actor,
@@ -170,7 +170,7 @@ export async function batchMarkLedgerRecordsReimbursedInDatabase(
               in: selectedRecordIds,
             },
           },
-          select: versionedPrismaLedgerRecordSelect,
+          select: concurrencyPrismaLedgerRecordSelect,
         });
         const result = batchMarkLedgerRecordsReimbursed(
           actor,
@@ -248,6 +248,7 @@ export async function writeReimbursementPaymentSettlement(
     },
     data: {
       reimbursementStatus: "reimbursed",
+      version: { increment: 1 },
     },
   });
 

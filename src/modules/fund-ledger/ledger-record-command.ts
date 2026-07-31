@@ -14,8 +14,8 @@ import {
 } from "./ledger-record-corrections";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
-  versionedPrismaLedgerRecordSelect,
-  type VersionedPrismaLedgerRecordRow,
+  concurrencyPrismaLedgerRecordSelect,
+  type ConcurrencyPrismaLedgerRecordRow,
 } from "./ledger-record-prisma-adapter";
 
 export type LedgerRecordMutationPrismaClient = {
@@ -42,8 +42,8 @@ type LedgerRecordMutationTransaction = {
         id: string;
         status: "active";
       };
-      select: typeof versionedPrismaLedgerRecordSelect;
-    }): Promise<VersionedPrismaLedgerRecordRow | null>;
+      select: typeof concurrencyPrismaLedgerRecordSelect;
+    }): Promise<ConcurrencyPrismaLedgerRecordRow | null>;
     updateMany(args: {
       where: {
         householdId: string;
@@ -100,7 +100,7 @@ export async function updateLedgerRecordInDatabase(
           id: command.recordId,
           status: "active",
         },
-        select: versionedPrismaLedgerRecordSelect,
+        select: concurrencyPrismaLedgerRecordSelect,
       }),
       loadCategoryLookups({ householdId, prisma: tx }),
       tx.member.findMany({
@@ -165,7 +165,7 @@ export async function voidLedgerRecordInDatabase(
         id: command.recordId,
         status: "active",
       },
-      select: versionedPrismaLedgerRecordSelect,
+      select: concurrencyPrismaLedgerRecordSelect,
     });
 
     if (!record) {
@@ -188,7 +188,10 @@ export async function voidLedgerRecordInDatabase(
         status: "active",
         updatedAt: record.updatedAt,
       },
-      data: { status: "voided" },
+      data: {
+        status: "voided",
+        version: { increment: 1 },
+      },
     });
 
     if (update.count !== 1) {
@@ -212,5 +215,6 @@ function toLedgerRecordUpdateData(record: LedgerRecord) {
     reimbursementStatus: record.reimbursementStatus,
     status: record.status,
     note: record.note ?? null,
+    version: { increment: 1 },
   };
 }

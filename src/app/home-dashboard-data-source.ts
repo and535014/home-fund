@@ -3,7 +3,7 @@ import {
   loadHouseholdCategories,
   type CategoryQueryPrismaClient,
 } from "../modules/categorization/category-query";
-import type { LedgerRecord } from "../modules/fund-ledger/ledger-records";
+import type { PersistedLedgerRecord } from "../modules/fund-ledger/ledger-records";
 import {
   mapPrismaLedgerRecordToLedgerRecord,
   prismaLedgerRecordSelect,
@@ -24,8 +24,8 @@ export type HomeDashboardData = {
   householdMembers: HouseholdMemberAccount[];
   categories: Category[];
   pendingRecurringRecords: PendingRecurringOccurrenceRecord[];
-  records: LedgerRecord[];
-  yearlyRecords: LedgerRecord[];
+  records: PersistedLedgerRecord[];
+  yearlyRecords: PersistedLedgerRecord[];
 };
 
 export type HomeDashboardPrismaClient =

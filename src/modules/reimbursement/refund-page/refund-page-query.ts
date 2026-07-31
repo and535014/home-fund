@@ -7,7 +7,7 @@ import {
   mapPrismaLedgerRecordToLedgerRecord,
   prismaLedgerRecordSelect,
 } from "@/modules/fund-ledger/ledger-record-prisma-adapter";
-import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
+import type { PersistedLedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
   loadHouseholdMemberOptions,
 } from "@/modules/identity-access/household-member-query";
@@ -27,7 +27,7 @@ export type RefundPageData = {
   memberId: string;
   members: RefundPageMemberTab[];
   categories: Category[];
-  unpaidExpenses: LedgerRecord[];
+  unpaidExpenses: PersistedLedgerRecord[];
   refundRecords: ReimbursementPaymentSearchResult[];
 };
 

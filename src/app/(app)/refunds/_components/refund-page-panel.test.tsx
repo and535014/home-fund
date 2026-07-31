@@ -169,6 +169,7 @@ const refundPageData: RefundPageData = {
       payerMemberId: "member-mei",
       reimbursementStatus: "refundable",
       status: "active",
+      version: 1,
     },
     {
       id: "expense-supplies-june",
@@ -182,6 +183,7 @@ const refundPageData: RefundPageData = {
       payerMemberId: "member-kai",
       reimbursementStatus: "refundable",
       status: "active",
+      version: 1,
     },
   ],
   refundRecords: [
@@ -210,6 +212,7 @@ const refundPageData: RefundPageData = {
           payerMemberId: "member-mei",
           reimbursementStatus: "reimbursed",
           status: "active",
+          version: 2,
         },
       ],
     },

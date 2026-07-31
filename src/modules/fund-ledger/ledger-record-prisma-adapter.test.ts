@@ -20,6 +20,7 @@ describe("ledger record Prisma adapter", () => {
       reimbursementStatus: "not_applicable",
       status: "active",
       note: null,
+      version: 4,
     })).toEqual({
       id: "income-rent-june",
       type: "income",
@@ -31,6 +32,7 @@ describe("ledger record Prisma adapter", () => {
       sourceMemberId: "member-mei",
       reimbursementStatus: "not_applicable",
       status: "active",
+      version: 4,
     });
   });
 
@@ -48,6 +50,7 @@ describe("ledger record Prisma adapter", () => {
       reimbursementStatus: "not_applicable",
       status: "active",
       note: null,
+      version: 1,
     })).toEqual({
       id: "expense-fund-june",
       type: "expense",
@@ -59,6 +62,7 @@ describe("ledger record Prisma adapter", () => {
       paymentSource: "fund",
       reimbursementStatus: "not_refundable",
       status: "active",
+      version: 1,
     });
   });
 
@@ -77,6 +81,7 @@ describe("ledger record Prisma adapter", () => {
       reimbursementStatus: "not_applicable",
       status: "active",
       note: null,
+      version: 2,
       recurringOccurrence: {
         recurringRule: {
           dayOfMonth: 5,
@@ -87,6 +92,7 @@ describe("ledger record Prisma adapter", () => {
     })).toMatchObject({
       id: "income-rent-june",
       recurringEventLabel: "每月 5 號，提醒入帳",
+      version: 2,
     });
   });
 });

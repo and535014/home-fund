@@ -1,6 +1,8 @@
 import type {
   ExpenseLedgerRecord,
   LedgerRecord,
+  PersistedExpenseLedgerRecord,
+  PersistedLedgerRecord,
   ReimbursementStatus,
 } from "./ledger-records";
 import { recurringEventLabel } from "@/modules/recurring/recurring-event-label";
@@ -27,6 +29,7 @@ export type PrismaLedgerRecordRow = {
   reimbursementStatus: ReimbursementStatus;
   status: LedgerRecord["status"];
   note: string | null;
+  version: number;
   recurringOccurrence?: RecurringOccurrenceTraceRow | null;
 };
 
@@ -35,11 +38,11 @@ export type PrismaExpenseLedgerRecordRow = Omit<
   "sourceMemberId"
 >;
 
-export type VersionedPrismaLedgerRecordRow = PrismaLedgerRecordRow & {
+export type ConcurrencyPrismaLedgerRecordRow = PrismaLedgerRecordRow & {
   updatedAt: Date;
 };
 
-export type VersionedPrismaExpenseLedgerRecordRow =
+export type ConcurrencyPrismaExpenseLedgerRecordRow =
   PrismaExpenseLedgerRecordRow & {
     updatedAt: Date;
   };
@@ -58,6 +61,7 @@ export const prismaLedgerRecordSelect = {
   reimbursementStatus: true,
   status: true,
   note: true,
+  version: true,
   recurringOccurrence: {
     select: {
       recurringRule: {
@@ -84,21 +88,22 @@ export const prismaExpenseLedgerRecordSelect = {
   reimbursementStatus: true,
   status: true,
   note: true,
+  version: true,
 } as const;
 
-export const versionedPrismaLedgerRecordSelect = {
+export const concurrencyPrismaLedgerRecordSelect = {
   ...prismaLedgerRecordSelect,
   updatedAt: true,
 } as const;
 
-export const versionedPrismaExpenseLedgerRecordSelect = {
+export const concurrencyPrismaExpenseLedgerRecordSelect = {
   ...prismaExpenseLedgerRecordSelect,
   updatedAt: true,
 } as const;
 
 export function mapPrismaLedgerRecordToLedgerRecord(
   record: PrismaLedgerRecordRow,
-): LedgerRecord {
+): PersistedLedgerRecord {
   const base = baseLedgerRecordFields(record);
 
   if (record.type === "income") {
@@ -123,7 +128,7 @@ export function mapPrismaLedgerRecordToLedgerRecord(
 
 export function mapPrismaExpenseLedgerRecordToExpenseLedgerRecord(
   record: PrismaExpenseLedgerRecordRow,
-): ExpenseLedgerRecord {
+): PersistedExpenseLedgerRecord {
   return {
     ...baseLedgerRecordFields(record),
     type: "expense",
@@ -144,6 +149,7 @@ function baseLedgerRecordFields(record: {
   createdByMemberId: string;
   status: LedgerRecord["status"];
   note: string | null;
+  version: number;
   recurringOccurrence?: RecurringOccurrenceTraceRow | null;
 }) {
   return {
@@ -154,6 +160,7 @@ function baseLedgerRecordFields(record: {
     categoryId: record.categoryId,
     createdByMemberId: record.createdByMemberId,
     status: record.status,
+    version: record.version,
     ...(record.note ? { note: record.note } : {}),
     ...(record.recurringOccurrence
       ? {

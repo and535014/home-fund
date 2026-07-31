@@ -2,6 +2,8 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireAuthenticatedMember } from "@/auth/app-access";
 import { getPrismaClient } from "@/db/prisma";
+import { batchDeleteLedgerRecordsInDatabase } from "@/modules/fund-ledger/ledger-record-batch-command";
+import { LedgerRecordMutationConflictError } from "@/modules/fund-ledger/ledger-record-command";
 import {
   batchDeleteSearchRecordsAction,
   batchRefundSearchRecordsAction,
@@ -26,6 +28,10 @@ vi.mock("@/auth/app-access", () => ({
 
 vi.mock("@/db/prisma", () => ({
   getPrismaClient: vi.fn(),
+}));
+
+vi.mock("@/modules/fund-ledger/ledger-record-batch-command", () => ({
+  batchDeleteLedgerRecordsInDatabase: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -115,27 +121,11 @@ describe("loadRecordSearchPageAction", () => {
 
 describe("batchDeleteSearchRecordsAction", () => {
   it("rejects the whole batch when a record version changed after validation", async () => {
-    const tx = {
-      ledgerRecord: {
-        findMany: vi.fn(async () => [
-          {
-            ...ledgerRecordRow({ id: "expense-1", type: "expense" }),
-            updatedAt: new Date("2026-07-02T01:00:00.000Z"),
-          },
-          {
-            ...ledgerRecordRow({ id: "expense-2", type: "expense" }),
-            updatedAt: new Date("2026-07-02T02:00:00.000Z"),
-          },
-        ]),
-        updateMany: vi.fn(async () => ({ count: 1 })),
-      },
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) =>
-        callback(tx),
-      ),
-    };
+    const prisma = {};
     vi.mocked(getPrismaClient).mockReturnValue(prisma as never);
+    vi.mocked(batchDeleteLedgerRecordsInDatabase).mockRejectedValueOnce(
+      new LedgerRecordMutationConflictError(),
+    );
 
     await expect(batchDeleteSearchRecordsAction([
       "expense-1",
@@ -144,25 +134,14 @@ describe("batchDeleteSearchRecordsAction", () => {
         ok: false,
         code: "record_changed",
       });
-    expect(tx.ledgerRecord.updateMany).toHaveBeenCalledWith({
-      where: {
+    expect(batchDeleteLedgerRecordsInDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "member-fin" }),
+      { selectedRecordIds: ["expense-1", "expense-2"] },
+      {
+        prisma,
         householdId: "household-demo",
-        status: "active",
-        OR: [
-          {
-            id: "expense-1",
-            updatedAt: new Date("2026-07-02T01:00:00.000Z"),
-          },
-          {
-            id: "expense-2",
-            updatedAt: new Date("2026-07-02T02:00:00.000Z"),
-          },
-        ],
       },
-      data: {
-        status: "voided",
-      },
-    });
+    );
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
@@ -299,6 +278,7 @@ describe("batchRefundSearchRecordsAction", () => {
       },
       data: {
         reimbursementStatus: "reimbursed",
+        version: { increment: 1 },
       },
     });
     expect(revalidatePath).toHaveBeenCalledWith("/");
