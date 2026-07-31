@@ -8,17 +8,13 @@ import {
 import { actionSuccessWithRevalidation } from "@/app/server-action-adapter";
 import { getPrismaClient } from "@/db/prisma";
 import {
-  mapPrismaLedgerRecordToLedgerRecord,
-  concurrencyPrismaLedgerRecordSelect,
-} from "@/modules/fund-ledger/ledger-record-prisma-adapter";
-import {
   LedgerRecordMutationConflictError,
 } from "@/modules/fund-ledger/ledger-record-command";
 import type { LedgerRecord } from "@/modules/fund-ledger/ledger-records";
 import {
-  batchDeleteLedgerRecords,
   type BatchDeleteSkippedRecord,
 } from "@/modules/fund-ledger/ledger-record-batch-actions";
+import { batchDeleteLedgerRecordsInDatabase } from "@/modules/fund-ledger/ledger-record-batch-command";
 import {
   type BatchReimbursementSkippedRecord,
 } from "@/modules/reimbursement/reimbursement-batch-actions";
@@ -200,51 +196,14 @@ export async function batchDeleteSearchRecordsAction(
   }
 
   try {
-    const prisma = getPrismaClient();
-
-    const result = await prisma.$transaction(async (tx) => {
-      const rows = await tx.ledgerRecord.findMany({
-        where: {
-          householdId: session.access.member.householdId,
-          id: {
-            in: selectedRecordIds,
-          },
-        },
-        select: concurrencyPrismaLedgerRecordSelect,
-      });
-      const domainResult = batchDeleteLedgerRecords(
-        session.access.member,
-        rows.map(mapPrismaLedgerRecordToLedgerRecord),
-        { selectedRecordIds },
-      );
-
-      if (!domainResult.ok) {
-        return domainResult;
-      }
-
-      const processedIds = new Set(
-        domainResult.processedRecords.map((record) => record.id),
-      );
-      const update = await tx.ledgerRecord.updateMany({
-        where: {
-          householdId: session.access.member.householdId,
-          status: "active",
-          OR: rows
-            .filter((row) => processedIds.has(row.id))
-            .map((row) => ({ id: row.id, updatedAt: row.updatedAt })),
-        },
-        data: {
-          status: "voided",
-          version: { increment: 1 },
-        },
-      });
-
-      if (update.count !== domainResult.processedRecords.length) {
-        throw new LedgerRecordMutationConflictError();
-      }
-
-      return domainResult;
-    });
+    const result = await batchDeleteLedgerRecordsInDatabase(
+      session.access.member,
+      { selectedRecordIds },
+      {
+        prisma: getPrismaClient(),
+        householdId: session.access.member.householdId,
+      },
+    );
 
     if (!result.ok) {
       return batchSearchRecordActionError(

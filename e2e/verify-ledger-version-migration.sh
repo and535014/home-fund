@@ -80,8 +80,16 @@ version_contract=$(docker compose exec -T postgres psql -U postgres -d "${contra
   -c "SELECT CASE WHEN is_nullable = 'NO' AND column_default = '1' THEN 'ok' ELSE 'failed' END FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'LedgerRecord' AND column_name = 'version';")
 [ "${version_contract}" = "ok" ]
 
+if docker compose exec -T postgres psql -U postgres -d "${contract_database}" -v ON_ERROR_STOP=1 \
+  -c "INSERT INTO \"LedgerRecord\" (\"id\", \"householdId\", \"type\", \"name\", \"amountCents\", \"occurredOn\", \"categoryId\", \"createdByMemberId\", \"paymentSource\", \"reimbursementStatus\", \"status\", \"version\", \"updatedAt\") VALUES ('invalid-version-record', 'legacy-household', 'expense', 'Invalid version', 100, DATE '2026-07-01', 'legacy-category', 'legacy-member', 'fund', 'not_refundable', 'active', 0, CURRENT_TIMESTAMP);" \
+  >/dev/null 2>&1; then
+  echo "LedgerRecord accepted a non-positive version" >&2
+  exit 1
+fi
+
 docker compose exec -T postgres psql -U postgres -d "${contract_database}" -v ON_ERROR_STOP=1 \
   -c "INSERT INTO \"LedgerRecord\" (\"id\", \"householdId\", \"type\", \"name\", \"amountCents\", \"occurredOn\", \"categoryId\", \"createdByMemberId\", \"paymentSource\", \"reimbursementStatus\", \"status\", \"updatedAt\") VALUES ('old-app-record', 'legacy-household', 'expense', 'Old app expense', 1800, DATE '2026-07-02', 'legacy-category', 'legacy-member', 'fund', 'not_refundable', 'active', CURRENT_TIMESTAMP);"
+# Migration-first rollout 期間的舊版 app 不知道 version；C2.2 必須等待所有寫入 instance 升級後才啟用版本條件寫入。
 docker compose exec -T postgres psql -U postgres -d "${contract_database}" -v ON_ERROR_STOP=1 \
   -c "UPDATE \"LedgerRecord\" SET \"name\" = 'Legacy expense corrected', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = 'legacy-record';"
 
