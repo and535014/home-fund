@@ -15,3 +15,7 @@ src/generated/
 .superpowers/
 __pycache__/
 *.pyc
+
+# Production database backup artifacts must never be committed.
+home-fund-production-pre-*.dump*
+home-fund-production-pre-*.metadata.json

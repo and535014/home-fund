@@ -1,0 +1,128 @@
+name: Backup Production DB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Production version tag this pre-deploy backup protects, for example v1.2.3"
+        required: true
+        type: string
+
+concurrency:
+  group: production-db-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Backup Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source_commit: ${{ steps.source.outputs.source_commit }}
+      version: ${{ steps.source.outputs.version }}
+
+    steps:
+      - name: Validate version input
+        env:
+          VERSION_TAG: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid production version: $VERSION_TAG" >&2
+            echo "Use a tag in vX.X.X format, for example v1.2.3." >&2
+            exit 1
+          fi
+
+      - name: Checkout version tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Fetch main and tags
+        run: git fetch origin main:refs/remotes/origin/main --tags --force
+
+      - name: Verify release source
+        id: source
+        env:
+          VERSION_TAG: ${{ inputs.version }}
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          tag_version="${VERSION_TAG#v}"
+
+          if [ "$package_version" != "$tag_version" ]; then
+            echo "Version mismatch: tag $VERSION_TAG expects package.json version $tag_version, found $package_version." >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "Tag $VERSION_TAG is not contained in origin/main." >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION_TAG" >>"$GITHUB_OUTPUT"
+          echo "source_commit=$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+
+  backup-production:
+    name: Backup and Restore Rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - preflight
+    environment: production
+
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.DATABASE_BACKUP_URL }}
+      BACKUP_GPG_PUBLIC_KEY: ${{ secrets.BACKUP_GPG_PUBLIC_KEY }}
+      BACKUP_GPG_RECIPIENT_FINGERPRINT: ${{ vars.BACKUP_GPG_RECIPIENT_FINGERPRINT }}
+      POSTGRES_MAJOR: ${{ vars.PRODUCTION_POSTGRES_MAJOR }}
+      TARGET_VERSION: ${{ needs.preflight.outputs.version }}
+      SOURCE_COMMIT: ${{ needs.preflight.outputs.source_commit }}
+
+    steps:
+      - name: Checkout version tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.preflight.outputs.version }}
+          fetch-depth: 0
+
+      - name: Create and verify encrypted backup
+        id: backup
+        env:
+          BACKUP_OUTPUT_DIR: ${{ runner.temp }}/production-db-backup
+        run: bash scripts/backup-production-db.sh
+
+      - name: Upload encrypted backup
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.backup.outputs.backup_id }}
+          path: ${{ runner.temp }}/production-db-backup/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+      - name: Summarize verified backup
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          BACKUP_ID: ${{ steps.backup.outputs.backup_id }}
+          ENCRYPTED_SHA256: ${{ steps.backup.outputs.encrypted_sha256 }}
+          SOURCE_COMMIT: ${{ needs.preflight.outputs.source_commit }}
+          VERSION_TAG: ${{ needs.preflight.outputs.version }}
+        run: |
+          {
+            echo "## Verified production database backup"
+            echo
+            echo "- Backup ID: \`$BACKUP_ID\`"
+            echo "- Protected version: \`$VERSION_TAG\`"
+            echo "- Source commit: \`$SOURCE_COMMIT\`"
+            echo "- Encrypted SHA-256: \`$ENCRYPTED_SHA256\`"
+            echo "- Restore rehearsal: passed"
+            echo "- Core data fingerprint: matched"
+            echo "- Artifact retention: 3 days"
+            echo "- Artifact: $ARTIFACT_URL"
+            echo
+            echo "Download the artifact, verify its checksum, store it in the approved private cloud location, and record this run in the release PR before approving production deployment."
+          } >>"$GITHUB_STEP_SUMMARY"
