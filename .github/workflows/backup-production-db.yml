@@ -120,7 +120,7 @@ jobs:
             echo "- Source commit: \`$SOURCE_COMMIT\`"
             echo "- Encrypted SHA-256: \`$ENCRYPTED_SHA256\`"
             echo "- Restore rehearsal: passed"
-            echo "- Core data fingerprint: matched"
+            echo "- Restore comparison: core table counts and selected updatedAt high-water timestamps matched"
             echo "- Artifact retention: 3 days"
             echo "- Artifact: $ARTIFACT_URL"
             echo

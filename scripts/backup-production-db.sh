@@ -161,9 +161,9 @@ docker run --rm \
 
 test -s "$plain_dump" || fail "pg_dump produced an empty file."
 
-fingerprint_sql='SELECT concat_ws('"'"'|'"'"', (SELECT count(*)::text FROM "Household"), (SELECT count(*)::text FROM "Member"), (SELECT count(*)::text FROM "Category"), (SELECT count(*)::text FROM "LedgerRecord"), (SELECT count(*)::text FROM "RecurringRule"), (SELECT count(*)::text FROM "RecurringOccurrence"), (SELECT count(*)::text FROM "ReimbursementPayment"), (SELECT count(*)::text FROM "_prisma_migrations"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Household"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Member"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "LedgerRecord"));'
+restore_comparison_sql='SELECT concat_ws('"'"'|'"'"', (SELECT count(*)::text FROM "Household"), (SELECT count(*)::text FROM "Member"), (SELECT count(*)::text FROM "Category"), (SELECT count(*)::text FROM "LedgerRecord"), (SELECT count(*)::text FROM "RecurringRule"), (SELECT count(*)::text FROM "RecurringOccurrence"), (SELECT count(*)::text FROM "ReimbursementPayment"), (SELECT count(*)::text FROM "_prisma_migrations"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Household"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Member"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "LedgerRecord"));'
 
-source_fingerprint="$(
+source_restore_comparison="$(
   docker run --rm \
     --env "PGDATABASE=$BACKUP_DATABASE_URL" \
     "$postgres_image" \
@@ -173,7 +173,7 @@ source_fingerprint="$(
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --command "$fingerprint_sql"
+    --command "$restore_comparison_sql"
 )"
 
 rehearsal_password="$(openssl rand -hex 24)"
@@ -264,7 +264,7 @@ printf '%s\n' "$validation_sql" |
     --set ON_ERROR_STOP=1 \
     --file - >/dev/null
 
-restored_fingerprint="$(
+restored_restore_comparison="$(
   docker run --rm \
     --network "$docker_network" \
     --env "PGPASSWORD=$rehearsal_password" \
@@ -278,11 +278,11 @@ restored_fingerprint="$(
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --command "$fingerprint_sql"
+    --command "$restore_comparison_sql"
 )"
 
-if [ "$source_fingerprint" != "$restored_fingerprint" ]; then
-  fail "Core table counts or high-water timestamps changed during backup or did not restore exactly."
+if [ "$source_restore_comparison" != "$restored_restore_comparison" ]; then
+  fail "Core table counts or selected updatedAt high-water timestamps changed during backup or did not restore exactly."
 fi
 
 backup_id="home-fund-production-pre-${TARGET_VERSION}-${timestamp}"
@@ -319,7 +319,10 @@ cat >"$metadata_file" <<EOF
   "gpgRecipientFingerprint": "$expected_fingerprint",
   "encryptedSha256": "$encrypted_sha256",
   "restoreRehearsal": "passed",
-  "coreDataFingerprint": "matched"
+  "restoreComparison": {
+    "status": "matched",
+    "scope": "core table counts and selected updatedAt high-water timestamps"
+  }
 }
 EOF
 

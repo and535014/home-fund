@@ -132,6 +132,9 @@ reviewers，必須把這項限制列為未解風險，不得宣稱已有人工�
    - 檢查核心 tables、Prisma migration 狀態、核心 row counts 與 high-water timestamps。
    - 用設定的 GPG public key 加密。
    - 產生 encrypted SHA-256、metadata 與 3 天期 GitHub artifact。
+   Restore comparison 只比對核心 table counts，以及 `Household`、`Member`、
+   `LedgerRecord` 的 `updatedAt` high-water timestamps；它不是完整 row-content hash，
+   不得作為所有資料內容逐列一致的證明。
 7. 下載 artifact，在信任的電腦執行：
 
 ```sh
@@ -244,6 +247,11 @@ unset RECOVERY_DATABASE_URL
 只要發現 backup 後有新增或修改，立即停止切換。先設計並驗證資料差異搬移，或由操作者
 明確接受資料損失並留下 release／incident evidence；runbook 不會自動捨棄差異資料。
 
+目前流程不提供隔離 app target，因此上述 database checks 無法在切換前證明目標 app 的
+Google 登入、角色權限與主要記帳讀取都能正常運作。這是本流程已知的操作風險；操作者
+必須在 incident evidence 明確記錄並接受應用相容性只能在 connection cutover 後驗證，
+否則不得繼續。從 cutover 開始到 post-cutover smoke 全部通過前，家庭成員仍須停止寫入。
+
 ### 7. 切換 Connection Strings
 
 依序更新：
@@ -277,6 +285,10 @@ unset RECOVERY_DATABASE_URL
 - Vercel runtime logs 沒有持續 database／migration 錯誤。
 
 全部通過後才通知家庭成員恢復寫入。
+
+若任一 smoke 失敗，維持停止寫入，不得自動切回可能已損壞的事故 database。保留事故
+database 與 recovery database，調查 app／schema／權限相容性後採安全的 forward fix，
+或重新執行 recovery 決策流程。
 
 ### 10. 收尾
 

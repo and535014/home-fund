@@ -75,8 +75,8 @@ v0.1.10
 2. 通知家庭成員暫停寫入，並避開台灣時間 00:15 recurring posting cron。
 3. 執行 `Backup Production DB` workflow，輸入同一個 production tag。
 4. 核准 backup run，不要誤核准另一個等待中的 deploy run。
-5. 確認 workflow summary 顯示 restore rehearsal、core data fingerprint 與 GPG
-   encryption 成功。
+5. 確認 workflow summary 顯示 restore rehearsal、核心 table counts 與指定
+   `updatedAt` high-water timestamps comparison，以及 GPG encryption 全部成功。
 6. 下載 encrypted artifact，在本機驗證 SHA-256，再把 `.dump.gpg`、
    `.sha256`、`.metadata.json` 存入私人雲端。
 7. 在 release PR comment 記錄 backup ID、workflow run URL、rehearsal 結果、
