@@ -276,6 +276,7 @@ restored_restore_comparison="$(
   docker run --rm \
     --network "$docker_network" \
     --env "PGPASSWORD=$rehearsal_password" \
+    --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
     psql \
     --no-psqlrc \
