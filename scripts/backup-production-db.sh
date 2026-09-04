@@ -35,6 +35,13 @@ for command_name in awk date docker gpg gpgconf openssl sha256sum tr; do
   require_command "$command_name"
 done
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+restore_comparison_sql_file="$script_dir/database-restore-comparison.sql"
+
+if [ ! -f "$restore_comparison_sql_file" ]; then
+  fail "database-restore-comparison.sql is required beside this script."
+fi
+
 if ! [[ "$TARGET_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   fail "TARGET_VERSION must use strict vX.Y.Z format."
 fi
@@ -161,11 +168,10 @@ docker run --rm \
 
 test -s "$plain_dump" || fail "pg_dump produced an empty file."
 
-restore_comparison_sql='SELECT concat_ws('"'"'|'"'"', (SELECT count(*)::text FROM "Household"), (SELECT count(*)::text FROM "Member"), (SELECT count(*)::text FROM "Category"), (SELECT count(*)::text FROM "LedgerRecord"), (SELECT count(*)::text FROM "RecurringRule"), (SELECT count(*)::text FROM "RecurringOccurrence"), (SELECT count(*)::text FROM "ReimbursementPayment"), (SELECT count(*)::text FROM "_prisma_migrations"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Household"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "Member"), (SELECT coalesce(max("updatedAt")::text, '"'"''"'"') FROM "LedgerRecord"));'
-
 source_restore_comparison="$(
   docker run --rm \
     --env "PGDATABASE=$BACKUP_DATABASE_URL" \
+    --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
     psql \
     --no-psqlrc \
@@ -173,7 +179,8 @@ source_restore_comparison="$(
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --command "$restore_comparison_sql"
+    --file=/backup/restore-comparison.sql |
+    tr -d '\r\n'
 )"
 
 rehearsal_password="$(openssl rand -hex 24)"
@@ -254,6 +261,7 @@ printf '%s\n' "$validation_sql" |
   docker run --rm --interactive \
     --network "$docker_network" \
     --env "PGPASSWORD=$rehearsal_password" \
+    --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
     psql \
     --no-psqlrc \
@@ -278,12 +286,19 @@ restored_restore_comparison="$(
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --command "$restore_comparison_sql"
+    --file=/backup/restore-comparison.sql |
+    tr -d '\r\n'
 )"
 
 if [ "$source_restore_comparison" != "$restored_restore_comparison" ]; then
   fail "Core table counts or selected updatedAt high-water timestamps changed during backup or did not restore exactly."
 fi
+
+restore_comparison_sha256="$(
+  printf '%s' "$source_restore_comparison" |
+    sha256sum |
+    awk '{print $1}'
+)"
 
 backup_id="home-fund-production-pre-${TARGET_VERSION}-${timestamp}"
 encrypted_file="$BACKUP_OUTPUT_DIR/${backup_id}.dump.gpg"
@@ -321,7 +336,8 @@ cat >"$metadata_file" <<EOF
   "restoreRehearsal": "passed",
   "restoreComparison": {
     "status": "matched",
-    "scope": "core table counts and selected updatedAt high-water timestamps"
+    "scope": "core table counts and selected updatedAt high-water timestamps",
+    "sha256": "$restore_comparison_sha256"
   }
 }
 EOF
@@ -333,6 +349,7 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "checksum_file=$checksum_file"
     echo "metadata_file=$metadata_file"
     echo "encrypted_sha256=$encrypted_sha256"
+    echo "restore_comparison_sha256=$restore_comparison_sha256"
   } >>"$GITHUB_OUTPUT"
 fi
 

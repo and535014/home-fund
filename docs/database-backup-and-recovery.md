@@ -125,13 +125,15 @@ reviewers，必須把這項限制列為未解風險，不得宣稱已有人工�
 3. 到 GitHub Actions 執行 `Backup Production DB`，輸入同一個 `vX.Y.Z` tag。
 4. 確認 backup preflight 驗證 tag、`package.json.version`、`main` ancestry 都通過。
 5. 核准這次 backup run 的 `production` environment job。不要誤核准仍在等待的 deploy
-   run。
+   run。Job 會 checkout preflight 驗證過的 commit SHA，並在取得 production access 後
+   再次確認 tag 仍指向同一個 commit；tag 已移動或消失時必須停止。
 6. Workflow 必須全部成功：
    - 使用 matching PostgreSQL major 的 `pg_dump --format=custom --no-owner --no-acl`。
    - 將 dump 還原到一次性 PostgreSQL container。
    - 檢查核心 tables、Prisma migration 狀態、核心 row counts 與 high-water timestamps。
    - 用設定的 GPG public key 加密。
-   - 產生 encrypted SHA-256、metadata 與 3 天期 GitHub artifact。
+   - 產生 encrypted SHA-256、restore comparison SHA-256、metadata 與 3 天期
+     GitHub artifact。
    Restore comparison 只比對核心 table counts，以及 `Household`、`Member`、
    `LedgerRecord` 的 `updatedAt` high-water timestamps；它不是完整 row-content hash，
    不得作為所有資料內容逐列一致的證明。
@@ -144,7 +146,8 @@ shasum -a 256 -c home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump.gpg.sha25
 8. 將 `.dump.gpg`、`.sha256` 與 `.metadata.json` 一起保存到核准的私人雲端位置。
    GitHub artifact 只是 3 天期交付管道，不是正式保存位置。
 9. 在 release PR comment 記錄 backup ID、backup workflow run URL、restore rehearsal
-   結果、操作者與 checksum。不要記錄私人雲端路徑、connection string 或 key material。
+   結果、操作者、encrypted SHA-256 與 restore comparison SHA-256。不要記錄私人雲端
+   路徑、connection string 或 key material。
 10. 確認 artifact 已保存且 release evidence 完整後，才核准等待中的 production deploy。
 
 Backup workflow 任一步驟失敗時，不得核准 deployment。先修正 read privileges、
@@ -223,8 +226,10 @@ URL 以不回顯方式讀入目前 shell，避免放進 shell history：
 ```sh
 read -r -s RECOVERY_DATABASE_URL
 echo
-PGDATABASE="$RECOVERY_DATABASE_URL" pg_restore \
+pg_restore \
+  --dbname="$RECOVERY_DATABASE_URL" \
   --exit-on-error \
+  --no-password \
   --no-owner \
   --no-acl \
   home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump
@@ -236,12 +241,64 @@ unset RECOVERY_DATABASE_URL
 
 ### 6. 切換前驗證
 
-在 recovery database 確認：
+先在受信任、乾淨的 repository checkout 中，將 `<metadata-file>` 換成實際 metadata
+檔名。以下步驟會切到 metadata 記錄的 source commit，並以該版本的 comparison SQL
+重算 recovery database digest：
+
+```sh
+BACKUP_METADATA_FILE="<metadata-file>"
+SOURCE_COMMIT="$(
+  node -e '
+    const fs = require("fs");
+    const metadata = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (!/^[0-9a-f]{40}$/.test(metadata.sourceCommit)) process.exit(1);
+    process.stdout.write(metadata.sourceCommit);
+  ' "$BACKUP_METADATA_FILE"
+)"
+EXPECTED_RESTORE_COMPARISON_SHA256="$(
+  node -e '
+    const fs = require("fs");
+    const metadata = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const digest = metadata.restoreComparison?.sha256;
+    if (!/^[0-9a-f]{64}$/.test(digest)) process.exit(1);
+    process.stdout.write(digest);
+  ' "$BACKUP_METADATA_FILE"
+)"
+
+git switch --detach "$SOURCE_COMMIT"
+test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+
+read -r -s RECOVERY_DATABASE_URL
+echo
+ACTUAL_RESTORE_COMPARISON_SHA256="$(
+  psql \
+    --dbname="$RECOVERY_DATABASE_URL" \
+    --no-psqlrc \
+    --no-password \
+    --tuples-only \
+    --no-align \
+    --set ON_ERROR_STOP=1 \
+    --file scripts/database-restore-comparison.sql |
+    tr -d '\r\n' |
+    shasum -a 256 |
+    awk '{print $1}'
+)"
+unset RECOVERY_DATABASE_URL
+
+test "$ACTUAL_RESTORE_COMPARISON_SHA256" = \
+  "$EXPECTED_RESTORE_COMPARISON_SHA256"
+```
+
+任何指令失敗或 digest 不一致都必須停止，不得切換 connection strings。Comparison
+只證明既定 counts／selected high-water timestamps 與 backup metadata 相符，不代表完整
+row-content hash。
+
+接著在 recovery database 確認：
 
 - `_prisma_migrations` 不存在 `finished_at IS NULL AND rolled_back_at IS NULL` 的紀錄。
 - `Household`、`Member`、`Category`、`LedgerRecord`、`RecurringRule`、
   `RecurringOccurrence`、`ReimbursementPayment` 等核心 tables 存在。
-- 核心 table counts 與 `updatedAt` high-water timestamps 符合 backup 時點。
+- Restore comparison SHA-256 已符合 backup metadata。
 - Accident database 與 recovery database 之間沒有未處理的 post-backup writes。
 
 只要發現 backup 後有新增或修改，立即停止切換。先設計並驗證資料差異搬移，或由操作者

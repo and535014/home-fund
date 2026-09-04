@@ -240,6 +240,8 @@ v1.2.3
    前等待，另外執行 `Backup Production DB`：
    - 通知家庭成員暫停寫入，並避開 recurring posting cron。
    - 輸入同一個 `vX.Y.Z` tag。
+   - Backup job checkout preflight 驗證過的 commit SHA，並在 production access 前
+     再次確認 tag 未移動；不一致時停止。
    - 等 backup、restore rehearsal、GPG encryption 與 checksum 全部成功。
    - 下載 3 天期 encrypted artifact，存入私人雲端並補齊 release evidence。
 6. 確認 backup gate 完成後，GitHub Environment `production` 等待 reviewer
