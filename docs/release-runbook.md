@@ -81,8 +81,9 @@ v0.1.10
    encryption 全部成功。
 6. 下載 encrypted artifact，在本機驗證 SHA-256，再把 `.dump.gpg`、
    `.sha256`、`.metadata.json` 存入私人雲端。
-7. 在 release PR comment 記錄 backup ID、workflow run URL、rehearsal 結果、
-   checksum 與操作者。
+7. 在 release PR comment 記錄 backup ID、workflow run URL、source commit、rehearsal
+   結果、encrypted SHA-256、restore comparison SHA-256 與操作者。Recovery 時必須用
+   這份 GitHub evidence 驗證私人雲端 bundle，不得只相信 bundle 內附的 metadata。
 
 Backup 任一步驟失敗、artifact 尚未外部保存，或 evidence 未補齊時，
 不得核准 production deployment。完整命名、retention 與失敗處理見
@@ -142,8 +143,8 @@ PR 或 PR comment 至少應保留：
 - GitHub Actions run URL。
 - Vercel deployment URL 和 production alias。
 - migration 結果。
-- 若含 migration：backup ID、backup workflow run URL、restore rehearsal 與
-  encrypted SHA-256。
+- 若含 migration：backup ID、backup workflow run URL、source commit、restore rehearsal、
+  encrypted SHA-256 與 restore comparison SHA-256。
 - automated smoke 結果。
 - 手動 smoke 結果。
 - rollback path。

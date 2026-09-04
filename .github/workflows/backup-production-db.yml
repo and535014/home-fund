@@ -142,5 +142,5 @@ jobs:
             echo "- Artifact retention: 3 days"
             echo "- Artifact: $ARTIFACT_URL"
             echo
-            echo "Download the artifact, verify its checksum, store it in the approved private cloud location, and record this run in the release PR before approving production deployment."
+            echo "Download the artifact, verify its checksum, store it in the approved private cloud location, and copy the backup ID, source commit, encrypted SHA-256, and restore comparison SHA-256 to the release PR before approving production deployment."
           } >>"$GITHUB_STEP_SUMMARY"

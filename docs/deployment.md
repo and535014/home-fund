@@ -351,8 +351,9 @@ E2E fixture 只允許放在 `prisma/seed.e2e.sql`，並只在 E2E 專用 databas
 每次 production deploy 後，不再新增 `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`。
 發版 PR、GitHub Actions run、Vercel deployment 頁面和 PR comment 是 release
 evidence 的主要紀錄來源。含 migration 的 release 還必須記錄 backup ID、backup
-workflow run、restore rehearsal 與 encrypted checksum；不得記錄備份位置或 key
-material。
+workflow run、source commit、restore rehearsal、encrypted SHA-256 與 restore comparison
+SHA-256；recovery 時以這份 GitHub evidence 交叉驗證私人雲端 bundle。不得記錄備份位置
+或 key material。
 
 ## Troubleshooting
 

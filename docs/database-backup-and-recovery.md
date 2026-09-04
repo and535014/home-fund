@@ -145,9 +145,10 @@ shasum -a 256 -c home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump.gpg.sha25
 
 8. 將 `.dump.gpg`、`.sha256` 與 `.metadata.json` 一起保存到核准的私人雲端位置。
    GitHub artifact 只是 3 天期交付管道，不是正式保存位置。
-9. 在 release PR comment 記錄 backup ID、backup workflow run URL、restore rehearsal
-   結果、操作者、encrypted SHA-256 與 restore comparison SHA-256。不要記錄私人雲端
-   路徑、connection string 或 key material。
+9. 在 release PR comment 記錄 backup ID、backup workflow run URL、source commit、
+   restore rehearsal 結果、操作者、encrypted SHA-256 與 restore comparison SHA-256。
+   這份 GitHub evidence 是 recovery 時獨立於私人雲端 bundle 的可信比對來源；不要記錄
+   私人雲端路徑、connection string 或 key material。
 10. 確認 artifact 已保存且 release evidence 完整後，才核准等待中的 production deploy。
 
 Backup workflow 任一步驟失敗時，不得核准 deployment。先修正 read privileges、
@@ -181,7 +182,9 @@ Workflow failure 本身不是 database rollback trigger：
 
 - 事故中的 production tag 與 commit。
 - 最後一個已驗證成功的 production tag。
-- 要使用的 backup ID、checksum 與 workflow run。
+- 從原始 GitHub workflow summary／release PR evidence 取得要使用的 backup ID、
+  source commit、encrypted SHA-256、restore comparison SHA-256 與 workflow run；
+  不得只從私人雲端 bundle 內的 metadata 或 checksum file 取得這些期望值。
 - Migration 是否開始、完成或部分執行。
 - Backup 完成後是否可能存在新的 writes。
 
@@ -206,17 +209,45 @@ Workflow failure 本身不是 database rollback trigger：
 
 ### 4. 驗證並解密 backup
 
-在有 GPG private key、磁碟加密且受信任的操作者電腦執行：
+先從原始 GitHub workflow summary／release PR evidence 複製可信值，再於有 GPG private
+key、磁碟加密且受信任的操作者電腦執行。不要從待驗證的 metadata 回填
+`TRUSTED_*`：
 
 ```sh
-shasum -a 256 -c home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump.gpg.sha256
+BACKUP_ID="home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ"
+BACKUP_METADATA_FILE="${BACKUP_ID}.metadata.json"
+BACKUP_CHECKSUM_FILE="${BACKUP_ID}.dump.gpg.sha256"
+TRUSTED_SOURCE_COMMIT="<GitHub evidence source commit>"
+TRUSTED_ENCRYPTED_SHA256="<GitHub evidence encrypted SHA-256>"
+TRUSTED_RESTORE_COMPARISON_SHA256="<GitHub evidence restore comparison SHA-256>"
+
+test "$(awk '{print $1}' "$BACKUP_CHECKSUM_FILE")" = \
+  "$TRUSTED_ENCRYPTED_SHA256"
+node -e '
+  const fs = require("fs");
+  const [file, backupId, sourceCommit, encryptedSha256, comparisonSha256] =
+    process.argv.slice(1);
+  const metadata = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (
+    metadata.backupId !== backupId ||
+    metadata.sourceCommit !== sourceCommit ||
+    metadata.encryptedSha256 !== encryptedSha256 ||
+    metadata.restoreComparison?.sha256 !== comparisonSha256
+  ) {
+    console.error("Backup metadata does not match trusted GitHub evidence.");
+    process.exit(1);
+  }
+' "$BACKUP_METADATA_FILE" "$BACKUP_ID" "$TRUSTED_SOURCE_COMMIT" \
+  "$TRUSTED_ENCRYPTED_SHA256" "$TRUSTED_RESTORE_COMPARISON_SHA256"
+shasum -a 256 -c "$BACKUP_CHECKSUM_FILE"
 gpg \
-  --output home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump \
-  --decrypt home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump.gpg
+  --output "${BACKUP_ID}.dump" \
+  --decrypt "${BACKUP_ID}.dump.gpg"
 ```
 
-Checksum、GPG fingerprint 或解密任一步驟不符就停止。Plaintext dump 只能短暫存在於
-受信任的加密磁碟，recovery 結束後必須移除。
+Metadata、checksum file 或 encrypted dump 只要有一項與 GitHub evidence 不符就停止；
+不得改用 bundle 內的值覆蓋 `TRUSTED_*`。GPG fingerprint 或解密任一步驟不符也必須
+停止。Plaintext dump 只能短暫存在於受信任的加密磁碟，recovery 結束後必須移除。
 
 ### 5. Restore 至 recovery database
 
