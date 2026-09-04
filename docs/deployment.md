@@ -2,7 +2,9 @@
 
 這份文件說明 Home Family Fund 的 GitHub Actions、Vercel、Neon PostgreSQL、Google OAuth 部署設定。此專案目前**不使用 preview 環境**。
 
-例行發版操作請看 [Release Runbook](release-runbook.md)。本文件保留部署架構、首次設定、環境和 troubleshooting 說明。
+例行發版操作請看 [Release Runbook](release-runbook.md)；production database
+backup 與事故復原請看 [Database Backup and Recovery Runbook](database-backup-and-recovery.md)。
+本文件保留部署架構、首次設定、環境和 troubleshooting 說明。
 
 部署策略：
 
@@ -17,6 +19,8 @@
 - Vercel 負責 Next.js production 部署。
 - Neon PostgreSQL 負責 production 資料庫。
 - Prisma migration 由 GitHub Actions production workflow 執行。
+- 含 migration 的 release 在 production approval 前，由獨立 GitHub Actions workflow
+  建立加密 database backup 並完成 restore rehearsal。
 - Bootstrap seed 是 production database 第一次初始化時的手動一次性步驟，
   用來建立第一個 admin 和預設基準資料；不會在每次 production deploy 自動執行。
 - Google OAuth 只針對 production origin 設定 callback。
@@ -85,7 +89,10 @@ GitHub Actions 是正式部署控制點。不要把 Vercel Git auto-deploy 當�
 3. 複製兩種 connection string：
    - pooled connection string：給 app runtime 的 `DATABASE_URL`
    - unpooled/direct connection string：給 Prisma migration 的 `DATABASE_URL_UNPOOLED`
-4. 確認 production database 有備份或 point-in-time recovery 策略。
+4. 依 [Database Backup and Recovery Runbook](database-backup-and-recovery.md#一次性設定)
+   建立 read-only backup role、GPG key 與 GitHub environment 設定。
+5. 確認 Free plan 的 branch、storage、compute 與 restore window 限制；不要把
+   provider restore 當作外部 backup。
 
 ## 一次性 Google OAuth 設定
 
@@ -121,6 +128,8 @@ VERCEL_PROJECT_ID
 ```text
 DATABASE_URL
 DATABASE_URL_UNPOOLED
+DATABASE_BACKUP_URL
+BACKUP_GPG_PUBLIC_KEY
 BETTER_AUTH_URL
 BETTER_AUTH_SECRET
 CSV_IMPORT_PREVIEW_SECRET
@@ -130,7 +139,19 @@ GOOGLE_CLIENT_SECRET
 CRON_SECRET
 ```
 
+`production` environment variables：
+
+```text
+BACKUP_GPG_RECIPIENT_FINGERPRINT
+PRODUCTION_POSTGRES_MAJOR
+```
+
 `DATABASE_URL` 使用 pooled connection string。`DATABASE_URL_UNPOOLED` 使用 unpooled/direct connection string。
+`DATABASE_BACKUP_URL` 使用專用 read-only role 的 direct connection string，不得使用
+pooled endpoint。`BACKUP_GPG_PUBLIC_KEY` 只放 public key；private key 不得上傳
+GitHub。Fingerprint 與 PostgreSQL major 的設定、驗證步驟以
+[Database Backup and Recovery Runbook](database-backup-and-recovery.md#設定-github-production-environment)
+為準。
 `CSV_IMPORT_PREVIEW_SECRET` 用來簽署 CSV 匯入預覽 token，production 必須設定，不能共用 `BETTER_AUTH_SECRET`。
 `CRON_SECRET` 必須和 Vercel Production runtime 的同名變數一致；舊的 `RECURRING_POSTING_CRON_SECRET` 已不再使用。
 
@@ -215,14 +236,23 @@ v1.2.3
    - 確認 tag 版本和 `package.json.version` 一致
    - 確認 tag commit 包含在 `main`
    - 跑完整 CI
-5. preflight 通過後，GitHub Environment `production` 等待 reviewer 核准。
-6. 核准後 workflow 會：
+5. 若目標 tag 含 migration，保持 deploy run 在 `production` environment approval
+   前等待，另外執行 `Backup Production DB`：
+   - 通知家庭成員暫停寫入，並避開 recurring posting cron。
+   - 輸入同一個 `vX.Y.Z` tag。
+   - Backup job checkout preflight 驗證過的 commit SHA，並在 production access 前
+     再次確認 tag 未移動；不一致時停止。
+   - 等 backup、restore rehearsal、GPG encryption 與 checksum 全部成功。
+   - 下載 3 天期 encrypted artifact，存入私人雲端並補齊 release evidence。
+6. 確認 backup gate 完成後，GitHub Environment `production` 等待 reviewer
+   核准 deployment。
+7. 核准後 workflow 會：
    - checkout `v1.2.3`
    - 建置 Vercel production artifact
    - 對 production database 跑 `corepack pnpm db:deploy`
    - 部署到 Vercel production
    - smoke `/login`、`/favicon.ico`、cron invalid-token `401`
-7. 到 workflow summary 查看 production URL 和 smoke checklist。
+8. 到 workflow summary 查看 production URL 和 smoke checklist。
 
 不要手動移動或重打已 push 的 production tag。若 tag push 後 deploy 失敗，
 修正後用下一個 patch 版號，例如 `v1.2.4`。
@@ -251,7 +281,9 @@ Production migration 只能在 production workflow 裡執行。
 
 不要從本機切 production `DATABASE_URL` 跑 migration。
 
-Destructive migration 前必須先確認 Neon backup/restore 或 point-in-time recovery。
+每個含 migration 的 production tag 都必須在 deployment approval 前完成
+`Backup Production DB`、restore rehearsal、encrypted artifact 外部保存與 release
+evidence。Destructive migration 還必須先明確審查資料損失風險與 recovery plan。
 
 優先使用 backward-compatible migration：
 
@@ -288,13 +320,17 @@ E2E fixture 只允許放在 `prisma/seed.e2e.sql`，並只在 E2E 專用 databas
 
 ## Rollback 和備份
 
-Vercel rollback 只會回復 app code，不會回復資料庫。
-
-Production rollback：
-
-- app code：使用 Vercel rollback 或重新部署舊 tag。
-- database：使用 Neon backup/restore、point-in-time recovery，或 forward migration。
-- 不要把重新部署舊 tag 當作 database rollback。
+- Production app 版本變更只允許透過 `Deploy Production` workflow 重新部署已有
+  tag；完全不使用 Vercel rollback。
+- App-only failure 且 database schema 仍向後相容時，可重新部署最後一個已驗證
+  production tag，不還原 database。
+- Database rollback 不得因 workflow failure 自動觸發；能安全 forward fix 時優先
+  forward fix。
+- 只有 schema／資料已損壞或舊 app 無法安全使用目前 DB 時，才依
+  [Database Backup and Recovery Runbook](database-backup-and-recovery.md#database-recovery)
+  由人工還原到獨立 recovery branch/database。
+- 不得直接覆寫事故 production database，也不得把重新部署舊 tag 當作
+  database rollback。
 
 ## Production smoke checklist
 
@@ -314,7 +350,10 @@ Production rollback：
 
 每次 production deploy 後，不再新增 `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`。
 發版 PR、GitHub Actions run、Vercel deployment 頁面和 PR comment 是 release
-evidence 的主要紀錄來源；必要時在 PR 補充 smoke 結果、rollback path 和未解風險。
+evidence 的主要紀錄來源。含 migration 的 release 還必須記錄 backup ID、backup
+workflow run、source commit、restore rehearsal、encrypted SHA-256 與 restore comparison
+SHA-256；recovery 時以這份 GitHub evidence 交叉驗證私人雲端 bundle。不得記錄備份位置
+或 key material。
 
 ## Troubleshooting
 
@@ -333,7 +372,15 @@ evidence 的主要紀錄來源；必要時在 PR 補充 smoke 結果、rollback 
 - 不要重跑本機 migration 指向 production。
 - 先確認失敗 migration 是否已部分套用。
 - 查看 Neon database 狀態和 Prisma migration table。
-- 若是 destructive migration，先確認備份和復原策略。
+- 若資料未損壞，優先安全的 forward fix。
+- 只有人工確認需要 database recovery 後，才開始建立 recovery branch。
+
+### Production backup 失敗
+
+- 不要核准等待中的 production deployment。
+- 先檢查 read-only grants、`PRODUCTION_POSTGRES_MAJOR`、GPG fingerprint 與 runner logs。
+- 只有新的 backup run 完成 restore rehearsal、artifact 下載與私人雲端保存後，
+  才可繼續 deployment。
 
 ### Vercel deploy 失敗
 
