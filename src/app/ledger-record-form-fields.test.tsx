@@ -7,7 +7,7 @@ import {
 } from "./ledger-record-form-fields";
 
 describe("LedgerRecordCategoryField", () => {
-  it("uses one desktop row when a category page has six or fewer options", () => {
+  it("keeps mobile options in one row and uses a fixed two-row-height desktop grid", () => {
     const html = renderToStaticMarkup(
       <LedgerRecordCategoryField
         categories={Array.from({ length: 2 }, (_, index) =>
@@ -17,16 +17,17 @@ describe("LedgerRecordCategoryField", () => {
       />,
     );
 
+    expect(html).toContain("flex");
+    expect(html).toContain("overflow-x-auto");
+    expect(html).toContain("sm:h-40");
+    expect(html).toContain("sm:grid");
     expect(html).toContain("sm:grid-cols-6");
-    expect(html).toContain("sm:auto-rows-max");
-    expect(html).toContain("sm:items-start");
+    expect(html).toContain("sm:content-start");
     expect(html).toContain("items-start");
-    expect(html).not.toContain("sm:grid-rows-1");
-    expect(html).not.toContain("sm:grid-rows-2");
     expect(html).toContain('checked="" value="income-1"');
   });
 
-  it("keeps the desktop category picker to six visible columns across two rows", () => {
+  it("scrolls additional categories vertically without horizontal paging", () => {
     const html = renderToStaticMarkup(
       <LedgerRecordCategoryField
         categories={Array.from({ length: 13 }, (_, index) =>
@@ -38,16 +39,10 @@ describe("LedgerRecordCategoryField", () => {
 
     expect(html).toContain('aria-label="分類"');
     expect(html).toContain("sm:grid-cols-6");
-    expect(html).toContain("sm:auto-rows-max");
-    expect(html).toContain("sm:items-start");
-    expect(html).toContain("sm:min-w-full");
-    expect(html).toContain("sm:overflow-x-auto");
-    expect(html).not.toContain("sm:grid-rows-1");
-    expect(html).not.toContain("sm:grid-rows-2");
-    expect(html).not.toContain("sm:grid-flow-col");
-    expect(html).not.toContain("sm:auto-cols-[");
-    expect(html).not.toContain("sm:overflow-visible");
-    expect(html).toContain("sm:w-full");
+    expect(html).toContain("sm:overflow-x-hidden");
+    expect(html).toContain("sm:overflow-y-auto");
+    expect(html).not.toContain("sm:overflow-x-auto");
+    expect(html).not.toContain("min-w-full");
     expect(html).toContain('checked="" value="expense-3"');
   });
 });

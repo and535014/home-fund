@@ -96,7 +96,6 @@ export function LedgerRecordCategoryField({
   defaultCategoryId?: string;
 }) {
   const orderedCategories = [...categories].sort(compareCategoryVisualOrder);
-  const categoryPages = chunkCategories(orderedCategories, 12);
 
   return (
     <Field>
@@ -107,57 +106,40 @@ export function LedgerRecordCategoryField({
       ) : (
         <div
           aria-label="分類"
-          className="flex items-start gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:gap-x-4 sm:gap-y-5 sm:overflow-x-auto sm:px-1 sm:pb-3 sm:pt-1"
+          className="flex items-start gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:grid sm:h-40 sm:grid-cols-6 sm:content-start sm:gap-x-4 sm:gap-y-5 sm:overflow-x-hidden sm:overflow-y-auto sm:py-1"
           role="radiogroup"
         >
-          {categoryPages.map((page, pageIndex) => (
-            <div
-              className="contents sm:grid sm:min-w-full sm:shrink-0 sm:grid-cols-6 sm:auto-rows-max sm:items-start sm:gap-x-4 sm:gap-y-5"
-              key={page[0]?.id ?? pageIndex}
-            >
-              {page.map((category) => {
-                const visual = getCategoryVisual(category);
+          {orderedCategories.map((category) => {
+            const visual = getCategoryVisual(category);
 
-                return (
-                  <label
-                    className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-full"
-                    key={category.id}
-                  >
-                    <input
-                      className="peer sr-only"
-                      defaultChecked={category.id === defaultCategoryId}
-                      name="categoryId"
-                      required
-                      type="radio"
-                      value={category.id}
-                    />
-                    <CategoryVisualMark
-                      className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
-                      color={visual.color}
-                      icon={visual.icon}
-                    />
-                    <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
-                      {category.name}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          ))}
+            return (
+              <label
+                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-full sm:min-w-0"
+                key={category.id}
+              >
+                <input
+                  className="peer sr-only"
+                  defaultChecked={category.id === defaultCategoryId}
+                  name="categoryId"
+                  required
+                  type="radio"
+                  value={category.id}
+                />
+                <CategoryVisualMark
+                  className="transition group-hover:scale-105 peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-checked:ring-4 peer-checked:ring-white"
+                  color={visual.color}
+                  icon={visual.icon}
+                />
+                <span className="max-w-full truncate text-label text-muted-foreground peer-checked:text-foreground">
+                  {category.name}
+                </span>
+              </label>
+            );
+          })}
         </div>
       )}
     </Field>
   );
-}
-
-function chunkCategories<T>(categories: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < categories.length; index += size) {
-    chunks.push(categories.slice(index, index + size));
-  }
-
-  return chunks;
 }
 
 export function LedgerRecordMemberSelectField({
