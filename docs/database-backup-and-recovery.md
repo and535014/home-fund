@@ -211,18 +211,21 @@ Workflow failure 本身不是 database rollback trigger：
 
 先從原始 GitHub workflow summary／release PR evidence 複製可信值，再於有 GPG private
 key、磁碟加密且受信任的操作者電腦執行。不要從待驗證的 metadata 回填
-`TRUSTED_*`：
+`TRUSTED_*`。完整執行下列 Bash 區塊，任一步驟失敗都會中止該區塊；只有看到成功訊息
+才可進入下一節。GitHub evidence 無法取得或可信性有疑慮時，停止 recovery。
 
 ```sh
+bash <<'BASH'
+set -Eeuo pipefail
 BACKUP_ID="home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ"
 BACKUP_METADATA_FILE="${BACKUP_ID}.metadata.json"
-BACKUP_CHECKSUM_FILE="${BACKUP_ID}.dump.gpg.sha256"
+ENCRYPTED_DUMP="${BACKUP_ID}.dump.gpg"
 TRUSTED_SOURCE_COMMIT="<GitHub evidence source commit>"
 TRUSTED_ENCRYPTED_SHA256="<GitHub evidence encrypted SHA-256>"
 TRUSTED_RESTORE_COMPARISON_SHA256="<GitHub evidence restore comparison SHA-256>"
 
-test "$(awk '{print $1}' "$BACKUP_CHECKSUM_FILE")" = \
-  "$TRUSTED_ENCRYPTED_SHA256"
+ACTUAL_ENCRYPTED_SHA256="$(shasum -a 256 "$ENCRYPTED_DUMP" | awk '{print $1}')"
+test "$ACTUAL_ENCRYPTED_SHA256" = "$TRUSTED_ENCRYPTED_SHA256"
 node -e '
   const fs = require("fs");
   const [file, backupId, sourceCommit, encryptedSha256, comparisonSha256] =
@@ -239,23 +242,28 @@ node -e '
   }
 ' "$BACKUP_METADATA_FILE" "$BACKUP_ID" "$TRUSTED_SOURCE_COMMIT" \
   "$TRUSTED_ENCRYPTED_SHA256" "$TRUSTED_RESTORE_COMPARISON_SHA256"
-shasum -a 256 -c "$BACKUP_CHECKSUM_FILE"
 gpg \
   --output "${BACKUP_ID}.dump" \
-  --decrypt "${BACKUP_ID}.dump.gpg"
+  --decrypt "$ENCRYPTED_DUMP"
+echo "Backup evidence verified and decryption completed."
+BASH
 ```
 
-Metadata、checksum file 或 encrypted dump 只要有一項與 GitHub evidence 不符就停止；
+驗證與解密使用同一個 `ENCRYPTED_DUMP` 路徑，sidecar `.sha256` 不再決定驗證目標。
+Metadata 或 encrypted dump 只要有一項與 GitHub evidence 不符就停止；
 不得改用 bundle 內的值覆蓋 `TRUSTED_*`。GPG fingerprint 或解密任一步驟不符也必須
 停止。Plaintext dump 只能短暫存在於受信任的加密磁碟，recovery 結束後必須移除。
 
 ### 5. Restore 至 recovery database
 
 使用與 metadata `postgresMajor` 相同 major version 的 `pg_restore`。將 recovery direct
-URL 以不回顯方式讀入目前 shell，避免放進 shell history：
+URL 以不回顯方式由 terminal 讀入 Bash 子程序，避免放進 shell history。
+只有上一節成功後才執行此區塊；不得將尚未驗證的 dump 交給 `pg_restore`：
 
 ```sh
-read -r -s RECOVERY_DATABASE_URL
+bash <<'BASH'
+set -Eeuo pipefail
+read -r -s RECOVERY_DATABASE_URL < /dev/tty
 echo
 pg_restore \
   --dbname="$RECOVERY_DATABASE_URL" \
@@ -265,6 +273,8 @@ pg_restore \
   --no-acl \
   home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump
 unset RECOVERY_DATABASE_URL
+echo "Recovery database restore completed."
+BASH
 ```
 
 若本機沒有 matching `pg_restore`，先安裝對應 PostgreSQL client；不要改用較舊版本，
@@ -274,9 +284,12 @@ unset RECOVERY_DATABASE_URL
 
 先在受信任、乾淨的 repository checkout 中，將 `<metadata-file>` 換成實際 metadata
 檔名。以下步驟會切到 metadata 記錄的 source commit，並以該版本的 comparison SQL
-重算 recovery database digest：
+重算 recovery database digest。必須使用第 4 節已通過 GitHub evidence 驗證的 metadata，
+且只有上一節 restore 成功後才執行：
 
 ```sh
+bash <<'BASH'
+set -Eeuo pipefail
 BACKUP_METADATA_FILE="<metadata-file>"
 SOURCE_COMMIT="$(
   node -e '
@@ -299,7 +312,7 @@ EXPECTED_RESTORE_COMPARISON_SHA256="$(
 git switch --detach "$SOURCE_COMMIT"
 test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
 
-read -r -s RECOVERY_DATABASE_URL
+read -r -s RECOVERY_DATABASE_URL < /dev/tty
 echo
 ACTUAL_RESTORE_COMPARISON_SHA256="$(
   psql \
@@ -318,11 +331,17 @@ unset RECOVERY_DATABASE_URL
 
 test "$ACTUAL_RESTORE_COMPARISON_SHA256" = \
   "$EXPECTED_RESTORE_COMPARISON_SHA256"
+echo "Recovery comparison verified."
+BASH
 ```
 
 任何指令失敗或 digest 不一致都必須停止，不得切換 connection strings。Comparison
 只證明既定 counts／selected high-water timestamps 與 backup metadata 相符，不代表完整
 row-content hash。
+
+只有看到 `Recovery comparison verified.` 才可進行下列人工檢查與後續 cutover。
+這些 Bash 區塊的 regression tests 可用 `node --test scripts/recovery-runbook.test.mjs`
+執行；測試使用假資料與 mock commands，不連線任何 database。
 
 接著在 recovery database 確認：
 
