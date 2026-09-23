@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout version tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: refs/tags/${{ needs.resolve-version.outputs.version }}
           fetch-depth: 0
@@ -91,7 +91,7 @@ jobs:
           fi
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -155,13 +155,13 @@ jobs:
 
     steps:
       - name: Checkout version tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: refs/tags/${{ needs.resolve-version.outputs.version }}
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
