@@ -118,6 +118,19 @@ jobs:
       - name: Build
         run: corepack pnpm build
 
+      - name: Summarize production approval gate
+        env:
+          VERSION_TAG: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          {
+            echo "## Production approval gate"
+            echo
+            echo "- Version: \`$VERSION_TAG\`"
+            echo "- Preflight: passed"
+            echo
+            echo "If this tag contains a Prisma migration, complete the separate \`Backup Production DB\` workflow, download the encrypted artifact to the approved private cloud location, and record its evidence before approving production deployment."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy-production:
     name: Deploy Production
     runs-on: ubuntu-latest

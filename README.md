@@ -4,7 +4,10 @@
 
 ## 部署
 
-部署採 GitHub Actions、Vercel、Neon PostgreSQL。PR 只跑 CI；`vX.X.X` tag 或手動指定版本可以部署 production。完整設定步驟請看 [部署指南](docs/deployment.md)，例行發版操作請看 [Release Runbook](docs/release-runbook.md)。
+部署採 GitHub Actions、Vercel、Neon PostgreSQL。PR 只跑 CI；`vX.X.X` tag 或手動指定
+版本可以部署 production。完整設定步驟請看 [部署指南](docs/deployment.md)，例行發版操作
+請看 [Release Runbook](docs/release-runbook.md)，production database backup 與事故復原請看
+[Database Backup and Recovery Runbook](docs/database-backup-and-recovery.md)。
 
 ## 本機開發
 
