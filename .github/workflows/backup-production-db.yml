@@ -36,7 +36,7 @@ jobs:
           fi
 
       - name: Checkout version tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: refs/tags/${{ inputs.version }}
           fetch-depth: 0
@@ -83,7 +83,7 @@ jobs:
 
     steps:
       - name: Checkout verified source commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.preflight.outputs.source_commit }}
           fetch-depth: 0
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload encrypted backup
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.backup.outputs.backup_id }}
           path: ${{ runner.temp }}/production-db-backup/

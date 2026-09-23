@@ -25,6 +25,30 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
   用來建立第一個 admin 和預設基準資料；不會在每次 production deploy 自動執行。
 - Google OAuth 只針對 production origin 設定 callback。
 
+## GitHub Actions runtime 與 cache
+
+- Actions 使用 `actions/checkout@v5`、`actions/setup-node@v6` 與
+  `actions/upload-artifact@v6`，其 runtime 為 Node.js 24，最低 runner 版本為
+  `v2.327.1`。目前所有 job 使用 GitHub-hosted `ubuntu-latest`。
+- 應用程式的安裝、測試與建置仍使用 `node-version: 22`；這與 Action 自身的
+  runtime 是兩個不同設定。
+- CI、Prepare Release Version 與 Create Release Tag 明確設定
+  `package-manager-cache: false`。Production Preflight 與 Deploy Production
+  保留既有 `cache: pnpm` 和 `cache-dependency-path: pnpm-lock.yaml`；
+  DB backup 不使用 `setup-node`，也不新增 dependency cache。
+- Checkout 保留原本的 ref、fetch depth、token 與 credentials persistence 行為。
+  `checkout@v5` 的 fork checkout 限制針對 `pull_request_target`／`workflow_run`，
+  目前 workflow 未使用這兩種 trigger。`setup-node@v6` 自動 cache 僅適用於 npm，
+  且已移除 `always-auth`；本專案沒有使用該 input。
+- Artifact 上傳保留原有名稱、路徑、壓縮與 3 天保存期限。`upload-artifact@v5`
+  仍宣告 Node.js 20 runtime，因此直接使用 `v6`。
+
+升級依據：[Checkout v5 release notes](https://github.com/actions/checkout/releases/tag/v5.0.0)、
+[Setup Node v6 說明](https://github.com/actions/setup-node/tree/v6#breaking-changes-in-v6)、
+[Upload Artifact v6 release notes](https://github.com/actions/upload-artifact/releases/tag/v6.0.0)。
+Workflow 修改後執行 `actionlint .github/workflows/*.yml`，並在 PR 的 Quality Gate
+檢查實際 runner log，確認沒有 Node.js 20 deprecation／forced Node.js 24 warning。
+
 ## 為什麼沒有 Preview
 
 不使用 preview 環境可以降低 MVP 部署複雜度：
