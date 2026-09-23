@@ -110,9 +110,9 @@ PRODUCTION_POSTGRES_MAJOR
 - `PRODUCTION_POSTGRES_MAJOR`：Neon production 的 PostgreSQL major version，例如 `17`。
   可以在 Neon SQL Editor 執行 `SHOW server_version;` 核對。
 
-`production` environment 應維持 required reviewers。Workflow 在 environment approval
-之前不能取得上述 secrets；若 repository 方案不支援 private repository 的 required
-reviewers，必須把這項限制列為未解風險，不得宣稱已有人工作業核准閘門。
+目前 private repository 方案不支援 environment required reviewers。`production`
+environment 保留 secrets 作用域，不會等待 reviewer。手動啟動 backup 表示授權此次
+備份；backup、restore rehearsal 與外部保存完成後，才能另外手動啟動 deploy。
 
 ## 建立 Pre-deploy Backup
 
@@ -120,12 +120,10 @@ reviewers，必須把這項限制列為未解風險，不得宣稱已有人工�
 
 1. 安排人工維護時段，通知家庭成員從 backup 開始到 post-deploy smoke 完成前暫停
    寫入，並避開台灣時間 00:15 recurring posting cron。
-2. 建立 production tag，等 `Deploy Production` 完成 preflight 並停在 `production`
-   environment approval；此時 migration 尚未執行。
+2. 建立 production tag，記錄目標 commit；此時不要啟動 `Deploy Production`。
 3. 到 GitHub Actions 執行 `Backup Production DB`，輸入同一個 `vX.Y.Z` tag。
-4. 確認 backup preflight 驗證 tag、`package.json.version`、`main` ancestry 都通過。
-5. 核准這次 backup run 的 `production` environment job。不要誤核准仍在等待的 deploy
-   run。Job 會 checkout preflight 驗證過的 commit SHA，並在取得 production access 後
+4. 確認 backup preflight 驗證 tag 格式與 `main` ancestry 都通過。
+5. Backup job 不會等待 environment reviewer。Job 會 checkout preflight 驗證過的 commit SHA，並在取得 production access 後
    再次確認 tag 仍指向同一個 commit；tag 已移動或消失時必須停止。
 6. Workflow 必須全部成功：
    - 使用 matching PostgreSQL major 的 `pg_dump --format=custom --no-owner --no-acl`。
@@ -145,13 +143,13 @@ shasum -a 256 -c home-fund-production-pre-vX.Y.Z-YYYYMMDDTHHMMSSZ.dump.gpg.sha25
 
 8. 將 `.dump.gpg`、`.sha256` 與 `.metadata.json` 一起保存到核准的私人雲端位置。
    GitHub artifact 只是 3 天期交付管道，不是正式保存位置。
-9. 在 release PR comment 記錄 backup ID、backup workflow run URL、source commit、
+9. 在 功能 PR／release tracking issue comment 記錄 backup ID、backup workflow run URL、source commit、
    restore rehearsal 結果、操作者、encrypted SHA-256 與 restore comparison SHA-256。
    這份 GitHub evidence 是 recovery 時獨立於私人雲端 bundle 的可信比對來源；不要記錄
    私人雲端路徑、connection string 或 key material。
-10. 確認 artifact 已保存且 release evidence 完整後，才核准等待中的 production deploy。
+10. 確認 artifact 已保存且 release evidence 完整後，才手動啟動 production deploy。
 
-Backup workflow 任一步驟失敗時，不得核准 deployment。先修正 read privileges、
+Backup workflow 任一步驟失敗時，不得啟動 deployment。先修正 read privileges、
 PostgreSQL version、GPG key 或 runner 問題，再重新建立一份完整 backup。
 
 ## Backup Retention
@@ -182,7 +180,7 @@ Workflow failure 本身不是 database rollback trigger：
 
 - 事故中的 production tag 與 commit。
 - 最後一個已驗證成功的 production tag。
-- 從原始 GitHub workflow summary／release PR evidence 取得要使用的 backup ID、
+- 從原始 GitHub workflow summary／release evidence 取得要使用的 backup ID、
   source commit、encrypted SHA-256、restore comparison SHA-256 與 workflow run；
   不得只從私人雲端 bundle 內的 metadata 或 checksum file 取得這些期望值。
 - Migration 是否開始、完成或部分執行。
@@ -209,7 +207,7 @@ Workflow failure 本身不是 database rollback trigger：
 
 ### 4. 驗證並解密 backup
 
-先從原始 GitHub workflow summary／release PR evidence 複製可信值，再於有 GPG private
+先從原始 GitHub workflow summary／release evidence 複製可信值，再於有 GPG private
 key、磁碟加密且受信任的操作者電腦執行。不要從待驗證的 metadata 回填
 `TRUSTED_*`。完整執行下列 Bash 區塊，任一步驟失敗都會中止該區塊；只有看到成功訊息
 才可進入下一節。GitHub evidence 無法取得或可信性有疑慮時，停止 recovery。
@@ -373,10 +371,11 @@ Google 登入、角色權限與主要記帳讀取都能正常運作。這是本�
 
 ### 8. 透過 GitHub Actions 部署舊 Tag
 
-1. 手動執行 `Deploy Production`。
-2. 輸入最後一個已驗證、且與 backup schema 相容的 production tag。
-3. 確認 workflow checkout `refs/tags/vX.Y.Z` 並通過完整 preflight。
-4. 核准 `production` environment。
+1. 確認最後一個已驗證 production tag 與 recovery database 的 schema 相容。
+2. 依 Release Runbook 完成 migration 判定，將 recovery／backup evidence 記錄於 GitHub。
+3. 手動啟動 `Deploy Production`，提供該 tag、migration 判定與 evidence URL；
+   此 dispatch 就是部署授權，不會再等待 environment reviewer。
+4. 確認 workflow 驗證 tag 並使用固定 commit SHA，通過完整 preflight。
 5. 等舊 tag 對 recovery DB 執行其既有 migrations、部署 Vercel artifact 與 automated
    smoke。
 
@@ -399,7 +398,7 @@ database 與 recovery database，調查 app／schema／權限相容性後採安�
 
 ### 10. 收尾
 
-- 在 release PR 或 incident 紀錄補上 recovery branch、backup ID、舊 tag deploy run、
+- 在功能 PR、release tracking issue 或 incident 紀錄補上 recovery branch、backup ID、舊 tag deploy run、
   smoke 結果、資料差異處理與 remaining risks。
 - 不要在同一次事故中立即刪除原事故 branch/database；先保留調查證據並另訂 cleanup
   時點。

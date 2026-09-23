@@ -57,5 +57,8 @@ jobs:
       - name: Recovery runbook regression tests
         run: node --test scripts/recovery-runbook.test.mjs
 
+      - name: Release workflow rehearsal
+        run: node --test scripts/release-workflow.test.mjs
+
       - name: Build
         run: corepack pnpm build

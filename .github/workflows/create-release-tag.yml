@@ -2,6 +2,11 @@ name: Create Release Tag
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "New immutable release tag, for example v1.2.3"
+        required: true
+        type: string
 
 concurrency:
   group: create-release-tag
@@ -14,11 +19,25 @@ jobs:
   create-release-tag:
     name: Create release tag
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     outputs:
       tag: ${{ steps.version.outputs.tag }}
 
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/home_fund_ci
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-placeholder-secret
+      CSV_IMPORT_PREVIEW_SECRET: ci-only-placeholder-secret
+      MEMBER_BINDING_TOKEN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+
     steps:
+      - name: Require manual main dispatch
+        env:
+          WORKFLOW_REF: ${{ github.ref }}
+        run: test "$WORKFLOW_REF" = refs/heads/main
+
       - name: Checkout main
         uses: actions/checkout@v5
         with:
@@ -31,62 +50,46 @@ jobs:
           node-version: 22
           package-manager-cache: false
 
-      - name: Resolve package tag
+      - name: Validate candidate tag
         id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          git fetch origin --tags --force
+          git fetch origin main:refs/remotes/origin/main --tags
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          node scripts/validate-release-tag.mjs
 
-          node <<'NODE'
-          const { execFileSync } = require("node:child_process");
-          const fs = require("node:fs");
+      - name: Enable Corepack
+        run: corepack enable
 
-          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const version = packageJson.version;
-          const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
 
-          if (!match) {
-            console.error(`package.json version must be strict SemVer X.Y.Z, received: ${version}`);
-            process.exit(1);
-          }
+      - name: Validate Prisma schema
+        run: corepack pnpm db:validate
 
-          const tag = `v${version}`;
-          const tags = execFileSync("git", ["tag", "--list"], { encoding: "utf8" })
-            .split("\n")
-            .filter((value) => /^v\d+\.\d+\.\d+$/.test(value));
+      - name: Type check
+        run: corepack pnpm type-check
 
-          if (tags.includes(tag)) {
-            console.error(`Release tag already exists: ${tag}`);
-            process.exit(1);
-          }
+      - name: Lint
+        run: corepack pnpm lint
 
-          const parse = (value) => value
-            .slice(1)
-            .split(".")
-            .map((part) => Number(part));
+      - name: Unit tests
+        run: corepack pnpm test
 
-          const compare = (left, right) => {
-            for (let index = 0; index < 3; index += 1) {
-              if (left[index] !== right[index]) {
-                return left[index] - right[index];
-              }
-            }
+      - name: Build
+        run: corepack pnpm build
 
-            return 0;
-          };
-
-          const current = parse(tag);
-          const latest = tags
-            .map((value) => ({ value, parts: parse(value) }))
-            .sort((left, right) => compare(right.parts, left.parts))[0];
-
-          if (latest && compare(current, latest.parts) <= 0) {
-            console.error(`package.json version ${version} must be greater than latest tag ${latest.value}.`);
-            process.exit(1);
-          }
-
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`);
-          NODE
+      - name: Recheck latest main and version after preflight
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          git fetch origin main:refs/remotes/origin/main --tags
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "main advanced during preflight; rerun before consuming a release version." >&2
+            exit 1
+          fi
+          node scripts/validate-release-tag.mjs
 
       - name: Create and push tag
         env:
@@ -95,7 +98,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
-          git push origin "$TAG_NAME"
+          git push origin "refs/tags/$TAG_NAME:refs/tags/$TAG_NAME"
 
       - name: Summarize release tag
         env:
@@ -106,6 +109,7 @@ jobs:
             echo
             echo "- Tag: \`$TAG_NAME\`"
             echo "- Source: \`main\`"
+            echo "- Commit: \`$(git rev-parse HEAD)\`"
             echo
-            echo "Pushing this tag triggers the production deploy workflow."
+            echo "Complete the migration decision and backup/restore gate, then manually dispatch Deploy Production with this tag. Tag push does not trigger deployment."
           } >> "$GITHUB_STEP_SUMMARY"

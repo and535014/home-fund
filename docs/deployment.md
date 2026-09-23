@@ -9,7 +9,7 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
 部署策略：
 
 - PR 只跑 CI，不部署。
-- Production 只允許 `vX.X.X` tag 或手動指定既有 tag 部署。
+- Production 只允許手動指定既有 immutable `vX.Y.Z` tag 部署。
 - Google OAuth 只設定 production 的固定 Vercel 網址。
 - Hosted database 只設定 production Neon database。
 
@@ -19,7 +19,7 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
 - Vercel 負責 Next.js production 部署。
 - Neon PostgreSQL 負責 production 資料庫。
 - Prisma migration 由 GitHub Actions production workflow 執行。
-- 含 migration 的 release 在 production approval 前，由獨立 GitHub Actions workflow
+- 含 migration 的 release 在手動啟動 production deploy 前，由獨立 GitHub Actions workflow
   建立加密 database backup 並完成 restore rehearsal。
 - Bootstrap seed 是 production database 第一次初始化時的手動一次性步驟，
   用來建立第一個 admin 和預設基準資料；不會在每次 production deploy 自動執行。
@@ -32,7 +32,7 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
   `v2.327.1`。目前所有 job 使用 GitHub-hosted `ubuntu-latest`。
 - 應用程式的安裝、測試與建置仍使用 `node-version: 22`；這與 Action 自身的
   runtime 是兩個不同設定。
-- CI、Prepare Release Version 與 Create Release Tag 明確設定
+- CI 與 Create Release Tag 明確設定
   `package-manager-cache: false`。Production Preflight 與 Deploy Production
   保留既有 `cache: pnpm` 和 `cache-dependency-path: pnpm-lock.yaml`；
   DB backup 不使用 `setup-node`，也不新增 dependency cache。
@@ -104,7 +104,7 @@ CRON_SECRET
 
 `vercel.json` 會每天 16:15 UTC 呼叫 `/api/cron/recurring-posting`，也就是台灣時間 00:15。這個 route 只處理台灣時區當月且已到期的週期事件，並以 idempotent command 避免重複入帳。
 
-GitHub Actions 是正式部署控制點。不要把 Vercel Git auto-deploy 當作主要 release 流程；production deploy 必須由 GitHub Actions 的 tag/manual workflow 控制。
+GitHub Actions 是正式部署控制點。不要把 Vercel Git auto-deploy 當作主要 release 流程；production deploy 必須由 GitHub Actions 的 手動 workflow 控制。
 
 ## 一次性 Neon 設定
 
@@ -137,7 +137,10 @@ https://home-fund.vercel.app/api/auth/callback/google
 
 - `production`
 
-`production` environment 必須設定 required reviewers，避免 tag 或手動部署直接上線。
+目前 private repository 方案不支援 environment required reviewers。
+保留 `production` environment 作為 secrets 的作用域；手動啟動 `Deploy Production`
+就是明確的部署授權，必須先完成 migration 判定與 backup／restore gate。
+不會有後續 reviewer 等待步驟。
 
 Repository secrets：
 
@@ -192,112 +195,34 @@ GitHub。Fingerprint 與 PostgreSQL major 的設定、驗證步驟以
 3. PR 不會部署到 Vercel。
 4. PR 不會執行 hosted database migration。
 
-## 版號與 Release PR 流程
+## Release 版號與手動部署
 
-Production 版號由 `Prepare Release Version` workflow 建立 release PR，不在
-deploy workflow 裡自動修改。
+Git tag 是 production version 的唯一 authoritative source。`package.json.version`
+保留作為 private package metadata，不參與 release gate，也不需要逐次同步。
+不再使用 `Prepare Release Version`，不需要建立或保存 `RELEASE_BOT_TOKEN`。
+若未來 UI／log 需要版本，由 build/deploy 從 tag 或 commit SHA 注入。
 
-1. 到 GitHub Actions。
-2. 選擇 `Prepare Release Version` workflow。
-3. 輸入目標版號，例如：
+1. 功能 PR merge 後，確認最新 `main` CI 通過。
+2. 手動執行 `Create Release Tag`，輸入嚴格 `vX.Y.Z`，例如 `v1.2.3`。
+   版本不得含前導零、prerelease 或 build suffix，必須大於現有最高 release tag，
+   且尚未存在。失敗 release 的 tag 也算已消耗，不得重用。
+3. Workflow checkout 最新 `main`，先完成品質 preflight，建立前重新確認 `main`
+   沒有前進，才建立 annotated tag。若 `main` 已前進，重新執行 preflight。
+4. Tag push 不會觸發部署，也不依賴 workflow chaining。
+5. 對目標 tag 完成 migration 判定；有 migration 時，先執行獨立的
+   `Backup Production DB`，完成 restore rehearsal、encrypted artifact 外部保存，
+   並把 evidence 記錄在功能 PR 或 release tracking issue。
+6. 完成上述 gate 後，手動執行 `Deploy Production`，輸入既有 tag、migration
+   判定與 evidence。這次 dispatch 就是 production 部署授權。
+7. Deploy preflight 驗證 tag 格式、tag commit 屬於 `main`，並跑 install、
+   Prisma validate、type-check、lint、unit tests 與 production build。
+8. Production job 使用 preflight 已驗證的 tag commit SHA，重新確認 tag 未移動，
+   然後執行 Vercel artifact build、migration、deploy 與 automated smoke。
+9. 於 workflow summary、功能 PR 或 release tracking issue 記錄 tag、commit、run URL、
+   Vercel deployment 與 post-deploy smoke evidence。
 
-```text
-v1.2.3
-```
-
-4. workflow 會確認輸入符合 `vX.Y.Z`、大於目前 `package.json.version`，
-   建立 `release/vX.Y.Z` 分支，更新 `package.json`，並開 release PR。
-5. release PR 必須通過一般 PR CI，且 merge 只代表版號準備完成，不代表
-   production 已部署。
-
-版號選擇原則：
-
-- `patch` 等級，例如 `v0.1.9` 到 `v0.1.10`：bug fix、部署流程強化、文件修正、小型 UI 調整、cron 修正。
-- `minor` 等級，例如 `v0.1.10` 到 `v0.2.0`：新的使用者功能、重要流程能力、支援新行為的 schema 擴充。
-- `major` 等級，例如 `v0.9.0` 到 `v1.0.0`：保留到專案準備宣告穩定 `1.0.0` 操作契約時使用。
-
-`Prepare Release Version` 需要 repository secret：
-
-```text
-RELEASE_BOT_TOKEN
-```
-
-`RELEASE_BOT_TOKEN` 應使用 fine-grained GitHub personal access token 或
-GitHub App token，只授權此 repository，權限限縮為：
-
-- Contents: Read and write
-- Pull requests: Read and write
-
-不要把 production secrets 放進 `RELEASE_BOT_TOKEN`；它只用於建立 release 分支和 PR。
-
-## 建立 Production Tag
-
-release PR merge 到 `main` 後，再手動建立 production tag。
-
-1. 到 GitHub Actions。
-2. 選擇 `Create Release Tag` workflow。
-3. 按 `Run workflow`。
-4. workflow 會 checkout `main`，讀取 `package.json.version`，建立對應的
-   `vX.Y.Z` annotated tag，並 push tag。
-5. push tag 會觸發 `Deploy Production` workflow。
-
-`Create Release Tag` 不輸入版號，避免輸入值和 `package.json` 不一致。
-如果 tag 已存在，或 `package.json.version` 沒有大於目前最新 `vX.Y.Z` tag，
-workflow 會失敗。
-
-## Production tag 部署流程
-
-1. 確認 release PR 已 merge 到 `main`。
-2. 使用 `Create Release Tag` workflow 建立 semver tag，例如：
-
-```text
-v1.2.3
-```
-
-3. GitHub Actions 觸發 `deploy-production.yml`。
-4. workflow 會先跑 production preflight：
-   - checkout `v1.2.3`
-   - 確認 tag 版本和 `package.json.version` 一致
-   - 確認 tag commit 包含在 `main`
-   - 跑完整 CI
-5. 若目標 tag 含 migration，保持 deploy run 在 `production` environment approval
-   前等待，另外執行 `Backup Production DB`：
-   - 通知家庭成員暫停寫入，並避開 recurring posting cron。
-   - 輸入同一個 `vX.Y.Z` tag。
-   - Backup job checkout preflight 驗證過的 commit SHA，並在 production access 前
-     再次確認 tag 未移動；不一致時停止。
-   - 等 backup、restore rehearsal、GPG encryption 與 checksum 全部成功。
-   - 下載 3 天期 encrypted artifact，存入私人雲端並補齊 release evidence。
-6. 確認 backup gate 完成後，GitHub Environment `production` 等待 reviewer
-   核准 deployment。
-7. 核准後 workflow 會：
-   - checkout `v1.2.3`
-   - 建置 Vercel production artifact
-   - 對 production database 跑 `corepack pnpm db:deploy`
-   - 部署到 Vercel production
-   - smoke `/login`、`/favicon.ico`、cron invalid-token `401`
-8. 到 workflow summary 查看 production URL 和 smoke checklist。
-
-不要手動移動或重打已 push 的 production tag。若 tag push 後 deploy 失敗，
-修正後用下一個 patch 版號，例如 `v1.2.4`。
-
-## 手動部署指定 Production 版本
-
-1. 到 GitHub Actions。
-2. 選擇 `Deploy Production` workflow。
-3. 按 `Run workflow`。
-4. 輸入版本號，例如：
-
-```text
-v1.2.3
-```
-
-5. workflow 只接受 `vX.X.X` 格式。
-6. workflow 會 checkout `refs/tags/v1.2.3`，不是 branch。
-7. workflow 會先確認 tag/package/main 一致並跑 preflight。
-8. 等待 `production` environment reviewer 核准。
-
-手動部署是重新部署既有 tag，不是從目前 branch 部署。
+完整輸入、backup gate、失敗處理與非 production rehearsal 見
+[Release Runbook](release-runbook.md)。禁止移動或重打已 push 的 tag。
 
 ## Migration 政策
 
@@ -305,7 +230,7 @@ Production migration 只能在 production workflow 裡執行。
 
 不要從本機切 production `DATABASE_URL` 跑 migration。
 
-每個含 migration 的 production tag 都必須在 deployment approval 前完成
+每個含 migration 的 production tag 都必須在手動啟動 deployment 前完成
 `Backup Production DB`、restore rehearsal、encrypted artifact 外部保存與 release
 evidence。Destructive migration 還必須先明確審查資料損失風險與 recovery plan。
 
@@ -373,7 +298,7 @@ E2E fixture 只允許放在 `prisma/seed.e2e.sql`，並只在 E2E 專用 databas
 正確 cron secret smoke 仍維持手動，因為它可能觸發 production 週期事件入帳。
 
 每次 production deploy 後，不再新增 `.ai/deployment/production-vX.Y.Z-YYYY-MM-DD.md`。
-發版 PR、GitHub Actions run、Vercel deployment 頁面和 PR comment 是 release
+功能 PR／release tracking issue、GitHub Actions run、Vercel deployment 頁面和 PR comment 是 release
 evidence 的主要紀錄來源。含 migration 的 release 還必須記錄 backup ID、backup
 workflow run、source commit、restore rehearsal、encrypted SHA-256 與 restore comparison
 SHA-256；recovery 時以這份 GitHub evidence 交叉驗證私人雲端 bundle。不得記錄備份位置
@@ -401,7 +326,7 @@ SHA-256；recovery 時以這份 GitHub evidence 交叉驗證私人雲端 bundle�
 
 ### Production backup 失敗
 
-- 不要核准等待中的 production deployment。
+- 不要啟動 production deployment。
 - 先檢查 read-only grants、`PRODUCTION_POSTGRES_MAJOR`、GPG fingerprint 與 runner logs。
 - 只有新的 backup run 完成 restore rehearsal、artifact 下載與私人雲端保存後，
   才可繼續 deployment。
