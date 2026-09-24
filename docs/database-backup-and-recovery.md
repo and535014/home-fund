@@ -383,7 +383,7 @@ Google 登入、角色權限與主要記帳讀取都能正常運作。這是本�
 
 ### 9. Post-cutover Smoke
 
-完成 [Release Runbook](release-runbook.md#發版後檢查) 的全部檢查，至少確認：
+完成 [Release Runbook](release-runbook.md#發版後檢查與-evidence) 的全部檢查，至少確認：
 
 - Google 登入、admin dashboard、non-admin denial 與 logout。
 - 主要記帳列表資料正確。
