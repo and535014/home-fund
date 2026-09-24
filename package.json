@@ -51,6 +51,7 @@
     "@vitejs/plugin-react": "latest",
     "eslint": "^9.39.1",
     "eslint-config-next": "latest",
+    "js-yaml": "4.1.1",
     "jsdom": "latest",
     "prisma": "latest",
     "tailwindcss": "latest",

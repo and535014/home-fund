@@ -29,7 +29,7 @@ jobs:
         env:
           VERSION_TAG: ${{ inputs.version }}
         run: |
-          if ! printf '%s' "$VERSION_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          if [[ ! "$VERSION_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Invalid production version: $VERSION_TAG" >&2
             echo "Use a tag in vX.X.X format, for example v1.2.3." >&2
             exit 1
@@ -49,14 +49,6 @@ jobs:
         env:
           VERSION_TAG: ${{ inputs.version }}
         run: |
-          package_version="$(node -p "require('./package.json').version")"
-          tag_version="${VERSION_TAG#v}"
-
-          if [ "$package_version" != "$tag_version" ]; then
-            echo "Version mismatch: tag $VERSION_TAG expects package.json version $tag_version, found $package_version." >&2
-            exit 1
-          fi
-
           if ! git merge-base --is-ancestor HEAD origin/main; then
             echo "Tag $VERSION_TAG is not contained in origin/main." >&2
             exit 1
@@ -142,5 +134,5 @@ jobs:
             echo "- Artifact retention: 3 days"
             echo "- Artifact: $ARTIFACT_URL"
             echo
-            echo "Download the artifact, verify its checksum, store it in the approved private cloud location, and copy the backup ID, source commit, encrypted SHA-256, and restore comparison SHA-256 to the release PR before approving production deployment."
+            echo "Download the artifact, verify its checksum, store it in the approved private cloud location, and copy the backup ID, source commit, encrypted SHA-256, and restore comparison SHA-256 to the release evidence before manually starting production deployment."
           } >>"$GITHUB_STEP_SUMMARY"
