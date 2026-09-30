@@ -32,9 +32,9 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
   `v2.327.1`。目前所有 job 使用 GitHub-hosted `ubuntu-latest`。
 - 應用程式的安裝、測試與建置仍使用 `node-version: 22`；這與 Action 自身的
   runtime 是兩個不同設定。
-- CI 與 Create Release Tag 明確設定
-  `package-manager-cache: false`。Production Preflight 與 Deploy Production
-  保留既有 `cache: pnpm` 和 `cache-dependency-path: pnpm-lock.yaml`；
+- CI、Create Release Tag、Production Preflight 與 Deploy Production 都明確設定
+  `package-manager-cache: false`。Node setup 後才執行 `corepack enable`，因此不在
+  setup-node 階段啟用需要預先可用 pnpm 的 cache，避免初始化時找不到 pnpm。
   DB backup 不使用 `setup-node`，也不新增 dependency cache。
 - Checkout 保留原本的 ref、fetch depth、token 與 credentials persistence 行為。
   `checkout@v5` 的 fork checkout 限制針對 `pull_request_target`／`workflow_run`，
