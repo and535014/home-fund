@@ -97,6 +97,10 @@ BACKUP_GPG_PUBLIC_KEY
 
 - `DATABASE_BACKUP_URL`：`home_fund_backup` 的 Neon direct／unpooled connection string；
   hostname 不得包含 `-pooler`。
+  來源端版本查詢、dump 與 comparison 都在 container 內將完整 URL 明確傳給
+  `--dbname`；僅設定 `PGDATABASE` 不保證 PostgreSQL client 解析 URL 的 host。
+  URL 透過環境變數傳入 container，禁止 shell trace。Client 失敗時只輸出固定的
+  stage 錯誤，不輸出原始 diagnostics；排查時不得把 URL 或 SQL data 加回 logs。
 - `BACKUP_GPG_PUBLIC_KEY`：ASCII-armored public key 全文。
 
 新增 environment variables：
@@ -113,6 +117,33 @@ PRODUCTION_POSTGRES_MAJOR
 目前 private repository 方案不支援 environment required reviewers。`production`
 environment 保留 secrets 作用域，不會等待 reviewer。手動啟動 backup 表示授權此次
 備份；backup、restore rehearsal 與外部保存完成後，才能另外手動啟動 deploy。
+
+## 隔離 Backup Regression
+
+本機與 CI 可執行：
+
+```sh
+node --test scripts/backup-production-db.test.mjs
+```
+
+需要可用的 Docker daemon、GPG 與 `sha256sum`。測試使用真正的 PostgreSQL 17 client／
+server、非預設 TCP port、read-only 測試 role 及新建的測試 GPG key；不繼承呼叫者的
+database URL、backup key 或 workflow evidence。Docker adapter 只將 source clients 接到
+隔離測試 network，所有 PostgreSQL client 都實際執行，不模擬成功結果。
+
+測試涵蓋版本查詢、dump → restore → comparison → encryption，以及 private-key 解密與
+archive 檢查。錯誤 host／port／密碼、版本不符、dump 權限不足、source comparison SQL
+失敗、未完成 migration、dump 後資料變動與錯誤 GPG fingerprint 都必須中止，不能產生
+成功 evidence。Logs 不輸出捕捉的 SQL data、credentials 或 URL。
+
+測試只移除自己建立的 Docker containers／network。本機合成 fixtures、解密後的測試
+dump 與測試 private key 留在系統暫存目錄供檢查；macOS 透過 cleanup adapter 保留 host
+暫存檔，不執行 production 腳本的永久刪除。清理這些本機檔案時須遵守可復原刪除政策。
+CI 使用一次性 runner，沒有 plaintext artifact upload。
+
+此測試成功只證明隔離環境的腳本行為，不代表 production backup 或 Issue #49 通過。
+修正 merge 後，仍需另行授權建立新的 immutable tag 並執行真實 workflow；不得移動
+或重打既有 `v0.2.0`。
 
 ## 建立 Pre-deploy Backup
 
