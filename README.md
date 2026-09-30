@@ -359,4 +359,8 @@ corepack pnpm lint
 corepack pnpm build
 ```
 
+Backup 腳本的隔離 PostgreSQL 17 regression 使用
+`node --test scripts/backup-production-db.test.mjs`；Docker、GPG、暫存檔與驗證邊界見
+[Backup Regression](docs/database-backup-and-recovery.md#隔離-backup-regression)。
+
 避免同時執行多個會呼叫 `prisma generate` 的指令，因為它們可能同時寫入 `src/generated/prisma` 而互相衝突。

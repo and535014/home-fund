@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Never trace credentials, even when invoked with bash -x.
+set +x
 set -Eeuo pipefail
 
 umask 077
@@ -131,18 +133,18 @@ postgres_image="postgres:${POSTGRES_MAJOR}-alpine"
 docker pull "$postgres_image" >/dev/null
 
 server_version_num="$(
-  docker run --rm \
-    --env "PGDATABASE=$BACKUP_DATABASE_URL" \
+  PGDATABASE="$BACKUP_DATABASE_URL" docker run --rm \
+    --env PGDATABASE \
     "$postgres_image" \
-    psql \
+    sh -c 'exec psql --dbname="$PGDATABASE" "$@"' -- \
     --no-psqlrc \
     --no-password \
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --command 'SHOW server_version_num;' |
+    --command 'SHOW server_version_num;' 2>/dev/null |
     tr -d '[:space:]'
-)"
+)" || fail "Source PostgreSQL version query failed; client diagnostics are withheld."
 
 if ! [[ "$server_version_num" =~ ^[0-9]+$ ]]; then
   fail "Could not determine the production PostgreSQL server version."
@@ -155,43 +157,45 @@ if [ "$server_major" -ne "$POSTGRES_MAJOR" ]; then
 fi
 
 echo "Creating a custom-format production backup with PostgreSQL $POSTGRES_MAJOR."
-docker run --rm \
+PGDATABASE="$BACKUP_DATABASE_URL" docker run --rm \
   --user "$(id -u):$(id -g)" \
-  --env "PGDATABASE=$BACKUP_DATABASE_URL" \
+  --env PGDATABASE \
   --volume "$work_dir:/backup" \
   "$postgres_image" \
-  pg_dump \
+  sh -c 'exec pg_dump --dbname="$PGDATABASE" "$@"' -- \
+  --no-password \
   --format=custom \
   --no-owner \
   --no-acl \
-  --file=/backup/production.dump
+  --file=/backup/production.dump >/dev/null 2>&1 ||
+  fail "Source pg_dump failed; client diagnostics are withheld."
 
 test -s "$plain_dump" || fail "pg_dump produced an empty file."
 
 source_restore_comparison="$(
-  docker run --rm \
-    --env "PGDATABASE=$BACKUP_DATABASE_URL" \
+  PGDATABASE="$BACKUP_DATABASE_URL" docker run --rm \
+    --env PGDATABASE \
     --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
-    psql \
+    sh -c 'exec psql --dbname="$PGDATABASE" "$@"' -- \
     --no-psqlrc \
     --no-password \
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --file=/backup/restore-comparison.sql |
+    --file=/backup/restore-comparison.sql 2>/dev/null |
     tr -d '\r\n'
-)"
+)" || fail "Source restore comparison query failed; client diagnostics are withheld."
 
 rehearsal_password="$(openssl rand -hex 24)"
 docker network create "$docker_network" >/dev/null
 network_created=1
 
-docker run --detach \
+POSTGRES_PASSWORD="$rehearsal_password" docker run --detach \
   --name "$rehearsal_container" \
   --network "$docker_network" \
   --env "POSTGRES_DB=$rehearsal_database" \
-  --env "POSTGRES_PASSWORD=$rehearsal_password" \
+  --env POSTGRES_PASSWORD \
   "$postgres_image" >/dev/null
 container_created=1
 
@@ -209,9 +213,9 @@ if ! docker exec "$rehearsal_container" \
 fi
 
 echo "Restoring the backup into an isolated PostgreSQL $POSTGRES_MAJOR rehearsal database."
-docker run --rm \
+PGPASSWORD="$rehearsal_password" docker run --rm \
   --network "$docker_network" \
-  --env "PGPASSWORD=$rehearsal_password" \
+  --env PGPASSWORD \
   --volume "$work_dir:/backup:ro" \
   "$postgres_image" \
   pg_restore \
@@ -221,7 +225,8 @@ docker run --rm \
   --host "$rehearsal_container" \
   --username postgres \
   --dbname "$rehearsal_database" \
-  /backup/production.dump
+  /backup/production.dump >/dev/null 2>&1 ||
+  fail "Restore rehearsal failed; client diagnostics are withheld."
 
 validation_sql=$(cat <<'SQL'
 DO $validation$
@@ -258,9 +263,9 @@ SQL
 )
 
 printf '%s\n' "$validation_sql" |
-  docker run --rm --interactive \
+  PGPASSWORD="$rehearsal_password" docker run --rm --interactive \
     --network "$docker_network" \
-    --env "PGPASSWORD=$rehearsal_password" \
+    --env PGPASSWORD \
     --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
     psql \
@@ -270,12 +275,13 @@ printf '%s\n' "$validation_sql" |
     --username postgres \
     --dbname "$rehearsal_database" \
     --set ON_ERROR_STOP=1 \
-    --file - >/dev/null
+    --file - >/dev/null 2>&1 ||
+  fail "Restored database validation failed; client diagnostics are withheld."
 
 restored_restore_comparison="$(
-  docker run --rm \
+  PGPASSWORD="$rehearsal_password" docker run --rm \
     --network "$docker_network" \
-    --env "PGPASSWORD=$rehearsal_password" \
+    --env PGPASSWORD \
     --volume "$restore_comparison_sql_file:/backup/restore-comparison.sql:ro" \
     "$postgres_image" \
     psql \
@@ -287,9 +293,9 @@ restored_restore_comparison="$(
     --tuples-only \
     --no-align \
     --set ON_ERROR_STOP=1 \
-    --file=/backup/restore-comparison.sql |
+    --file=/backup/restore-comparison.sql 2>/dev/null |
     tr -d '\r\n'
-)"
+)" || fail "Restored comparison query failed; client diagnostics are withheld."
 
 if [ "$source_restore_comparison" != "$restored_restore_comparison" ]; then
   fail "Core table counts or selected updatedAt high-water timestamps changed during backup or did not restore exactly."

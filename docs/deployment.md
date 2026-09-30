@@ -49,6 +49,10 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
 Workflow 修改後執行 `actionlint .github/workflows/*.yml`，並在 PR 的 Quality Gate
 檢查實際 runner log，確認沒有 Node.js 20 deprecation／forced Node.js 24 warning。
 
+Quality Gate 另執行 [隔離 Backup Regression](database-backup-and-recovery.md#隔離-backup-regression)，
+使用合成資料與 PostgreSQL 17 Docker container 驗證 backup 腳本完整連線 URL 與失敗
+gates。這不連線 Neon，也不提供 production backup evidence。
+
 ## 為什麼沒有 Preview
 
 不使用 preview 環境可以降低 MVP 部署複雜度：

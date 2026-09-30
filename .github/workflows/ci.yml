@@ -57,6 +57,9 @@ jobs:
       - name: Recovery runbook regression tests
         run: node --test scripts/recovery-runbook.test.mjs
 
+      - name: Isolated PostgreSQL 17 backup regression tests
+        run: node --test scripts/backup-production-db.test.mjs
+
       - name: Release workflow rehearsal
         run: node --test scripts/release-workflow.test.mjs
 
