@@ -67,7 +67,7 @@ before(async () => {
   sourceCreated = true;
   let ready = false;
   for (let attempt = 0; attempt < 30; attempt++) {
-    if (run("docker", ["exec", source, "pg_isready", "--username", "postgres", "--port", sourcePort, "--dbname", "fixture"]).status === 0) {
+    if (run("docker", ["exec", source, "pg_isready", "--host", "127.0.0.1", "--username", "postgres", "--port", sourcePort, "--dbname", "fixture"]).status === 0) {
       ready = true;
       break;
     }
@@ -104,7 +104,7 @@ after(() => {
   checked("gpgconf", ["--kill", "gpg-agent"], { env: { GNUPGHOME: keyHome } });
 });
 
-function backup({ host = source, port = sourcePort, user = "backup_reader", secret = password, query = "", env = {}, trace = false } = {}) {
+function backup({ host = source, port = sourcePort, user = "backup_reader", secret = password, query = "", env = {}, trace = false, slowRehearsal = false } = {}) {
   const directory = mkdtempSync(join(root, "case-"));
   const bin = join(directory, "bin");
   const output = join(directory, "output");
@@ -116,10 +116,28 @@ function backup({ host = source, port = sourcePort, user = "backup_reader", secr
   writeFileSync(join(bin, "docker"), `#!${process.execPath}
 const { spawnSync } = require('node:child_process');
 const args = process.argv.slice(2);
+const nameIndex = args.indexOf('--name');
+const rehearsal = args[0] === 'run' && nameIndex !== -1 && args[nameIndex + 1].startsWith('home-fund-backup-db-');
+if (rehearsal && process.env.TEST_SLOW_REHEARSAL) {
+  // Hold the real image's socket-only initialization server open. Return only
+  // once that window starts, so the old socket probe reliably starts restore early.
+  const imageIndex = args.indexOf('${image}');
+  args.splice(imageIndex, 0, '--entrypoint', 'sh');
+  args.push('-c', "printf '%s\\\\n' 'touch /tmp/rehearsal-init-started' 'sleep 6' > /docker-entrypoint-initdb.d/slow.sh; exec /usr/local/bin/docker-entrypoint.sh postgres");
+}
 if (args[0] === 'run' && args.some(a => a === 'PGDATABASE' || a.startsWith('PGDATABASE='))) {
   args.splice(1, 0, '--network', process.env.TEST_NETWORK);
 }
 const result = spawnSync(process.env.TEST_DOCKER, args, { stdio: 'inherit' });
+if (result.status === 0 && rehearsal && process.env.TEST_SLOW_REHEARSAL) {
+  let initializing = false;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const marker = spawnSync(process.env.TEST_DOCKER, ['exec', args[nameIndex + 1], 'test', '-f', '/tmp/rehearsal-init-started'], { stdio: 'ignore' });
+    if (marker.status === 0) { initializing = true; break; }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+  }
+  if (!initializing) process.exit(1);
+}
 if (result.status === 0 && process.env.TEST_AFTER_DUMP && args.some(a => a.includes('pg_dump'))) {
   const change = spawnSync(process.env.TEST_DOCKER,
     ['exec', '--interactive', process.env.TEST_SOURCE, 'psql', '--no-psqlrc', '--username', 'postgres', '--port', '${sourcePort}', '--dbname', 'fixture', '--set', 'ON_ERROR_STOP=1'],
@@ -139,6 +157,7 @@ process.exit(result.status ?? 1);
       TEST_DOCKER: docker,
       TEST_NETWORK: network,
       TEST_SOURCE: source,
+      ...(slowRehearsal ? { TEST_SLOW_REHEARSAL: "1" } : {}),
       BASH_ENV: shellEnv,
       BACKUP_DATABASE_URL: url,
       BACKUP_GPG_PUBLIC_KEY: publicKey,
@@ -193,6 +212,14 @@ test("full URL reaches the specified PostgreSQL 17 target and publishes only a v
   const archive = checked("docker", ["run", "--rm", "--volume", `${f.directory}:/fixture:ro`, image, "pg_restore", "--list", "/fixture/decrypted.dump"]);
   for (const table of [...tables, "_prisma_migrations"]) assert.ok(archive.includes(table), "encrypted archive is missing a fixture table");
   assert.ok(readFileSync(f.evidence, "utf8").includes(`backup_id=${backupId}`));
+});
+
+test("restore waits for TCP readiness while initialization still accepts socket connections", () => {
+  const f = backup({ slowRehearsal: true });
+  privateLogs(f);
+  assert.equal(f.result.stderr.includes("Restore rehearsal failed"), false, "restore started before PostgreSQL accepted TCP connections");
+  assert.equal(f.result.status, 0, "delayed initialization backup did not complete");
+  assert.ok(existsSync(f.evidence), "verified backup evidence was not published");
 });
 
 test("unknown host fails closed without exposing its URL or credentials", () => {
