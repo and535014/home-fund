@@ -199,16 +199,18 @@ POSTGRES_PASSWORD="$rehearsal_password" docker run --detach \
   "$postgres_image" >/dev/null
 container_created=1
 
+# The image's temporary initialization server accepts socket connections only.
+# Wait for TCP, which the separate pg_restore client will actually use.
 for _ in $(seq 1 30); do
   if docker exec "$rehearsal_container" \
-    pg_isready --username postgres --dbname "$rehearsal_database" >/dev/null 2>&1; then
+    pg_isready --host 127.0.0.1 --username postgres --dbname "$rehearsal_database" >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
 if ! docker exec "$rehearsal_container" \
-  pg_isready --username postgres --dbname "$rehearsal_database" >/dev/null 2>&1; then
+  pg_isready --host 127.0.0.1 --username postgres --dbname "$rehearsal_database" >/dev/null 2>&1; then
   fail "The restore rehearsal PostgreSQL container did not become ready."
 fi
 

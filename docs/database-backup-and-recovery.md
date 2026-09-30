@@ -136,6 +136,10 @@ archive 檢查。錯誤 host／port／密碼、版本不符、dump 權限不足�
 失敗、未完成 migration、dump 後資料變動與錯誤 GPG fingerprint 都必須中止，不能產生
 成功 evidence。Logs 不輸出捕捉的 SQL data、credentials 或 URL。
 
+Restore rehearsal 等待 TCP 連線就緒，避免把 image 初始化期間的 socket-only 暫時
+server 誤判為可供另一個 container 還原的正式 server。Regression 以延遲初始化
+重現此視窗，確認備份仍能完成。
+
 測試只移除自己建立的 Docker containers／network。本機合成 fixtures、解密後的測試
 dump 與測試 private key 留在系統暫存目錄供檢查；macOS 透過 cleanup adapter 保留 host
 暫存檔，不執行 production 腳本的永久刪除。清理這些本機檔案時須遵守可復原刪除政策。
