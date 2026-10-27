@@ -30,8 +30,13 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
 - Actions 使用 `actions/checkout@v5`、`actions/setup-node@v6` 與
   `actions/upload-artifact@v6`，其 runtime 為 Node.js 24，最低 runner 版本為
   `v2.327.1`。目前所有 job 使用 GitHub-hosted `ubuntu-latest`。
-- 應用程式的安裝、測試與建置仍使用 `node-version: 22`；這與 Action 自身的
-  runtime 是兩個不同設定。
+- 應用程式的安裝、測試與建置使用 `node-version: '^22.23.4'`，搭配
+  `check-latest: true` 選擇最新可用的穩定 22.x，最低為 22.23.4，不跨到 23.x
+  或更高主要版本。這與 Action 自身的 runtime 是兩個不同設定。
+  明確的修補版下限會排除舊版 runner cache；`check-latest` 則避免只因已有相容
+  cache 就略過新版檢查。沒有符合範圍的版本可取得時，setup 應失敗，不退回未修補版本。
+  此設定涵蓋 CI、Create Release Tag、Production Preflight 與 Deploy Production；
+  它不會修改 Vercel managed runtime 的版本設定。
 - CI、Create Release Tag、Production Preflight 與 Deploy Production 都明確設定
   `package-manager-cache: false`。Node setup 後才執行 `corepack enable`，因此不在
   setup-node 階段啟用需要預先可用 pnpm 的 cache，避免初始化時找不到 pnpm。
@@ -46,6 +51,8 @@ backup 與事故復原請看 [Database Backup and Recovery Runbook](database-bac
 升級依據：[Checkout v5 release notes](https://github.com/actions/checkout/releases/tag/v5.0.0)、
 [Setup Node v6 說明](https://github.com/actions/setup-node/tree/v6#breaking-changes-in-v6)、
 [Upload Artifact v6 release notes](https://github.com/actions/upload-artifact/releases/tag/v6.0.0)。
+Node.js 修補版下限依據 [2026 年 10 月安全公告](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)；
+版本選擇與 cache 行為見 [setup-node 文件](https://github.com/actions/setup-node/tree/v6#supported-version-syntax)。
 Workflow 修改後執行 `actionlint .github/workflows/*.yml`，並在 PR 的 Quality Gate
 檢查實際 runner log，確認沒有 Node.js 20 deprecation／forced Node.js 24 warning。
 
