@@ -114,7 +114,7 @@ export function LedgerRecordCategoryField({
 
             return (
               <label
-                className="group grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-full sm:min-w-0"
+                className="group relative grid w-18 shrink-0 cursor-pointer justify-items-center gap-2 text-center sm:w-full sm:min-w-0"
                 key={category.id}
               >
                 <input
