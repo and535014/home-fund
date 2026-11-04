@@ -35,5 +35,3 @@
 - Google binding 只在 member 尚無 avatar 且 Google 提供 avatar 時補入，不覆蓋既有 avatar。
 - UI 隱藏不能取代 server authorization。
 - App-owned display name 是 UI、records、reports 的主要顯示名稱。
-
-這兩項原有開放問題已由上述現行規則回答；來源與程式證據見 [遷移紀錄](../../docs/work-tracking-migration.md)。

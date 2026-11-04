@@ -2,7 +2,7 @@
 
 ## 用途
 
-這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。新需求與驗收放在 GitHub Issues，交付理由與驗證證據放在 PR；舊需求摘要由 [遷移紀錄](../../docs/work-tracking-migration.md) 的固定 Git commit 追溯。
+這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。新需求與驗收放在 GitHub Issues，交付理由與驗證證據放在 PR；舊需求摘要由 [PR #66 的來源紀錄](https://github.com/and535014/home-fund/pull/66#issuecomment-6624235586) 的固定 Git commit 追溯。
 
 ## Bounded Contexts
 

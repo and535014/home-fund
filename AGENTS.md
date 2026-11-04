@@ -34,7 +34,7 @@ Home Family Fund 是家庭共用金管理工具，主要介面語言為繁體中
 
 - `.ai/domain/` 保存目前仍有效的長期領域語言、規則與 invariants。
 - 涉及角色、權限、款項流動、狀態轉換或跨 bounded context 行為時，先閱讀並同步更新相關領域文件。
-- 新需求、範圍與驗收記錄於 GitHub Issues；交付理由與驗證記錄於 PR。歷史需求摘要已退場，僅由固定 Git commit 追溯，不重建本機 requirements 或平行進度表；來源見 `docs/work-tracking-migration.md`。
+- 新需求、範圍與驗收記錄於 GitHub Issues；交付理由與驗證記錄於 PR。歷史需求摘要已退場，僅由固定 Git commit 追溯，不重建本機 requirements 或平行進度表；歷史來源與退場驗證見 [PR #66](https://github.com/and535014/home-fund/pull/66#issuecomment-6624235586)。
 - mutation 必須在 server boundary 重新驗證登入狀態、household scope、角色／capability 與目標資料狀態；不要信任 client 傳入的 IDs 或 UI state。
 - Reporting 與 search 是 read models，不得成為財務事實或 mutation 授權來源。
 - Ledger、reimbursement 與 recurring posting 的狀態更新若需一致完成，應維持 transaction 邊界。
