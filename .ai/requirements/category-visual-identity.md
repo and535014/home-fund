@@ -1,6 +1,7 @@
 # Category Visual Identity And Ordering
 
-- status: draft
+- status: done
+- status note: Original snapshot said draft; its final result records completed local-dev implementation and verification. This is historical local evidence, not production acceptance.
 - date: 2026-06-21
 - source: .ai/archive/archive-category-visual-identity-2026-06-21.md
 

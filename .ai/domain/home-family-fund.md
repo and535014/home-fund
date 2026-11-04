@@ -40,6 +40,7 @@
 
 ## 開放問題
 
-- 是否允許一個 member 同時具備 admin 和 finance manager 角色。
-- Batch action 是 all-or-nothing，還是允許 partial success。
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
+- 未來是否要變更現行 batch 政策。現行 CSV 為每列 transaction／partial success；batch void 與 reimbursement 會回報 preflight skipped records，實際寫入組在 transaction 中完成，競爭衝突時 rollback。
 - Production 等級 audit 是否需要更完整的 correction history / voiding policy。

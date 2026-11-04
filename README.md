@@ -10,6 +10,15 @@
 請看 [Release Runbook](docs/release-runbook.md)，production database backup 與事故復原請看
 [Database Backup and Recovery Runbook](docs/database-backup-and-recovery.md)。
 
+## 工作追蹤與文件
+
+待辦、範圍、依賴與驗收統一在 [GitHub Issues](https://github.com/and535014/home-fund/issues)；實作完成並驗證後，以 draft PR 交付。
+
+- `AGENTS.md`：工作流程、安全與交付邊界。
+- `.ai/domain/`：現行領域語言、規則與 invariants。
+- `.ai/requirements/`：歷史需求摘要，不能單憑舊 status 或未勾選步驟判斷現行進度。
+- [工作追蹤遷移與原文去向](docs/work-tracking-migration.md)：issue #65 的一次性紀錄。
+
 ## 本機開發
 
 ### 前置需求

@@ -31,10 +31,9 @@
 - 每個 system capability 必須限定可執行的 command 與資料 scope；不能作為繞過 household scope 或 domain invariant 的萬用授權。
 - Disabled member 只保留歷史可讀性，不可再成為新 ledger record、CSV import 或 recurring posting 的財務歸屬對象。
 - Binding invitation / link state 不等於 member availability status。
+- 同一 member 可有多個 roles，包含 admin 與 finance manager；角色更新仍保護最後一位 admin。
+- Google binding 只在 member 尚無 avatar 且 Google 提供 avatar 時補入，不覆蓋既有 avatar。
 - UI 隱藏不能取代 server authorization。
 - App-owned display name 是 UI、records、reports 的主要顯示名稱。
 
-## 開放問題
-
-- Admin 與 finance manager 是否可同時存在於同一 member。
-- Avatar 是每次 login sync，還是首次綁定後複製一次。
+這兩項原有開放問題已由上述現行規則回答；來源與程式證據見 [遷移紀錄](../../docs/work-tracking-migration.md)。

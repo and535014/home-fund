@@ -4,6 +4,10 @@
 - date: 2026-06-19
 - source: .ai/intent/local-google-oauth-login.md, .ai/spec/local-google-oauth-login.md
 
+## 現行工作入口
+
+此歷史摘要未包含完整真實 OAuth smoke 證據；尚未完成時須於 [issue #58](https://github.com/and535014/home-fund/issues/58) 明列，不另開重複登入或 OAuth 驗收票。既有登入實作與 controlled E2E 不等同真實 Google OAuth 驗收。
+
 ## 需求
 
 讓 local development 能用真實 Google OAuth 登入，而不只依賴 controlled E2E auth。目標是驗證 Better Auth Google sign-in、callback、session 與 seeded member mapping 可以在本機實際運作。

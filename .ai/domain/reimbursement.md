@@ -29,7 +29,9 @@
 
 ## 開放問題
 
-- Batch reimbursement 是 all-or-nothing 還是 partial success。
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
+- 未來是否變更 batch reimbursement 政策：現行 preflight 可回報 skipped records，通過的寫入組與 payment evidence 在同一 transaction 完成，競爭衝突會 rollback。
 - Refund record correction 是否需要完整 history rows。
 - Partial reimbursement、split payment、reversal 何時納入。
 - Payment reconciliation import 是否需要獨立流程。

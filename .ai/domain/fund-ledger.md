@@ -7,6 +7,8 @@
 - Expense record 表示家庭支出，payment source 可是 household fund 或 member-paid。
 - Member-paid expense 會讓 expense 進入 reimbursement eligibility。
 - CSV import 是批次建立 ledger records 的 command path，不是新的財務紀錄類型。
+- Creation 對外只暴露 `createManualRecord`、`confirmCsvRows`、`postRecurringOccurrence` 三個 intent-specific entry points；共同 validation、authorization、record construction、reimbursement derivation 與 Prisma projection 留在 private creation kernel。
+- Manual creation 未新增 operation identity；未知結果不得盲目自動重送。
 
 ## Record Lifecycle
 
@@ -39,5 +41,7 @@
 
 ## 開放問題
 
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
 - Production 是否需要完整 correction / void history。
-- CSV duplicate policy、member / category matching ambiguity 如何處理。
+- 若現行手動 member／category mapping 仍有歧義，未來是否需要額外提示；既有 row fingerprint 僅警告與穩定 identity 冪等政策不因這個問題而待定。

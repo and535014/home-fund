@@ -26,5 +26,7 @@
 
 ## 開放問題
 
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
 - Archived category 是否允許在 restore 前修改名稱或 visual identity。
 - 未來是否授權 finance manager 管理 category。

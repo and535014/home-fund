@@ -6,6 +6,14 @@ Home Family Fund 是家庭共用金管理工具，主要介面語言為繁體中
 
 技術棧與本機開發方式以 `README.md` 為準；部署、migration、rollback 與 production smoke 流程以 `docs/deployment.md` 為準。不要在此文件複製那些操作步驟。
 
+## 工作追蹤與交付
+
+- GitHub Issues 是未完工作、範圍、依賴、驗收與結案的唯一任務紀錄；不要另維護本機 TODO、TASKS 或進度清單。
+- 開始前讀指定 issue 與相關 comments，再核對目前程式碼、測試與領域規則。Issue 與現行規則衝突時先回報；提案／調查票不代表已核准實作或 production 操作。
+- 一個可獨立驗收結果預設一個 branch／draft PR；PR 連到對應 issue，只有完整滿足該票驗收時才使用 `Closes #N`。
+- 先完成實作、相關文件同步與適當驗證，再交付 PR；列明未執行的驗證與證據限制。
+- 不因 issue 存在自行 commit、push、merge、tag、deploy、刪除分支或丟棄既存工作；依使用者的明確指示執行。
+
 ## 修改原則
 
 - 修改前先閱讀相關程式碼、測試與領域文件，不要只根據檔名推測行為。

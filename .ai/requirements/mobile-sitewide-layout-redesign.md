@@ -4,6 +4,10 @@
 - date: 2026-06-24
 - source: .ai/archive/archive-mobile-sitewide-layout-redesign-2026-06-24.md
 
+## 現行工作入口
+
+後續驗收由 [issue #47](https://github.com/and535014/home-fund/issues/47) 管理，最新結果、缺口與結案以該票為準，不在此維護進度。舊 `ready_for_review` 僅描述當時 local-dev 交付；本次收到的驗收摘要與證據限制保存在 [一次性遷移紀錄](../../docs/work-tracking-migration.md)。
+
 ## 需求
 
 Redesign authenticated mobile layout sitewide with bottom tab navigation and a mobile FAB while keeping desktop behavior stable.
