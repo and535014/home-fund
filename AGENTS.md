@@ -6,6 +6,14 @@ Home Family Fund 是家庭共用金管理工具，主要介面語言為繁體中
 
 技術棧與本機開發方式以 `README.md` 為準；部署、migration、rollback 與 production smoke 流程以 `docs/deployment.md` 為準。不要在此文件複製那些操作步驟。
 
+## 工作追蹤與交付
+
+- GitHub Issues 是未完工作、範圍、依賴、驗收與結案的唯一任務紀錄；不要另維護本機 TODO、TASKS 或進度清單。
+- 開始前讀指定 issue 與相關 comments，再核對目前程式碼、測試與領域規則。Issue 與現行規則衝突時先回報；提案／調查票不代表已核准實作或 production 操作。
+- 一個可獨立驗收結果預設一個 branch／draft PR；PR 連到對應 issue，只有完整滿足該票驗收時才使用 `Closes #N`。
+- 先完成實作、相關文件同步與適當驗證，再交付 PR；列明未執行的驗證與證據限制。
+- 不因 issue 存在自行 commit、push、merge、tag、deploy、刪除分支或丟棄既存工作；依使用者的明確指示執行。
+
 ## 修改原則
 
 - 修改前先閱讀相關程式碼、測試與領域文件，不要只根據檔名推測行為。
@@ -26,7 +34,7 @@ Home Family Fund 是家庭共用金管理工具，主要介面語言為繁體中
 
 - `.ai/domain/` 保存目前仍有效的長期領域語言、規則與 invariants。
 - 涉及角色、權限、款項流動、狀態轉換或跨 bounded context 行為時，先閱讀並同步更新相關領域文件。
-- `.ai/requirements/` 保存已完成或曾規劃需求的歷史摘要；它可以提供背景，但現行行為仍以程式碼、測試與 `.ai/domain/` 為準。
+- 新需求、範圍與驗收記錄於 GitHub Issues；交付理由與驗證記錄於 PR。歷史需求摘要已退場，僅由固定 Git commit 追溯，不重建本機 requirements 或平行進度表；歷史來源與退場驗證見 [PR #66](https://github.com/and535014/home-fund/pull/66#issuecomment-6624235586)。
 - mutation 必須在 server boundary 重新驗證登入狀態、household scope、角色／capability 與目標資料狀態；不要信任 client 傳入的 IDs 或 UI state。
 - Reporting 與 search 是 read models，不得成為財務事實或 mutation 授權來源。
 - Ledger、reimbursement 與 recurring posting 的狀態更新若需一致完成，應維持 transaction 邊界。

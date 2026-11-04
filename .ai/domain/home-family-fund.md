@@ -2,7 +2,7 @@
 
 ## 用途
 
-這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。歷史需求、交付紀錄、驗證證據與一次性決策放在 `.ai/requirements/`。
+這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。新需求與驗收放在 GitHub Issues，交付理由與驗證證據放在 PR；舊需求摘要由 [PR #66 的來源紀錄](https://github.com/and535014/home-fund/pull/66#issuecomment-6624235586) 的固定 Git commit 追溯。
 
 ## Bounded Contexts
 
@@ -22,7 +22,7 @@
 - `退款紀錄` / reimbursement payment evidence 不是一般 income / expense ledger record，不能影響 ordinary income / expense totals。
 - `提醒入帳` 的 recurring occurrence 在確認前不能進 ledger totals、category totals 或 reimbursement totals；Search 與 dashboard 可將它投影為可辨識的 ledger-compatible display record，但不得讓它進入 ordinary batch mutation。
 - 權限必須在 server / domain command 層重新驗證；UI visibility 只是提示。
-- 歷史紀錄、已完成需求、驗證與 release 細節應保存在 `.ai/requirements/`，不要塞回 domain 檔。
+- 歷史需求與交付證據由 Git／PR 保存，未完工作由 Issues 管理；release 細節由既有 runbooks 與實際 release evidence 保存，不放回 domain 檔。
 
 ## 重要詞彙
 
@@ -40,6 +40,7 @@
 
 ## 開放問題
 
-- 是否允許一個 member 同時具備 admin 和 finance manager 角色。
-- Batch action 是 all-or-nothing，還是允許 partial success。
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
+- 未來是否要變更現行 batch 政策。現行 CSV 為每列 transaction／partial success；batch void 與 reimbursement 會回報 preflight skipped records，實際寫入組在 transaction 中完成，競爭衝突時 rollback。
 - Production 等級 audit 是否需要更完整的 correction history / voiding policy。

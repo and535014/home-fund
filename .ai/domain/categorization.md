@@ -6,7 +6,7 @@
 - Category 有 type：income 或 expense。
 - Active category 可用於新 records。
 - Archived category 不可用於新 records，但歷史 records / reports 仍可讀。
-- Category visual identity 包含 color、icon、sort order。
+- Category visual identity 包含 color、icon、sort order；由 Categorization 擁有，不複製到 ledger record。
 
 ## Lifecycle
 
@@ -25,6 +25,8 @@
 - Unarchive 後 append 到 active order 底部，除非未來另有排序政策。
 
 ## 開放問題
+
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
 
 - Archived category 是否允許在 restore 前修改名稱或 visual identity。
 - 未來是否授權 finance manager 管理 category。

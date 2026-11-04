@@ -13,9 +13,9 @@
 
 1. Recurring event created。
 2. Occurrence generated for target month。
-3. Immediate occurrence posted, or reminder occurrence stays pending。
+3. Event 與 occurrence 先原子建立；immediate posting 再由 `postRecurringOccurrence` 的 transaction 處理，reminder occurrence stays pending。暫時失敗保留 pending 與已建立的 event，不盲目重建 event。
 4. Pending occurrence confirmed。
-5. Recurring event deleted；future occurrences stop，已 posted ledger records 不回寫。
+5. Recurring event deleted；future occurrences stop，該 event 的 pending occurrences 在同一 transaction 標記為 skipped，已 posted ledger records 不回寫。
 
 ## Invariants
 
@@ -36,7 +36,8 @@
 
 ## 開放問題
 
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
 - Missed occurrences 是否要補登。
-- Deleting event 是否取消 pending unposted occurrences。
 - General member 是否能確認只影響自己的 pending item。
 - Production scheduled posting 失敗時的 retry / alert policy。

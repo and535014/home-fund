@@ -10,6 +10,14 @@
 請看 [Release Runbook](docs/release-runbook.md)，production database backup 與事故復原請看
 [Database Backup and Recovery Runbook](docs/database-backup-and-recovery.md)。
 
+## 工作追蹤與文件
+
+待辦、範圍、依賴與驗收統一在 [GitHub Issues](https://github.com/and535014/home-fund/issues)；實作完成並驗證後，以 draft PR 交付。
+
+- `AGENTS.md`：工作流程、安全與交付邊界。
+- `.ai/domain/`：現行領域語言、規則與 invariants。
+- 需求與驗收：GitHub Issues；交付理由與驗證：PR；舊需求摘要由 [PR #66 的來源紀錄](https://github.com/and535014/home-fund/pull/66#issuecomment-6624235586) 中的固定 Git commit 追溯。
+
 ## 本機開發
 
 ### 前置需求

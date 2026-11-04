@@ -18,6 +18,7 @@
 ## Invariants
 
 - Reporting 不能改變 ledger / reimbursement state。
+- Reimbursement status filter 只匹配 member-paid expense；income 與 fund-paid expense 不匹配該 filter。
 - Refund records 不可被 ordinary batch delete / refund actions 選取。
 - Pending recurring occurrence 不可被 ordinary batch delete / reimbursement actions 選取，也不得計入任何 financial totals。
 - Archived categories 可在歷史 records 顯示，但不一定能作為 active filter。
@@ -26,6 +27,7 @@
 
 ## 開放問題
 
-- Reimbursement status filter 遇到 income / fund-paid expenses 時如何呈現。
+以下保留未採納、未排程的討論背景，不代表已批准的實作；未來形成具體工作時才以 GitHub issue 定義範圍與授權。
+
 - Mobile report summaries 的 MVP 優先順序。
 - 年度趨勢未來是否需要 aggregate query。
