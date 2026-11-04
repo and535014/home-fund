@@ -6,7 +6,7 @@
 - Category 有 type：income 或 expense。
 - Active category 可用於新 records。
 - Archived category 不可用於新 records，但歷史 records / reports 仍可讀。
-- Category visual identity 包含 color、icon、sort order。
+- Category visual identity 包含 color、icon、sort order；由 Categorization 擁有，不複製到 ledger record。
 
 ## Lifecycle
 

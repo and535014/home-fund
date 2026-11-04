@@ -21,7 +21,8 @@
 - 類型切換會依目標類型與付款來源重新決定 reimbursement eligibility：income 不具退款資格；fund-paid expense 不可退款；member-paid expense 成為 refundable。已退款支出維持不可修正。
 - 編輯表單切換類型不需二次確認；介面應立即清除不相容欄位並提示重新設定，直到使用者儲存成功才改變 ledger state，取消則不產生任何變更。
 - Voided ledger record 應排除於 active views / totals / refundable calculation，但保留 audit trace。
-- Hard delete 是否可用，需視 production audit policy 決定。
+- 現行單筆與批次刪除都是 voiding transition，不做 physical hard delete；已退款支出不可編輯或刪除，reversal 不在現行流程內。
+- Correction 在 transaction 內更新同一 record ID，保留 recurring occurrence 與 CSV import row 關聯。編輯跨 income / expense 後，即使儲存前切回，也不恢復原分類或專屬欄位；成員支出與基金支出互轉保留支出分類，但付款成員須重新選擇。
 
 ## Invariants
 
@@ -37,6 +38,7 @@
 - CSV import confirm 採 partial success；每列必須獨立 validation，並以自己的 transaction 原子建立 ledger record 與 import trace。
 - CSV import 必須逐列回報 created、rejected 或 already imported；同一次 import 的重送以穩定的 batch identity 與 row identity 保證冪等。
 - CSV row fingerprint 只提示內容可能重複，不得單獨阻止另一筆內容相同但合法的財務事實。
+- CSV import audit 保存檔名、row identity／fingerprint、結果、actor 與建立的 record 關聯，不保存原始 CSV 內容；不直接匯入 reimbursement payment evidence。
 - Disabled member 不可成為新 ledger record 的收入來源或代墊成員；既有歷史 records 仍須可讀。
 
 ## 開放問題

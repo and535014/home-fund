@@ -16,7 +16,7 @@
 
 - `AGENTS.md`：工作流程、安全與交付邊界。
 - `.ai/domain/`：現行領域語言、規則與 invariants。
-- `.ai/requirements/`：歷史需求摘要，不能單憑舊 status 或未勾選步驟判斷現行進度。
+- 需求與驗收：GitHub Issues；交付理由與驗證：PR；舊需求摘要由遷移紀錄中的固定 Git commit 追溯。
 - [工作追蹤遷移與原文去向](docs/work-tracking-migration.md)：issue #65 的一次性紀錄。
 
 ## 本機開發

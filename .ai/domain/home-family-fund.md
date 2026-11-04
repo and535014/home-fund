@@ -2,7 +2,7 @@
 
 ## 用途
 
-這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。歷史需求、交付紀錄、驗證證據與一次性決策放在 `.ai/requirements/`。
+這裡只保留長期 domain 知識：核心語言、bounded context、跨 context 規則、不能破壞的 invariants。新需求與驗收放在 GitHub Issues，交付理由與驗證證據放在 PR；舊需求摘要由 [遷移紀錄](../../docs/work-tracking-migration.md) 的固定 Git commit 追溯。
 
 ## Bounded Contexts
 
@@ -22,7 +22,7 @@
 - `退款紀錄` / reimbursement payment evidence 不是一般 income / expense ledger record，不能影響 ordinary income / expense totals。
 - `提醒入帳` 的 recurring occurrence 在確認前不能進 ledger totals、category totals 或 reimbursement totals；Search 與 dashboard 可將它投影為可辨識的 ledger-compatible display record，但不得讓它進入 ordinary batch mutation。
 - 權限必須在 server / domain command 層重新驗證；UI visibility 只是提示。
-- 歷史紀錄、已完成需求、驗證與 release 細節應保存在 `.ai/requirements/`，不要塞回 domain 檔。
+- 歷史需求與交付證據由 Git／PR 保存，未完工作由 Issues 管理；release 細節由既有 runbooks 與實際 release evidence 保存，不放回 domain 檔。
 
 ## 重要詞彙
 

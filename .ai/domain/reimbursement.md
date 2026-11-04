@@ -4,8 +4,8 @@
 
 - Member-paid expense 是由 member 先代墊的支出。
 - Refundable expense 是尚未 reimbursement 的 member-paid expense。
-- Reimbursed expense 是已記錄 reimbursement payment evidence 的 member-paid expense。
-- Reimbursement payment evidence / `退款紀錄` 是付款證據，不是普通 ledger record。
+- Reimbursed expense 是已完成 reimbursement 結算的 member-paid expense；現行結算會建立 payment evidence，早期資料可能只有結算狀態。
+- Reimbursement payment evidence / `退款紀錄` 是真實世界付款的記錄，不執行銀行轉帳，也不是普通 ledger record。
 - Payment source for reimbursement 在 MVP 固定為 household fund。
 - Payment method 目前限制為 bank transfer、cash、other。
 
@@ -25,7 +25,10 @@
 - Reimbursement payment amount 必須對應 reimbursed expenses total。
 - `退款紀錄` 不能影響 ordinary income / expense totals。
 - Refund record correction 不能改 amount、paid-to member、paid-from source、batch、linked ledger records 或 reimbursed state。
-- Batch reimbursement 初始政策應避免跨 paid-to member，否則一筆 payment evidence 會語意不清。
+- 每一 reimbursement batch 只對應一個 paid-to member；收款成員、金額與 household-fund payment source 由符合資格的支出衍生，不信任 client 傳入的付款歸屬或總額。
+- Batch、payment evidence 與 ledger reimbursement transition 在同一 transaction 完成，競爭衝突時全部 rollback。
+- 既有已退款支出可能沒有 payment evidence；不得為了 readback 虛構退款紀錄。
+- Payment correction 只更正證據，不是 reversal／void／delete；空白備註正規化為 `null`。
 
 ## 開放問題
 
