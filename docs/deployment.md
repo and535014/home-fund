@@ -60,6 +60,20 @@ Quality Gate 另執行 [隔離 Backup Regression](database-backup-and-recovery.m
 使用合成資料與 PostgreSQL 17 Docker container 驗證 backup 腳本完整連線 URL 與失敗
 gates。這不連線 Neon，也不提供 production backup evidence。
 
+## Vercel CLI 的 tar 相容修補
+
+專案保留 `vercel@54.20.0`，以 `package.json` 中限定
+`@vercel/fun@1.3.0>tar` 的 pnpm override 將其固定的 `tar@7.5.7`
+替換為 `7.5.22`；`@mapbox/node-pre-gyp` 的相容範圍也在 lockfile
+解析為 `7.5.22`。兩條路徑共用同一個修補版本，不變更 CLI 或部署指令。
+
+這個例外處理舊上層套件固定受影響版本的限制，避免為修補 tar 直接跨升
+CLI major。版本依據為 [tar recursion DoS 公告](https://github.com/isaacs/node-tar/security/advisories/GHSA-r292-9mhp-454m)
+與 [7.5.22 release](https://github.com/isaacs/node-tar/releases/tag/v7.5.22)。
+日後更新 CLI 時，需重新檢查上層依賴；上層已提供修補版後移除這個 override，
+並驗證 frozen install、實際解析版本、正常 archive 解壓縮及既有 release rehearsal。
+CLI 相容檢查不代表 Vercel production 部署已驗證。
+
 ## 為什麼沒有 Preview
 
 不使用 preview 環境可以降低 MVP 部署複雜度：
