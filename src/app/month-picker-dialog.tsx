@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { formatMonthLabel } from "./month-selection";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -70,6 +70,8 @@ function MonthPickerDialogContent({
   currentMonth,
   hrefPath,
 }: MonthPickerDialogContentProps) {
+  const yearId = useId();
+  const monthId = useId();
   const [currentYear, currentMonthNumber] = currentMonth.split("-");
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthNumber);
@@ -92,9 +94,9 @@ function MonthPickerDialogContent({
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <Field>
-              <FieldLabel>年份</FieldLabel>
+              <FieldLabel htmlFor={yearId}>年份</FieldLabel>
               <Select onValueChange={setSelectedYear} value={selectedYear}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" id={yearId}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -107,9 +109,9 @@ function MonthPickerDialogContent({
               </Select>
             </Field>
             <Field>
-              <FieldLabel>月份</FieldLabel>
+              <FieldLabel htmlFor={monthId}>月份</FieldLabel>
               <Select onValueChange={setSelectedMonth} value={selectedMonth}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" id={monthId}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
